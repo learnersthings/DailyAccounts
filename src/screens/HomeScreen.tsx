@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useThemeColors } from '../hooks/useThemeColors';
-import { View, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import DraggableFlatList, { ScaleDecorator, RenderItemParams } from 'react-native-draggable-flatlist';
 import AppText from '../components/AppText';
 import { useAuthContext } from '../context/AuthContext';
@@ -12,8 +12,9 @@ import AddTransactionModal from '../components/AddTransactionModal';
 
 export default function HomeScreen({ navigation }: any) {
   const colors = useThemeColors();
+  const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
   const { user } = useAuthContext();
-  const { accounts, getAccountBalance, updateAccountOrder } = useTransactionContext();
+  const { accounts, getAccountBalance, updateAccountOrder, deleteAccount } = useTransactionContext();
   const { currency } = useExpenseContext();
 
   const currentHour = new Date().getHours();
@@ -34,13 +35,31 @@ export default function HomeScreen({ navigation }: any) {
     await updateAccountOrder(data);
   };
 
+  const handleDeleteAccount = (accountName: string) => {
+    setActiveDropdown(null);
+    Alert.alert(
+      "Delete Account",
+      `Are you sure you want to delete "${accountName}" and ALL of its transactions? This action cannot be undone.`,
+      [
+        { text: "Cancel", style: "cancel" },
+        { text: "Delete", style: "destructive", onPress: () => deleteAccount(accountName) }
+      ]
+    );
+  };
+
   const renderItem = ({ item: acc, drag, isActive }: RenderItemParams<string>) => {
     const balance = getAccountBalance(acc);
     return (
       <ScaleDecorator>
         <TouchableOpacity
-          style={[styles.card, { backgroundColor: colors.card, elevation: isActive ? 8 : 4 }]}
-          onPress={() => navigation.navigate('AccountTransactions', { account: acc })}
+          style={[styles.card, { backgroundColor: colors.card, elevation: isActive ? 8 : 4, zIndex: activeDropdown === acc ? 100 : 1 }]}
+          onPress={() => {
+            if (activeDropdown) {
+              setActiveDropdown(null);
+            } else {
+              navigation.navigate('AccountTransactions', { account: acc });
+            }
+          }}
           onLongPress={drag}
           activeOpacity={0.8}
         >
@@ -49,7 +68,40 @@ export default function HomeScreen({ navigation }: any) {
               <Ionicons name="card" size={24} color={colors.primary} style={{ marginRight: 8 }} />
               <AppText style={[styles.cardTitle, { color: colors.text }]}>{acc}</AppText>
             </View>
-            <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
+            
+            <View style={{ position: 'relative' }}>
+              <TouchableOpacity 
+                onPress={() => setActiveDropdown(activeDropdown === acc ? null : acc)} 
+                style={{ padding: 4 }}
+              >
+                <Ionicons name="ellipsis-vertical" size={20} color={colors.textMuted} />
+              </TouchableOpacity>
+              
+              {activeDropdown === acc && (
+                <View style={[styles.dropdownMenu, { backgroundColor: colors.surface }]}>
+                  <TouchableOpacity 
+                    style={styles.dropdownItem}
+                    onPress={() => {
+                      setActiveDropdown(null);
+                      navigation.navigate('AccountTransactions', { account: acc });
+                    }}
+                  >
+                    <Ionicons name="eye-outline" size={18} color={colors.text} style={{ marginRight: 8 }} />
+                    <AppText style={{ color: colors.text }}>View</AppText>
+                  </TouchableOpacity>
+                  
+                  <View style={{ height: 1, backgroundColor: colors.border }} />
+
+                  <TouchableOpacity 
+                    style={styles.dropdownItem}
+                    onPress={() => handleDeleteAccount(acc)}
+                  >
+                    <Ionicons name="trash-outline" size={18} color="#ff4444" style={{ marginRight: 8 }} />
+                    <AppText style={{ color: '#ff4444' }}>Delete</AppText>
+                  </TouchableOpacity>
+                </View>
+              )}
+            </View>
           </View>
           <View style={styles.cardBody}>
             <AppText style={styles.balanceLabel}>Available Balance</AppText>
@@ -148,5 +200,24 @@ const styles = StyleSheet.create({
   balanceAmount: {
     fontSize: 28,
     fontWeight: 'bold',
+  },
+  dropdownMenu: {
+    position: 'absolute',
+    top: 30,
+    right: 0,
+    borderRadius: 8,
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    minWidth: 120,
+    zIndex: 1000,
+  },
+  dropdownItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    paddingHorizontal: 16,
   },
 });

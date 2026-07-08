@@ -21,6 +21,7 @@ interface TransactionContextType {
   bulkImportTransactions: (newTransactions: AccountTransaction[]) => Promise<void>;
   reorderTransactionsByDate: (dateStr: string, reorderedDayTransactions: AccountTransaction[]) => Promise<void>;
   updateAccountOrder: (newOrder: string[]) => Promise<void>;
+  deleteAccount: (account: string) => Promise<void>;
   getAccountBalance: (account: string) => number;
   refreshTransactionData: () => Promise<void>;
   isLoading: boolean;
@@ -36,6 +37,7 @@ const TransactionContext = createContext<TransactionContextType>({
   bulkImportTransactions: async () => {},
   reorderTransactionsByDate: async () => {},
   updateAccountOrder: async () => {},
+  deleteAccount: async () => {},
   getAccountBalance: () => 0,
   refreshTransactionData: async () => {},
   isLoading: true,
@@ -174,6 +176,17 @@ export const TransactionProvider: React.FC<{ children: React.ReactNode }> = ({ c
     await AsyncStorage.setItem(orderStorageKey, JSON.stringify(newOrder));
   };
 
+  const deleteAccount = async (account: string) => {
+    const updated = transactions.filter(tx => tx.account !== account);
+    setTransactions(updated);
+    await AsyncStorage.setItem(storageKey, JSON.stringify(updated));
+    
+    // Also remove from accountOrder
+    const newOrder = accountOrder.filter(a => a !== account);
+    setAccountOrder(newOrder);
+    await AsyncStorage.setItem(orderStorageKey, JSON.stringify(newOrder));
+  };
+
   const accounts = useMemo(() => {
     const usedAccounts = new Set(transactions.map(t => t.account));
     const allAccounts = Array.from(usedAccounts);
@@ -203,6 +216,7 @@ export const TransactionProvider: React.FC<{ children: React.ReactNode }> = ({ c
       bulkImportTransactions,
       reorderTransactionsByDate,
       updateAccountOrder,
+      deleteAccount,
       getAccountBalance,
       refreshTransactionData: loadData,
       isLoading
