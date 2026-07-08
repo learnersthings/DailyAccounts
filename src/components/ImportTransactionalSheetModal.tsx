@@ -136,9 +136,6 @@ export default function ImportTransactionalSheetModal({ visible, onClose }: Impo
           const debitAmount = parseFloat(debitStr) || 0;
           const creditAmount = parseFloat(creditStr) || 0;
 
-          // Skip if both Debit and Credit are 0
-          if (debitAmount === 0 && creditAmount === 0) continue;
-
           const dateParts = dateStr.split('-');
           let parsedDate = new Date();
           if (dateParts.length === 3) {
@@ -154,26 +151,37 @@ export default function ImportTransactionalSheetModal({ visible, onClose }: Impo
              }
           }
 
-          if (debitAmount > 0) {
+          if (debitAmount === 0 && creditAmount === 0) {
             newTransactions.push({
-              id: 'tx_d_' + Date.now().toString() + Math.random().toString(),
-              amount: debitAmount,
+              id: 'tx_0_' + Date.now().toString() + Math.random().toString(),
+              amount: 0,
               description: descStr,
               date: parsedDate.toISOString(),
               type: 'Debit',
               account: tab
             });
-          }
-
-          if (creditAmount > 0) {
-            newTransactions.push({
-              id: 'tx_c_' + Date.now().toString() + Math.random().toString(),
-              amount: creditAmount,
-              description: descStr,
-              date: parsedDate.toISOString(),
-              type: 'Credit',
-              account: tab
-            });
+          } else {
+            if (debitAmount > 0) {
+              newTransactions.push({
+                id: 'tx_d_' + Date.now().toString() + Math.random().toString(),
+                amount: debitAmount,
+                description: descStr,
+                date: parsedDate.toISOString(),
+                type: 'Debit',
+                account: tab
+              });
+            }
+            
+            if (creditAmount > 0) {
+              newTransactions.push({
+                id: 'tx_c_' + Date.now().toString() + Math.random().toString(),
+                amount: creditAmount,
+                description: descStr,
+                date: parsedDate.toISOString(),
+                type: 'Credit',
+                account: tab
+              });
+            }
           }
         }
       }
