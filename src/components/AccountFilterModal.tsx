@@ -6,7 +6,7 @@ import AppText from '../components/AppText';
 import { Ionicons } from '@expo/vector-icons';
 import { useThemeContext } from '../context/ThemeContext';
 
-interface BankFilterModalProps {
+interface AccountFilterModalProps {
   visible: boolean;
   onClose: () => void;
   availableYears: number[];
@@ -26,7 +26,7 @@ interface BankFilterModalProps {
 const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const TRANSACTION_TYPES = ['Credit', 'Debit'];
 
-export default function BankFilterModal(props: BankFilterModalProps) {
+export default function AccountFilterModal(props: AccountFilterModalProps) {
   const colors = useThemeColors();
   const { isDarkTheme } = useThemeContext();
 

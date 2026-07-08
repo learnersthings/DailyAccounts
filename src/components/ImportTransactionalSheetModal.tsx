@@ -4,7 +4,7 @@ import { View, TextInput, TouchableOpacity, StyleSheet, Modal, KeyboardAvoidingV
 import AppText from '../components/AppText';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useThemeContext } from '../context/ThemeContext';
-import { useTransactionContext, BankTransaction } from '../context/TransactionContext';
+import { useTransactionContext, AccountTransaction } from '../context/TransactionContext';
 import { Ionicons } from '@expo/vector-icons';
 import Papa from 'papaparse';
 
@@ -100,7 +100,7 @@ export default function ImportTransactionalSheetModal({ visible, onClose }: Impo
     }
 
     try {
-      const newTransactions: BankTransaction[] = [];
+      const newTransactions: AccountTransaction[] = [];
 
       for (const tab of selectedTabs) {
         setProgress(`Fetching ${tab}...`);

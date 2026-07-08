@@ -4,27 +4,27 @@ import { View, StyleSheet, TouchableOpacity, Alert, FlatList, TextInput, Activit
 import AppText from '../components/AppText';
 import { Ionicons } from '@expo/vector-icons';
 import { useThemeContext } from '../context/ThemeContext';
-import { useTransactionContext, BankTransaction } from '../context/TransactionContext';
+import { useTransactionContext, AccountTransaction } from '../context/TransactionContext';
 import { useExpenseContext } from '../context/ExpenseContext';
 import { formatAmount } from '../utils/format';
 import AddTransactionModal from './AddTransactionModal';
-import BankFilterModal from './BankFilterModal';
+import AccountFilterModal from './AccountFilterModal';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system/legacy';
-import { generateBankTransactionsPDFHTML } from '../utils/pdfGenerator';
+import { generateAccountTransactionsPDFHTML } from '../utils/pdfGenerator';
 
-interface BankTransactionListProps {
+interface AccountTransactionListProps {
   accountFilter?: string;
 }
 
-export default function BankTransactionList({ accountFilter }: BankTransactionListProps) {
+export default function AccountTransactionList({ accountFilter }: AccountTransactionListProps) {
   const colors = useThemeColors();
   const { isDarkTheme } = useThemeContext();
   const { transactions, deleteTransaction, bulkDeleteTransactions } = useTransactionContext();
   const { currency, downloadPathUri } = useExpenseContext();
   
-  const [selectedTransaction, setSelectedTransaction] = useState<BankTransaction | null>(null);
+  const [selectedTransaction, setSelectedTransaction] = useState<AccountTransaction | null>(null);
   const [isModalVisible, setIsModalVisible] = useState(false);
   
   const [isSelectMode, setIsSelectMode] = useState(false);
@@ -89,7 +89,7 @@ export default function BankTransactionList({ accountFilter }: BankTransactionLi
     }).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   }, [baseTransactions, searchQuery, selectedYears, selectedMonths, selectedTypes]);
 
-  const handleRowPress = (tx: BankTransaction) => {
+  const handleRowPress = (tx: AccountTransaction) => {
     if (isSelectMode) {
       if (selectedIds.includes(tx.id)) {
         setSelectedIds(selectedIds.filter(id => id !== tx.id));
@@ -133,7 +133,7 @@ export default function BankTransactionList({ accountFilter }: BankTransactionLi
   const handleDownloadPDF = async () => {
     try {
       setIsDownloading(true);
-      const html = generateBankTransactionsPDFHTML(filteredTransactions, currency, accountFilter);
+      const html = generateAccountTransactionsPDFHTML(filteredTransactions, currency, accountFilter);
       const { uri, base64 } = await Print.printToFileAsync({ html, base64: true });
 
       if (downloadPathUri && Platform.OS === 'android') {
@@ -152,7 +152,7 @@ export default function BankTransactionList({ accountFilter }: BankTransactionLi
     }
   };
 
-  const renderItem = ({ item }: { item: BankTransaction }) => {
+  const renderItem = ({ item }: { item: AccountTransaction }) => {
     const isCredit = item.type === 'Credit';
     const isSelected = selectedIds.includes(item.id);
     
@@ -307,7 +307,7 @@ export default function BankTransactionList({ accountFilter }: BankTransactionLi
         onClose={() => setIsModalVisible(false)}
         transactionToEdit={selectedTransaction}
       />
-      <BankFilterModal
+      <AccountFilterModal
         visible={isFilterModalVisible}
         onClose={() => setIsFilterModalVisible(false)}
         availableYears={availableYears}

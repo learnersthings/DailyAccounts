@@ -5,12 +5,12 @@ import AppText from '../components/AppText';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
-import { useTransactionContext, BankTransaction } from '../context/TransactionContext';
+import { useTransactionContext, AccountTransaction } from '../context/TransactionContext';
 
 interface AddTransactionModalProps {
   visible: boolean;
   onClose: () => void;
-  transactionToEdit?: BankTransaction | null;
+  transactionToEdit?: AccountTransaction | null;
   initialAccount?: string;
 }
 

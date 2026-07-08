@@ -2,7 +2,7 @@ import React, { createContext, useState, useContext, useEffect, useMemo } from '
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuthContext } from './AuthContext';
 
-export interface BankTransaction {
+export interface AccountTransaction {
   id: string;
   amount: number;
   description: string;
@@ -12,13 +12,13 @@ export interface BankTransaction {
 }
 
 interface TransactionContextType {
-  transactions: BankTransaction[];
+  transactions: AccountTransaction[];
   accounts: string[];
   addTransaction: (amount: number, description: string, date: Date, type: 'Debit' | 'Credit', account: string) => Promise<void>;
   updateTransaction: (id: string, amount: number, description: string, date: Date, type: 'Debit' | 'Credit', account: string) => Promise<void>;
   deleteTransaction: (id: string) => Promise<void>;
   bulkDeleteTransactions: (ids: string[]) => Promise<void>;
-  bulkImportTransactions: (newTransactions: BankTransaction[]) => Promise<void>;
+  bulkImportTransactions: (newTransactions: AccountTransaction[]) => Promise<void>;
   getAccountBalance: (account: string) => number;
   refreshTransactionData: () => Promise<void>;
   isLoading: boolean;
@@ -42,7 +42,7 @@ export const useTransactionContext = () => useContext(TransactionContext);
 const TRANSACTIONS_KEY = '@app_bank_transactions';
 
 export const TransactionProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [transactions, setTransactions] = useState<BankTransaction[]>([]);
+  const [transactions, setTransactions] = useState<AccountTransaction[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { user } = useAuthContext();
 
@@ -69,7 +69,7 @@ export const TransactionProvider: React.FC<{ children: React.ReactNode }> = ({ c
   }, [storageKey]);
 
   const addTransaction = async (amount: number, description: string, date: Date, type: 'Debit' | 'Credit', account: string) => {
-    const newTx: BankTransaction = {
+    const newTx: AccountTransaction = {
       id: Date.now().toString() + Math.random().toString(),
       amount,
       description,
@@ -102,7 +102,7 @@ export const TransactionProvider: React.FC<{ children: React.ReactNode }> = ({ c
     await AsyncStorage.setItem(storageKey, JSON.stringify(updated));
   };
 
-  const bulkImportTransactions = async (newTransactions: BankTransaction[]) => {
+  const bulkImportTransactions = async (newTransactions: AccountTransaction[]) => {
     // Merge without duplicates based on date, description, amount, type, account
     const merged = [...transactions];
     for (const newTx of newTransactions) {

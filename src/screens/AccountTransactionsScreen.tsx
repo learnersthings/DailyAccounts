@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, TouchableOpacity } from 'react-native';
-import BankTransactionList from '../components/BankTransactionList';
+import AccountTransactionList from '../components/AccountTransactionList';
 import { useThemeColors } from '../hooks/useThemeColors';
 import AppText from '../components/AppText';
 import { Ionicons } from '@expo/vector-icons';
@@ -13,7 +13,7 @@ export default function AccountTransactionsScreen({ route }: any) {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <BankTransactionList accountFilter={account} />
+      <AccountTransactionList accountFilter={account} />
       
       {/* Floating Action Button */}
       <TouchableOpacity

@@ -1,5 +1,5 @@
 import { Expense, Category, PaymentMode } from '../context/ExpenseContext';
-import { BankTransaction } from '../context/TransactionContext';
+import { AccountTransaction } from '../context/TransactionContext';
 import { formatAmount } from './format';
 
 export const generateDashboardPDFHTML = (
@@ -62,8 +62,8 @@ export const generateDashboardPDFHTML = (
   `;
 };
 
-export const generateBankTransactionsPDFHTML = (
-  transactions: BankTransaction[],
+export const generateAccountTransactionsPDFHTML = (
+  transactions: AccountTransaction[],
   currency: string,
   accountName?: string
 ) => {
