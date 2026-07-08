@@ -23,6 +23,8 @@ interface TransactionContextType {
   updateAccountOrder: (newOrder: string[]) => Promise<void>;
   deleteAccount: (account: string) => Promise<void>;
   getAccountBalance: (account: string) => number;
+  excludedFromTotal: string[];
+  toggleAccountInTotal: (account: string) => Promise<void>;
   refreshTransactionData: () => Promise<void>;
   isLoading: boolean;
 }
@@ -39,6 +41,8 @@ const TransactionContext = createContext<TransactionContextType>({
   updateAccountOrder: async () => {},
   deleteAccount: async () => {},
   getAccountBalance: () => 0,
+  excludedFromTotal: [],
+  toggleAccountInTotal: async () => {},
   refreshTransactionData: async () => {},
   isLoading: true,
 });
@@ -50,11 +54,13 @@ const TRANSACTIONS_KEY = '@app_bank_transactions';
 export const TransactionProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [transactions, setTransactions] = useState<AccountTransaction[]>([]);
   const [accountOrder, setAccountOrder] = useState<string[]>([]);
+  const [excludedFromTotal, setExcludedFromTotal] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { user } = useAuthContext();
 
   const storageKey = user ? `${TRANSACTIONS_KEY}_${user.email}` : TRANSACTIONS_KEY;
   const orderStorageKey = user ? `@app_account_order_${user.email}` : '@app_account_order';
+  const excludedStorageKey = user ? `@app_account_excluded_${user.email}` : '@app_account_excluded';
 
   const loadData = async () => {
     try {
@@ -71,6 +77,13 @@ export const TransactionProvider: React.FC<{ children: React.ReactNode }> = ({ c
         setAccountOrder(JSON.parse(storedOrder));
       } else {
         setAccountOrder([]);
+      }
+
+      const storedExcluded = await AsyncStorage.getItem(excludedStorageKey);
+      if (storedExcluded) {
+        setExcludedFromTotal(JSON.parse(storedExcluded));
+      } else {
+        setExcludedFromTotal([]);
       }
     } catch (e) {
       console.error('Failed to load transaction data', e);
@@ -181,10 +194,24 @@ export const TransactionProvider: React.FC<{ children: React.ReactNode }> = ({ c
     setTransactions(updated);
     await AsyncStorage.setItem(storageKey, JSON.stringify(updated));
     
-    // Also remove from accountOrder
     const newOrder = accountOrder.filter(a => a !== account);
     setAccountOrder(newOrder);
     await AsyncStorage.setItem(orderStorageKey, JSON.stringify(newOrder));
+
+    const newExcluded = excludedFromTotal.filter(a => a !== account);
+    setExcludedFromTotal(newExcluded);
+    await AsyncStorage.setItem(excludedStorageKey, JSON.stringify(newExcluded));
+  };
+
+  const toggleAccountInTotal = async (account: string) => {
+    let newExcluded = [...excludedFromTotal];
+    if (newExcluded.includes(account)) {
+      newExcluded = newExcluded.filter(a => a !== account);
+    } else {
+      newExcluded.push(account);
+    }
+    setExcludedFromTotal(newExcluded);
+    await AsyncStorage.setItem(excludedStorageKey, JSON.stringify(newExcluded));
   };
 
   const accounts = useMemo(() => {
@@ -218,6 +245,8 @@ export const TransactionProvider: React.FC<{ children: React.ReactNode }> = ({ c
       updateAccountOrder,
       deleteAccount,
       getAccountBalance,
+      excludedFromTotal,
+      toggleAccountInTotal,
       refreshTransactionData: loadData,
       isLoading
     }}>

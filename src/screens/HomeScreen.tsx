@@ -14,7 +14,7 @@ export default function HomeScreen({ navigation }: any) {
   const colors = useThemeColors();
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
   const { user } = useAuthContext();
-  const { accounts, getAccountBalance, updateAccountOrder, deleteAccount } = useTransactionContext();
+  const { accounts, getAccountBalance, updateAccountOrder, deleteAccount, excludedFromTotal } = useTransactionContext();
   const { currency } = useExpenseContext();
 
   const currentHour = new Date().getHours();
@@ -29,7 +29,9 @@ export default function HomeScreen({ navigation }: any) {
     greeting = 'Hello';
   }
 
-  const totalBalance = accounts.reduce((sum, acc) => sum + getAccountBalance(acc), 0);
+  const totalBalance = accounts
+    .filter(acc => !excludedFromTotal.includes(acc))
+    .reduce((sum, acc) => sum + getAccountBalance(acc), 0);
 
   const handleDragEnd = async ({ data }: { data: string[] }) => {
     await updateAccountOrder(data);

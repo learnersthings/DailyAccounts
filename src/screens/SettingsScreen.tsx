@@ -7,6 +7,7 @@ import { useAuthContext } from '../context/AuthContext';
 import ImportSheetModal from '../components/ImportSheetModal';
 import ImportTransactionalSheetModal from '../components/ImportTransactionalSheetModal';
 import { useExpenseContext } from '../context/ExpenseContext';
+import { useTransactionContext } from '../context/TransactionContext';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as FileSystem from 'expo-file-system/legacy';
@@ -21,7 +22,9 @@ export default function SettingsScreen({ navigation }: any) {
   const [isImportTxModalVisible, setIsImportTxModalVisible] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isAccentExpanded, setIsAccentExpanded] = useState(false);
+  const [isTotalBalanceExpanded, setIsTotalBalanceExpanded] = useState(false);
   const { currency, refreshExpenseData, downloadPathUri, updateDownloadPath, backupPathUri, updateBackupPath, analyticsChartType } = useExpenseContext();
+  const { accounts, excludedFromTotal, toggleAccountInTotal } = useTransactionContext();
 
   const handleSetDownloadPath = async () => {
     if (Platform.OS !== 'android') {
@@ -297,6 +300,45 @@ export default function SettingsScreen({ navigation }: any) {
           </View>
           <Ionicons name="chevron-forward" size={20} color={colors.text} />
         </TouchableOpacity>
+        <View style={styles.divider} />
+        <TouchableOpacity
+          style={styles.row}
+          onPress={() => setIsTotalBalanceExpanded(!isTotalBalanceExpanded)}
+        >
+          <View style={styles.rowLeft}>
+            <Ionicons name="calculator-outline" size={22} color={colors.primary} style={styles.icon} />
+            <AppText style={[styles.text, { color: colors.text }]}>Include in Total Balance</AppText>
+          </View>
+          <Ionicons name={isTotalBalanceExpanded ? "chevron-up" : "chevron-down"} size={20} color={colors.text} />
+        </TouchableOpacity>
+        
+        {isTotalBalanceExpanded && (
+          <View style={{ paddingHorizontal: 16, paddingBottom: 16 }}>
+            <AppText style={{ color: colors.textMuted, fontSize: 13, marginBottom: 12 }}>
+              Select which accounts should be included in the Total Balance card on the Home screen.
+            </AppText>
+            {accounts.map(acc => {
+              const isIncluded = !excludedFromTotal.includes(acc);
+              return (
+                <View key={acc} style={[styles.row, { paddingVertical: 8, paddingHorizontal: 0 }]}>
+                  <View style={styles.rowLeft}>
+                    <Ionicons name="card-outline" size={20} color={colors.text} style={styles.icon} />
+                    <AppText style={[styles.text, { color: colors.text }]}>{acc}</AppText>
+                  </View>
+                  <Switch
+                    value={isIncluded}
+                    onValueChange={() => toggleAccountInTotal(acc)}
+                    trackColor={{ false: '#767577', true: colors.primary }}
+                    thumbColor={isIncluded ? '#fff' : '#f4f3f4'}
+                  />
+                </View>
+              );
+            })}
+            {accounts.length === 0 && (
+              <AppText style={{ color: colors.textMuted, fontStyle: 'italic', marginTop: 8 }}>No accounts available.</AppText>
+            )}
+          </View>
+        )}
       </View>
 
       <View style={[styles.group, { backgroundColor: colors.card }]}>
