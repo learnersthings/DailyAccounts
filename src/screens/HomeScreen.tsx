@@ -27,6 +27,8 @@ export default function HomeScreen({ navigation }: any) {
     greeting = 'Hello';
   }
 
+  const totalBalance = accounts.reduce((sum, acc) => sum + getAccountBalance(acc), 0);
+
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={styles.header}>
@@ -36,6 +38,23 @@ export default function HomeScreen({ navigation }: any) {
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
+        {accounts.length > 0 && (
+          <View style={[styles.card, { backgroundColor: colors.primary, marginBottom: 24 }]}>
+            <View style={styles.cardHeader}>
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <Ionicons name="wallet" size={24} color="#fff" style={{ marginRight: 8 }} />
+                <AppText style={[styles.cardTitle, { color: '#fff' }]}>Total Balance</AppText>
+              </View>
+            </View>
+            <View style={styles.cardBody}>
+              <AppText style={[styles.balanceLabel, { color: 'rgba(255,255,255,0.8)' }]}>Overall Available Balance</AppText>
+              <AppText style={[styles.balanceAmount, { color: '#fff', fontSize: 32 }]}>
+                {currency}{formatAmount(totalBalance)}
+              </AppText>
+            </View>
+          </View>
+        )}
+
         {accounts.map(acc => {
           const balance = getAccountBalance(acc);
           return (
