@@ -200,8 +200,8 @@ export default function AddTransactionModal({ visible, onClose, transactionToEdi
               </TouchableOpacity>
             </View>
 
-            {/* Only show Account selector if there is no initialAccount locked in */}
-            {!initialAccount && (
+            {/* Only show Account selector if there is no initialAccount locked in and we are not editing an existing transaction */}
+            {(!initialAccount && !transactionToEdit) && (
               <View style={styles.inputWrapper}>
                 <AppText style={styles.label}>Account</AppText>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.categoryScroll}>
