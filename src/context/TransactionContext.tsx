@@ -23,6 +23,7 @@ interface TransactionContextType {
   updateAccountOrder: (newOrder: string[]) => Promise<void>;
   deleteAccount: (account: string) => Promise<void>;
   getAccountBalance: (account: string) => number;
+  getAccountStats: (account: string) => { balance: number; totalCredit: number; totalDebit: number };
   excludedFromTotal: string[];
   toggleAccountInTotal: (account: string) => Promise<void>;
   refreshTransactionData: () => Promise<void>;
@@ -41,6 +42,7 @@ const TransactionContext = createContext<TransactionContextType>({
   updateAccountOrder: async () => {},
   deleteAccount: async () => {},
   getAccountBalance: () => 0,
+  getAccountStats: () => ({ balance: 0, totalCredit: 0, totalDebit: 0 }),
   excludedFromTotal: [],
   toggleAccountInTotal: async () => {},
   refreshTransactionData: async () => {},
@@ -180,8 +182,23 @@ export const TransactionProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
   const getAccountBalance = (account: string) => {
     return transactions
-      .filter(tx => tx.account === account)
-      .reduce((sum, tx) => tx.type === 'Credit' ? sum + tx.amount : sum - tx.amount, 0);
+      .filter(t => t.account === account)
+      .reduce((sum, t) => sum + (t.type === 'Credit' ? t.amount : -t.amount), 0);
+  };
+
+  const getAccountStats = (account: string) => {
+    return transactions
+      .filter(t => t.account === account)
+      .reduce((acc, t) => {
+        if (t.type === 'Credit') {
+          acc.totalCredit += t.amount;
+          acc.balance += t.amount;
+        } else {
+          acc.totalDebit += t.amount;
+          acc.balance -= t.amount;
+        }
+        return acc;
+      }, { balance: 0, totalCredit: 0, totalDebit: 0 });
   };
 
   const updateAccountOrder = async (newOrder: string[]) => {
@@ -245,6 +262,7 @@ export const TransactionProvider: React.FC<{ children: React.ReactNode }> = ({ c
       updateAccountOrder,
       deleteAccount,
       getAccountBalance,
+      getAccountStats,
       excludedFromTotal,
       toggleAccountInTotal,
       refreshTransactionData: loadData,
