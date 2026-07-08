@@ -5,6 +5,7 @@ import AppText from '../components/AppText';
 import { useThemeContext, ACCENT_COLORS } from '../context/ThemeContext';
 import { useAuthContext } from '../context/AuthContext';
 import ImportSheetModal from '../components/ImportSheetModal';
+import ImportTransactionalSheetModal from '../components/ImportTransactionalSheetModal';
 import { useExpenseContext } from '../context/ExpenseContext';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -17,6 +18,7 @@ export default function SettingsScreen({ navigation }: any) {
   const { isDarkTheme, toggleTheme, refreshTheme, accentColor, setAccentColor } = useThemeContext();
   const { logout, refreshAuth, user } = useAuthContext();
   const [isImportModalVisible, setIsImportModalVisible] = useState(false);
+  const [isImportTxModalVisible, setIsImportTxModalVisible] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isAccentExpanded, setIsAccentExpanded] = useState(false);
   const { currency, refreshExpenseData, downloadPathUri, updateDownloadPath, backupPathUri, updateBackupPath, analyticsChartType } = useExpenseContext();
@@ -311,6 +313,17 @@ export default function SettingsScreen({ navigation }: any) {
         </TouchableOpacity>
         <View style={styles.divider} />
         <TouchableOpacity
+          style={styles.row}
+          onPress={() => setIsImportTxModalVisible(true)}
+        >
+          <View style={styles.rowLeft}>
+            <Ionicons name="layers-outline" size={22} color={colors.primary} style={styles.icon} />
+            <AppText style={[styles.text, { color: colors.text }]}>Import Transactional Data</AppText>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color={colors.text} />
+        </TouchableOpacity>
+        <View style={styles.divider} />
+        <TouchableOpacity
           style={[styles.row, { opacity: isProcessing ? 0.5 : 1 }]}
           onPress={handleBackup}
           disabled={isProcessing}
@@ -402,6 +415,11 @@ export default function SettingsScreen({ navigation }: any) {
       <ImportSheetModal
         visible={isImportModalVisible}
         onClose={() => setIsImportModalVisible(false)}
+      />
+      
+      <ImportTransactionalSheetModal
+        visible={isImportTxModalVisible}
+        onClose={() => setIsImportTxModalVisible(false)}
       />
     </ScrollView>
   );

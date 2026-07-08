@@ -5,7 +5,7 @@ import AppText from '../components/AppText';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import DashboardScreen from '../screens/DashboardScreen';
-import HomeScreen from '../screens/HomeScreen';
+import HomeStack from './HomeStack';
 import TransactionsScreen from '../screens/TransactionsScreen';
 import AnalyticsScreen from '../screens/AnalyticsScreen';
 import SettingsStack from './SettingsStack';
@@ -69,7 +69,7 @@ export default function BottomTabs() {
         },
       })}
     >
-      <Tab.Screen name="Home" component={HomeScreen} />
+      <Tab.Screen name="Home" component={HomeStack} />
       <Tab.Screen name="Dashboard" component={DashboardScreen} />
       <Tab.Screen name="Transactions" component={TransactionsScreen} />
       <Tab.Screen name="Analytics" component={AnalyticsScreen} />
