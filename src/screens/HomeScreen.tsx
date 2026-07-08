@@ -187,7 +187,7 @@ export default function HomeScreen({ navigation }: any) {
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={styles.header}>
         <AppText style={[styles.greetingText, { color: colors.text }]}>
-          {greeting}, {user?.firstName || 'User'}!
+          {greeting}, {user?.firstName || 'User'}{user?.lastName ? ` ${user.lastName}` : ''}!
         </AppText>
       </View>
 
