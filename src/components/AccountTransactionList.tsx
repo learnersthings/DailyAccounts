@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useThemeColors } from '../hooks/useThemeColors';
-import { View, StyleSheet, TouchableOpacity, Alert, FlatList, TextInput, ActivityIndicator, Platform } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, Alert, TextInput, ActivityIndicator, Platform } from 'react-native';
+import DraggableFlatList, { ScaleDecorator, RenderItemParams } from 'react-native-draggable-flatlist';
 import AppText from '../components/AppText';
 import { Ionicons } from '@expo/vector-icons';
 import { useThemeContext } from '../context/ThemeContext';
@@ -21,7 +22,7 @@ interface AccountTransactionListProps {
 export default function AccountTransactionList({ accountFilter }: AccountTransactionListProps) {
   const colors = useThemeColors();
   const { isDarkTheme } = useThemeContext();
-  const { transactions, deleteTransaction, bulkDeleteTransactions } = useTransactionContext();
+  const { transactions, deleteTransaction, bulkDeleteTransactions, reorderTransactionsByDate } = useTransactionContext();
   const { currency, downloadPathUri } = useExpenseContext();
   
   const [selectedTransaction, setSelectedTransaction] = useState<AccountTransaction | null>(null);
@@ -37,6 +38,9 @@ export default function AccountTransactionList({ accountFilter }: AccountTransac
   const [selectedMonths, setSelectedMonths] = useState<number[]>([]);
   const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
   const [isDownloading, setIsDownloading] = useState(false);
+
+  const [flatDataState, setFlatDataState] = useState<AccountTransaction[]>([]);
+  const draggedItemDateRef = React.useRef<string | null>(null);
 
   // Compute available filter options
   const baseTransactions = useMemo(() => {
@@ -88,6 +92,53 @@ export default function AccountTransactionList({ accountFilter }: AccountTransac
       return true;
     }).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   }, [baseTransactions, searchQuery, selectedYears, selectedMonths, selectedTypes]);
+
+  React.useEffect(() => {
+    setFlatDataState(filteredTransactions);
+  }, [filteredTransactions]);
+
+  const handleDragEnd = async ({ data, from, to }: { data: AccountTransaction[], from: number, to: number }) => {
+    const draggedDate = draggedItemDateRef.current;
+    if (!draggedDate) return;
+    
+    if (from !== to) {
+      let crossedDifferentDate = false;
+      const minIdx = Math.min(from, to);
+      const maxIdx = Math.max(from, to);
+      
+      for (let i = minIdx; i <= maxIdx; i++) {
+        if (i === to) continue;
+        const item = data[i];
+        if (new Date(item.date).toDateString() !== draggedDate) {
+          crossedDifferentDate = true;
+          break;
+        }
+      }
+
+      if (crossedDifferentDate) {
+        setFlatDataState(data);
+        Alert.alert(
+          "Invalid Move", 
+          "You can only reorder transactions within the same date.",
+          [
+            {
+              text: "OK",
+              onPress: () => {
+                setFlatDataState([...filteredTransactions]);
+                draggedItemDateRef.current = null;
+              }
+            }
+          ]
+        );
+        return;
+      }
+    }
+
+    setFlatDataState(data);
+    const reorderedDayTransactions = data.filter(item => new Date(item.date).toDateString() === draggedDate);
+    await reorderTransactionsByDate(draggedDate, reorderedDayTransactions);
+    draggedItemDateRef.current = null;
+  };
 
   const handleRowPress = (tx: AccountTransaction) => {
     if (isSelectMode) {
@@ -152,42 +203,48 @@ export default function AccountTransactionList({ accountFilter }: AccountTransac
     }
   };
 
-  const renderItem = ({ item }: { item: AccountTransaction }) => {
-    const isCredit = item.type === 'Credit';
-    const isSelected = selectedIds.includes(item.id);
+  const renderItem = ({ item: tx, drag, isActive }: RenderItemParams<AccountTransaction>) => {
+    const isCredit = tx.type === 'Credit';
+    const isSelected = selectedIds.includes(tx.id);
     
     return (
-      <TouchableOpacity
-        style={[styles.expenseRow, { backgroundColor: isSelected ? colors.surface : colors.card, elevation: isSelected ? 4 : 0 }]}
-        onPress={() => handleRowPress(item)}
-        activeOpacity={0.8}
-      >
-        <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
-          {isSelectMode && (
-            <View style={[styles.checkbox, { borderColor: colors.primary, backgroundColor: isSelected ? colors.primary : 'transparent' }]}>
-              {isSelected && <Ionicons name="checkmark" size={16} color="#fff" />}
+      <ScaleDecorator>
+        <TouchableOpacity
+          style={[styles.expenseRow, { backgroundColor: isSelected ? colors.surface : colors.card, elevation: isSelected ? 4 : (isActive ? 8 : 0) }]}
+          onPress={() => handleRowPress(tx)}
+          onLongPress={() => {
+            draggedItemDateRef.current = new Date(tx.date).toDateString();
+            drag();
+          }}
+          activeOpacity={0.8}
+        >
+          <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+            {isSelectMode && (
+              <View style={[styles.checkbox, { borderColor: colors.primary, backgroundColor: isSelected ? colors.primary : 'transparent' }]}>
+                {isSelected && <Ionicons name="checkmark" size={16} color="#fff" />}
+              </View>
+            )}
+            <View style={[styles.expenseIcon, { backgroundColor: isCredit ? '#00C851' : '#ff4444' }]}>
+              <Ionicons name={isCredit ? "arrow-down" : "arrow-up"} size={20} color="#fff" />
             </View>
-          )}
-          <View style={[styles.expenseIcon, { backgroundColor: isCredit ? '#00C851' : '#ff4444' }]}>
-            <Ionicons name={isCredit ? "arrow-down" : "arrow-up"} size={20} color="#fff" />
-          </View>
-          <View style={{ flex: 1, paddingRight: 10 }}>
-            <AppText style={[styles.expenseDesc, { color: colors.text }]} numberOfLines={1}>{item.description}</AppText>
-            <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
-              <AppText style={styles.expenseDate}>{new Date(item.date).toLocaleDateString()}</AppText>
-              {!accountFilter && (
-                <>
-                  <AppText style={styles.dotSeparator}>•</AppText>
-                  <AppText style={[styles.accountText, { color: colors.primary }]} numberOfLines={1}>{item.account}</AppText>
-                </>
-              )}
+            <View style={{ flex: 1, paddingRight: 10 }}>
+              <AppText style={[styles.expenseDesc, { color: colors.text }]} numberOfLines={1}>{tx.description}</AppText>
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
+                <AppText style={styles.expenseDate}>{new Date(tx.date).toLocaleDateString()}</AppText>
+                {!accountFilter && (
+                  <>
+                    <AppText style={styles.dotSeparator}>•</AppText>
+                    <AppText style={[styles.accountText, { color: colors.primary }]} numberOfLines={1}>{tx.account}</AppText>
+                  </>
+                )}
+              </View>
             </View>
           </View>
-        </View>
-        <AppText style={[styles.expenseAmount, { color: isCredit ? '#00C851' : '#ff4444' }]}>
-          {isCredit ? '+' : '-'}{currency}{formatAmount(item.amount)}
-        </AppText>
-      </TouchableOpacity>
+          <AppText style={[styles.expenseAmount, { color: isCredit ? '#00C851' : '#ff4444' }]}>
+            {isCredit ? '+' : '-'}{currency}{formatAmount(tx.amount)}
+          </AppText>
+        </TouchableOpacity>
+      </ScaleDecorator>
     );
   };
 
@@ -290,12 +347,14 @@ export default function AccountTransactionList({ accountFilter }: AccountTransac
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <FlatList
-        data={filteredTransactions}
+      <DraggableFlatList
+        data={flatDataState}
         keyExtractor={item => item.id}
         renderItem={renderItem}
+        onDragEnd={handleDragEnd}
         ListHeaderComponent={listHeader}
         contentContainerStyle={styles.scrollContent}
+        activationDistance={20}
         ListEmptyComponent={
           <View style={styles.emptyState}>
             <AppText style={styles.emptyStateText}>No transactions found.</AppText>

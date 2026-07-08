@@ -19,6 +19,7 @@ interface TransactionContextType {
   deleteTransaction: (id: string) => Promise<void>;
   bulkDeleteTransactions: (ids: string[]) => Promise<void>;
   bulkImportTransactions: (newTransactions: AccountTransaction[]) => Promise<void>;
+  reorderTransactionsByDate: (dateStr: string, reorderedDayTransactions: AccountTransaction[]) => Promise<void>;
   getAccountBalance: (account: string) => number;
   refreshTransactionData: () => Promise<void>;
   isLoading: boolean;
@@ -32,6 +33,7 @@ const TransactionContext = createContext<TransactionContextType>({
   deleteTransaction: async () => {},
   bulkDeleteTransactions: async () => {},
   bulkImportTransactions: async () => {},
+  reorderTransactionsByDate: async () => {},
   getAccountBalance: () => 0,
   refreshTransactionData: async () => {},
   isLoading: true,
@@ -125,6 +127,28 @@ export const TransactionProvider: React.FC<{ children: React.ReactNode }> = ({ c
     await AsyncStorage.setItem(storageKey, JSON.stringify(merged));
   };
 
+  const reorderTransactionsByDate = async (dateStr: string, reorderedDayTransactions: AccountTransaction[]) => {
+    const otherTransactions = transactions.filter(t => new Date(t.date).toDateString() !== dateStr);
+    
+    const baseDate = new Date(dateStr);
+    
+    const updatedReordered = reorderedDayTransactions.map((tx, index) => {
+      const newDate = new Date(baseDate);
+      newDate.setHours(23, 59, 59, 0);
+      newDate.setSeconds(newDate.getSeconds() - index);
+      
+      return {
+        ...tx,
+        date: newDate.toISOString(),
+      };
+    });
+
+    const newTransactions = [...updatedReordered, ...otherTransactions];
+    newTransactions.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    setTransactions(newTransactions);
+    await AsyncStorage.setItem(storageKey, JSON.stringify(newTransactions));
+  };
+
   const getAccountBalance = (account: string) => {
     return transactions
       .filter(tx => tx.account === account)
@@ -145,6 +169,7 @@ export const TransactionProvider: React.FC<{ children: React.ReactNode }> = ({ c
       deleteTransaction,
       bulkDeleteTransactions,
       bulkImportTransactions,
+      reorderTransactionsByDate,
       getAccountBalance,
       refreshTransactionData: loadData,
       isLoading
