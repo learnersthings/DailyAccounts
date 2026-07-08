@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { useThemeColors } from '../hooks/useThemeColors';
 import { View, StyleSheet, TouchableOpacity, Alert, TextInput, ActivityIndicator, Platform } from 'react-native';
 import DraggableFlatList, { ScaleDecorator, RenderItemParams } from 'react-native-draggable-flatlist';
@@ -14,6 +14,82 @@ import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system/legacy';
 import { generateAccountTransactionsPDFHTML } from '../utils/pdfGenerator';
+
+interface TransactionListItemProps {
+  tx: AccountTransaction;
+  drag: () => void;
+  isActive: boolean;
+  isSelected: boolean;
+  isSelectMode: boolean;
+  colors: any;
+  currency: string;
+  accountFilter?: string;
+  handleRowPress: (tx: AccountTransaction) => void;
+  draggedItemDateRef: React.MutableRefObject<string | null>;
+}
+
+const TransactionListItem = React.memo(({
+  tx,
+  drag,
+  isActive,
+  isSelected,
+  isSelectMode,
+  colors,
+  currency,
+  accountFilter,
+  handleRowPress,
+  draggedItemDateRef,
+}: TransactionListItemProps) => {
+  const isCredit = tx.type === 'Credit';
+  return (
+    <ScaleDecorator>
+      <TouchableOpacity
+        style={[styles.expenseRow, { backgroundColor: isSelected ? colors.surface : colors.card, elevation: isSelected ? 4 : (isActive ? 8 : 0) }]}
+        onPress={() => handleRowPress(tx)}
+        onLongPress={() => {
+          draggedItemDateRef.current = new Date(tx.date).toDateString();
+          drag();
+        }}
+        activeOpacity={0.8}
+      >
+        <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+          {isSelectMode && (
+            <View style={[styles.checkbox, { borderColor: colors.primary, backgroundColor: isSelected ? colors.primary : 'transparent' }]}>
+              {isSelected && <Ionicons name="checkmark" size={16} color="#fff" />}
+            </View>
+          )}
+          <View style={[styles.expenseIcon, { backgroundColor: isCredit ? '#00C851' : '#ff4444' }]}>
+            <Ionicons name={isCredit ? "arrow-down" : "arrow-up"} size={20} color="#fff" />
+          </View>
+          <View style={{ flex: 1, paddingRight: 10 }}>
+            <AppText style={[styles.expenseDesc, { color: colors.text }]} numberOfLines={1}>{tx.description}</AppText>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
+              <AppText style={styles.expenseDate}>{new Date(tx.date).toLocaleDateString()}</AppText>
+              {!accountFilter && (
+                <>
+                  <AppText style={styles.dotSeparator}>•</AppText>
+                  <AppText style={[styles.accountText, { color: colors.primary }]} numberOfLines={1}>{tx.account}</AppText>
+                </>
+              )}
+            </View>
+          </View>
+        </View>
+        <AppText style={[styles.expenseAmount, { color: isCredit ? '#00C851' : '#ff4444' }]}>
+          {isCredit ? '+' : '-'}{currency}{formatAmount(tx.amount)}
+        </AppText>
+      </TouchableOpacity>
+    </ScaleDecorator>
+  );
+}, (prevProps, nextProps) => {
+  return (
+    prevProps.tx === nextProps.tx &&
+    prevProps.isActive === nextProps.isActive &&
+    prevProps.isSelected === nextProps.isSelected &&
+    prevProps.isSelectMode === nextProps.isSelectMode &&
+    prevProps.currency === nextProps.currency &&
+    prevProps.accountFilter === nextProps.accountFilter
+  );
+});
 
 interface AccountTransactionListProps {
   accountFilter?: string;
@@ -141,18 +217,17 @@ export default function AccountTransactionList({ accountFilter }: AccountTransac
     draggedItemDateRef.current = null;
   };
 
-  const handleRowPress = (tx: AccountTransaction) => {
-    if (isSelectMode) {
-      if (selectedIds.includes(tx.id)) {
-        setSelectedIds(selectedIds.filter(id => id !== tx.id));
-      } else {
-        setSelectedIds([...selectedIds, tx.id]);
-      }
+  const isSelectModeRef = useRef(isSelectMode);
+  useEffect(() => { isSelectModeRef.current = isSelectMode; }, [isSelectMode]);
+
+  const handleRowPress = useCallback((tx: AccountTransaction) => {
+    if (isSelectModeRef.current) {
+      setSelectedIds(prev => prev.includes(tx.id) ? prev.filter(id => id !== tx.id) : [...prev, tx.id]);
     } else {
       setSelectedTransaction(tx);
       setIsModalVisible(true);
     }
-  };
+  }, []);
 
   const handleSelectAll = () => {
     const currentlyDisplayedIds = flatDataState.map(t => t.id);
@@ -205,50 +280,22 @@ export default function AccountTransactionList({ accountFilter }: AccountTransac
     }
   };
 
-  const renderItem = ({ item: tx, drag, isActive }: RenderItemParams<AccountTransaction>) => {
-    const isCredit = tx.type === 'Credit';
-    const isSelected = selectedIds.includes(tx.id);
-    
+  const renderItem = useCallback(({ item: tx, drag, isActive }: RenderItemParams<AccountTransaction>) => {
     return (
-      <ScaleDecorator>
-        <TouchableOpacity
-          style={[styles.expenseRow, { backgroundColor: isSelected ? colors.surface : colors.card, elevation: isSelected ? 4 : (isActive ? 8 : 0) }]}
-          onPress={() => handleRowPress(tx)}
-          onLongPress={() => {
-            draggedItemDateRef.current = new Date(tx.date).toDateString();
-            drag();
-          }}
-          activeOpacity={0.8}
-        >
-          <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
-            {isSelectMode && (
-              <View style={[styles.checkbox, { borderColor: colors.primary, backgroundColor: isSelected ? colors.primary : 'transparent' }]}>
-                {isSelected && <Ionicons name="checkmark" size={16} color="#fff" />}
-              </View>
-            )}
-            <View style={[styles.expenseIcon, { backgroundColor: isCredit ? '#00C851' : '#ff4444' }]}>
-              <Ionicons name={isCredit ? "arrow-down" : "arrow-up"} size={20} color="#fff" />
-            </View>
-            <View style={{ flex: 1, paddingRight: 10 }}>
-              <AppText style={[styles.expenseDesc, { color: colors.text }]} numberOfLines={1}>{tx.description}</AppText>
-              <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
-                <AppText style={styles.expenseDate}>{new Date(tx.date).toLocaleDateString()}</AppText>
-                {!accountFilter && (
-                  <>
-                    <AppText style={styles.dotSeparator}>•</AppText>
-                    <AppText style={[styles.accountText, { color: colors.primary }]} numberOfLines={1}>{tx.account}</AppText>
-                  </>
-                )}
-              </View>
-            </View>
-          </View>
-          <AppText style={[styles.expenseAmount, { color: isCredit ? '#00C851' : '#ff4444' }]}>
-            {isCredit ? '+' : '-'}{currency}{formatAmount(tx.amount)}
-          </AppText>
-        </TouchableOpacity>
-      </ScaleDecorator>
+      <TransactionListItem
+        tx={tx}
+        drag={drag}
+        isActive={isActive}
+        isSelected={selectedIds.includes(tx.id)}
+        isSelectMode={isSelectMode}
+        colors={colors}
+        currency={currency}
+        accountFilter={accountFilter}
+        handleRowPress={handleRowPress}
+        draggedItemDateRef={draggedItemDateRef}
+      />
     );
-  };
+  }, [selectedIds, isSelectMode, colors, currency, accountFilter, handleRowPress]);
 
   const listHeader = (
     <View style={{ marginBottom: 16 }}>
@@ -357,6 +404,11 @@ export default function AccountTransactionList({ accountFilter }: AccountTransac
         ListHeaderComponent={listHeader}
         contentContainerStyle={styles.scrollContent}
         activationDistance={20}
+        initialNumToRender={15}
+        maxToRenderPerBatch={15}
+        windowSize={5}
+        updateCellsBatchingPeriod={30}
+        removeClippedSubviews={Platform.OS === 'android'}
         ListEmptyComponent={
           <View style={styles.emptyState}>
             <AppText style={styles.emptyStateText}>No transactions found.</AppText>
