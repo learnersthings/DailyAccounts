@@ -38,6 +38,7 @@ export default function AccountTransactionList({ accountFilter }: AccountTransac
   const [selectedMonths, setSelectedMonths] = useState<number[]>([]);
   const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [displayCount, setDisplayCount] = useState(50);
 
   const [flatDataState, setFlatDataState] = useState<AccountTransaction[]>([]);
   const draggedItemDateRef = React.useRef<string | null>(null);
@@ -94,8 +95,8 @@ export default function AccountTransactionList({ accountFilter }: AccountTransac
   }, [baseTransactions, searchQuery, selectedYears, selectedMonths, selectedTypes]);
 
   React.useEffect(() => {
-    setFlatDataState(filteredTransactions);
-  }, [filteredTransactions]);
+    setFlatDataState(filteredTransactions.slice(0, displayCount));
+  }, [filteredTransactions, displayCount]);
 
   const handleDragEnd = async ({ data, from, to }: { data: AccountTransaction[], from: number, to: number }) => {
     const draggedDate = draggedItemDateRef.current;
@@ -154,10 +155,11 @@ export default function AccountTransactionList({ accountFilter }: AccountTransac
   };
 
   const handleSelectAll = () => {
-    if (selectedIds.length === filteredTransactions.length && filteredTransactions.length > 0) {
+    const currentlyDisplayedIds = flatDataState.map(t => t.id);
+    if (selectedIds.length === currentlyDisplayedIds.length && currentlyDisplayedIds.length > 0) {
       setSelectedIds([]);
     } else {
-      setSelectedIds(filteredTransactions.map(t => t.id));
+      setSelectedIds(currentlyDisplayedIds);
     }
   };
 
@@ -317,11 +319,11 @@ export default function AccountTransactionList({ accountFilter }: AccountTransac
       )}
 
       {/* ACTION BAR FOR SELECTION */}
-      {isSelectMode && filteredTransactions.length > 0 && (
+      {isSelectMode && flatDataState.length > 0 && (
         <View style={styles.bulkActions}>
           <TouchableOpacity onPress={handleSelectAll} style={{ flexDirection: 'row', alignItems: 'center' }}>
             <Ionicons
-              name={selectedIds.length === filteredTransactions.length && filteredTransactions.length > 0 ? "checkmark-circle" : "ellipse-outline"}
+              name={selectedIds.length === flatDataState.length && flatDataState.length > 0 ? "checkmark-circle" : "ellipse-outline"}
               size={22}
               color={colors.primary}
             />
@@ -359,6 +361,17 @@ export default function AccountTransactionList({ accountFilter }: AccountTransac
           <View style={styles.emptyState}>
             <AppText style={styles.emptyStateText}>No transactions found.</AppText>
           </View>
+        }
+        ListFooterComponent={
+          filteredTransactions.length > displayCount ? (
+            <TouchableOpacity
+              style={[styles.loadMoreButton, { backgroundColor: isDarkTheme ? '#2a2a2a' : '#f0f0f0' }]}
+              onPress={() => setDisplayCount(prev => prev + 50)}
+            >
+              <AppText style={[styles.loadMoreText, { color: colors.primary }]}>Load More</AppText>
+              <Ionicons name="chevron-down" size={16} color={colors.primary} />
+            </TouchableOpacity>
+          ) : null
         }
       />
       <AddTransactionModal
@@ -491,5 +504,19 @@ const styles = StyleSheet.create({
   expenseAmount: {
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  loadMoreButton: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderRadius: 12,
+    marginTop: 8,
+    marginBottom: 12,
+  },
+  loadMoreText: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    marginRight: 4,
   },
 });
