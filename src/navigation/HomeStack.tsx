@@ -17,9 +17,6 @@ export default function HomeStack() {
       screenOptions={{ 
         headerStyle: {
           backgroundColor: colors.card,
-          elevation: 0,
-          shadowOpacity: 0,
-          borderBottomWidth: 0,
         },
         headerTintColor: colors.text,
         headerShadowVisible: false,

@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useThemeColors } from '../hooks/useThemeColors';
-import { View, StyleSheet, TouchableOpacity, Alert, FlatList } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, Alert, FlatList, TextInput, ActivityIndicator, Platform } from 'react-native';
 import AppText from '../components/AppText';
 import { Ionicons } from '@expo/vector-icons';
 import { useThemeContext } from '../context/ThemeContext';
@@ -8,6 +8,11 @@ import { useTransactionContext, BankTransaction } from '../context/TransactionCo
 import { useExpenseContext } from '../context/ExpenseContext';
 import { formatAmount } from '../utils/format';
 import AddTransactionModal from './AddTransactionModal';
+import BankFilterModal from './BankFilterModal';
+import * as Print from 'expo-print';
+import * as Sharing from 'expo-sharing';
+import * as FileSystem from 'expo-file-system/legacy';
+import { generateBankTransactionsPDFHTML } from '../utils/pdfGenerator';
 
 interface BankTransactionListProps {
   accountFilter?: string;
@@ -17,7 +22,7 @@ export default function BankTransactionList({ accountFilter }: BankTransactionLi
   const colors = useThemeColors();
   const { isDarkTheme } = useThemeContext();
   const { transactions, deleteTransaction, bulkDeleteTransactions } = useTransactionContext();
-  const { currency } = useExpenseContext();
+  const { currency, downloadPathUri } = useExpenseContext();
   
   const [selectedTransaction, setSelectedTransaction] = useState<BankTransaction | null>(null);
   const [isModalVisible, setIsModalVisible] = useState(false);
@@ -25,10 +30,64 @@ export default function BankTransactionList({ accountFilter }: BankTransactionLi
   const [isSelectMode, setIsSelectMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
-  const filteredTransactions = useMemo(() => {
+  // Search and Filter States
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isFilterModalVisible, setIsFilterModalVisible] = useState(false);
+  const [selectedYears, setSelectedYears] = useState<number[]>([]);
+  const [selectedMonths, setSelectedMonths] = useState<number[]>([]);
+  const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
+  const [isDownloading, setIsDownloading] = useState(false);
+
+  // Compute available filter options
+  const baseTransactions = useMemo(() => {
     if (!accountFilter) return transactions;
     return transactions.filter(t => t.account === accountFilter);
   }, [transactions, accountFilter]);
+
+  const availableYears = useMemo(() => {
+    const years = new Set(baseTransactions.map(e => new Date(e.date).getFullYear()));
+    return Array.from(years).sort((a, b) => b - a);
+  }, [baseTransactions]);
+
+  const availableMonths = useMemo(() => {
+    const months = new Set(baseTransactions.map(e => new Date(e.date).getMonth()));
+    return Array.from(months).sort((a, b) => a - b);
+  }, [baseTransactions]);
+
+  const filteredTransactions = useMemo(() => {
+    return baseTransactions.filter(tx => {
+      // Filter by Search Query
+      if (searchQuery) {
+        const query = searchQuery.toLowerCase();
+        const matchDesc = tx.description.toLowerCase().includes(query);
+        const matchAmt = formatAmount(tx.amount).includes(query);
+        const matchDate = new Date(tx.date).toLocaleDateString().toLowerCase().includes(query);
+
+        if (!matchDesc && !matchAmt && !matchDate) {
+          return false;
+        }
+      }
+
+      // Filter by Year
+      const txYear = new Date(tx.date).getFullYear();
+      if (selectedYears.length > 0 && !selectedYears.includes(txYear)) {
+        return false;
+      }
+
+      // Filter by Month
+      const txMonth = new Date(tx.date).getMonth();
+      if (selectedMonths.length > 0 && !selectedMonths.includes(txMonth)) {
+        return false;
+      }
+
+      // Filter by Type
+      if (selectedTypes.length > 0 && !selectedTypes.includes(tx.type)) {
+        return false;
+      }
+
+      return true;
+    }).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  }, [baseTransactions, searchQuery, selectedYears, selectedMonths, selectedTypes]);
 
   const handleRowPress = (tx: BankTransaction) => {
     if (isSelectMode) {
@@ -71,6 +130,28 @@ export default function BankTransactionList({ accountFilter }: BankTransactionLi
     );
   };
 
+  const handleDownloadPDF = async () => {
+    try {
+      setIsDownloading(true);
+      const html = generateBankTransactionsPDFHTML(filteredTransactions, currency, accountFilter);
+      const { uri, base64 } = await Print.printToFileAsync({ html, base64: true });
+
+      if (downloadPathUri && Platform.OS === 'android') {
+        const fileUri = await FileSystem.StorageAccessFramework.createFileAsync(downloadPathUri, `Bank_Transactions_${accountFilter ? accountFilter : 'All'}_${new Date().getTime()}.pdf`, 'application/pdf');
+        if (base64) {
+          await FileSystem.writeAsStringAsync(fileUri, base64, { encoding: FileSystem.EncodingType.Base64 });
+          Alert.alert('Success', 'PDF saved automatically to your chosen download folder.');
+        }
+      } else {
+        await Sharing.shareAsync(uri, { UTI: '.pdf', mimeType: 'application/pdf' });
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Failed to generate or save PDF report.');
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
   const renderItem = ({ item }: { item: BankTransaction }) => {
     const isCredit = item.type === 'Credit';
     const isSelected = selectedIds.includes(item.id);
@@ -111,45 +192,100 @@ export default function BankTransactionList({ accountFilter }: BankTransactionLi
   };
 
   const listHeader = (
-    <>
+    <View style={{ marginBottom: 16 }}>
       {filteredTransactions.length > 0 && (
-        <View style={styles.headerBar}>
-          {!isSelectMode ? (
+        <View style={styles.searchFilterContainer}>
+          <View style={[styles.searchBar, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <Ionicons name="search" size={20} color={colors.textMuted} style={styles.searchIcon} />
+            <TextInput
+              style={[styles.searchInput, { color: colors.text }]}
+              placeholder="Search transactions..."
+              placeholderTextColor={colors.textMuted}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+            />
+            {searchQuery.length > 0 && (
+              <TouchableOpacity onPress={() => setSearchQuery('')}>
+                <Ionicons name="close-circle" size={20} color={colors.textMuted} />
+              </TouchableOpacity>
+            )}
+          </View>
+
+          <>
+            <TouchableOpacity
+              style={[styles.filterButton, { backgroundColor: colors.surface, borderColor: colors.border, marginRight: 10 }]}
+              onPress={handleDownloadPDF}
+              disabled={isDownloading}
+            >
+              {isDownloading ? (
+                <ActivityIndicator size="small" color={colors.text} />
+              ) : (
+                <Ionicons name="download-outline" size={22} color={colors.text} />
+              )}
+            </TouchableOpacity>
+            
             <TouchableOpacity
               style={[styles.filterButton, { backgroundColor: colors.surface, borderColor: colors.border }]}
-              onPress={() => setIsSelectMode(true)}
+              onPress={() => setIsFilterModalVisible(true)}
             >
-              <Ionicons name="checkmark-circle-outline" size={22} color={colors.text} />
-              <AppText style={{ marginLeft: 8, color: colors.text, fontWeight: '600' }}>Select</AppText>
+              <Ionicons
+                name="options-outline"
+                size={22}
+                color={(selectedYears.length > 0 || selectedMonths.length > 0 || selectedTypes.length > 0) ? colors.primary : colors.text}
+              />
+              {(selectedYears.length > 0 || selectedMonths.length > 0 || selectedTypes.length > 0) && (
+                <View style={[styles.filterBadge, { backgroundColor: colors.primary }]} />
+              )}
             </TouchableOpacity>
-          ) : (
-            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', flex: 1 }}>
-              <TouchableOpacity onPress={handleSelectAll} style={{ flexDirection: 'row', alignItems: 'center' }}>
-                <Ionicons
-                  name={selectedIds.length === filteredTransactions.length && filteredTransactions.length > 0 ? "checkmark-circle" : "ellipse-outline"}
-                  size={22}
-                  color={colors.primary}
-                />
-                <AppText style={{ marginLeft: 8, color: colors.primary, fontWeight: '600' }}>Select All</AppText>
-              </TouchableOpacity>
 
-              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                <TouchableOpacity onPress={() => { setIsSelectMode(false); setSelectedIds([]); }} style={{ marginRight: 16 }}>
-                  <AppText style={{ color: colors.textMuted, fontWeight: '500' }}>Cancel</AppText>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  onPress={handleDeleteSelected}
-                  disabled={selectedIds.length === 0}
-                  style={{ opacity: selectedIds.length === 0 ? 0.5 : 1 }}
-                >
-                  <AppText style={{ color: '#ff4444', fontWeight: '600' }}>Delete ({selectedIds.length})</AppText>
-                </TouchableOpacity>
-              </View>
-            </View>
-          )}
+            <TouchableOpacity
+              style={[styles.filterButton, { backgroundColor: colors.surface, borderColor: colors.border, marginLeft: 10 }]}
+              onPress={() => {
+                if (isSelectMode) {
+                  setIsSelectMode(false);
+                  setSelectedIds([]);
+                } else {
+                  setIsSelectMode(true);
+                }
+              }}
+            >
+              <Ionicons
+                name={isSelectMode ? "checkmark-circle" : "checkmark-circle-outline"}
+                size={22}
+                color={isSelectMode ? colors.primary : colors.text}
+              />
+            </TouchableOpacity>
+          </>
         </View>
       )}
-    </>
+
+      {/* ACTION BAR FOR SELECTION */}
+      {isSelectMode && filteredTransactions.length > 0 && (
+        <View style={styles.bulkActions}>
+          <TouchableOpacity onPress={handleSelectAll} style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <Ionicons
+              name={selectedIds.length === filteredTransactions.length && filteredTransactions.length > 0 ? "checkmark-circle" : "ellipse-outline"}
+              size={22}
+              color={colors.primary}
+            />
+            <AppText style={{ marginLeft: 8, color: colors.primary, fontWeight: '600' }}>Select All</AppText>
+          </TouchableOpacity>
+
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <TouchableOpacity onPress={() => { setIsSelectMode(false); setSelectedIds([]); }} style={{ marginRight: 16 }}>
+              <AppText style={{ color: colors.textMuted, fontWeight: '500' }}>Cancel</AppText>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={handleDeleteSelected}
+              disabled={selectedIds.length === 0}
+              style={{ opacity: selectedIds.length === 0 ? 0.5 : 1 }}
+            >
+              <AppText style={{ color: '#ff4444', fontWeight: '600' }}>Delete ({selectedIds.length})</AppText>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
+    </View>
   );
 
   return (
@@ -171,6 +307,18 @@ export default function BankTransactionList({ accountFilter }: BankTransactionLi
         onClose={() => setIsModalVisible(false)}
         transactionToEdit={selectedTransaction}
       />
+      <BankFilterModal
+        visible={isFilterModalVisible}
+        onClose={() => setIsFilterModalVisible(false)}
+        availableYears={availableYears}
+        availableMonths={availableMonths}
+        selectedYears={selectedYears}
+        setSelectedYears={setSelectedYears}
+        selectedMonths={selectedMonths}
+        setSelectedMonths={setSelectedMonths}
+        selectedTypes={selectedTypes}
+        setSelectedTypes={setSelectedTypes}
+      />
     </View>
   );
 }
@@ -183,19 +331,51 @@ const styles = StyleSheet.create({
     padding: 20,
     paddingBottom: 100,
   },
-  headerBar: {
+  searchFilterContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16,
-    paddingHorizontal: 4,
+    marginBottom: 4,
+  },
+  searchBar: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    height: 44,
+    marginRight: 10,
+  },
+  searchIcon: {
+    marginRight: 8,
+  },
+  searchInput: {
+    flex: 1,
+    height: '100%',
+    fontSize: 16,
   },
   filterButton: {
-    flexDirection: 'row',
+    width: 44,
     height: 44,
-    paddingHorizontal: 16,
     borderRadius: 12,
     borderWidth: 1,
+    justifyContent: 'center',
     alignItems: 'center',
+  },
+  filterBadge: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  bulkActions: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+    paddingHorizontal: 8,
   },
   emptyState: {
     padding: 20,
