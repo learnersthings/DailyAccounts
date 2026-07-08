@@ -7,6 +7,7 @@ interface PremiumCardBackgroundProps {
   children: React.ReactNode;
   color: string;
   style?: StyleProp<ViewStyle>;
+  variant?: 'default' | 'reversed';
 }
 
 // Maps base accent colors to rich, multi-hue gradients
@@ -33,8 +34,9 @@ const getVibrantGradient = (hex: string): readonly [string, string, ...string[]]
   return map[hex.toUpperCase()] || [hex, hex, hex];
 };
 
-export default function PremiumCardBackground({ children, color, style }: PremiumCardBackgroundProps) {
-  const gradientColors = getVibrantGradient(color);
+export default function PremiumCardBackground({ children, color, style, variant = 'default' }: PremiumCardBackgroundProps) {
+  const baseGradient = getVibrantGradient(color);
+  const gradientColors = (variant === 'reversed' ? [...baseGradient].reverse() : baseGradient) as readonly [string, string, ...string[]];
 
   return (
     <View style={[styles.container, style, { shadowColor: color }]}>
@@ -45,7 +47,7 @@ export default function PremiumCardBackground({ children, color, style }: Premiu
         style={styles.gradient}
       >
         {/* Abstract SVG Waves Overlay */}
-        <View style={StyleSheet.absoluteFillObject}>
+        <View style={[StyleSheet.absoluteFillObject, variant === 'reversed' && { transform: [{ scaleX: -1 }] }]}>
           <Svg height="100%" width="100%" viewBox="0 0 400 200" preserveAspectRatio="none">
             {/* Bottom flowing waves */}
             <Path d="M-50 250 C 100 100, 200 300, 450 50" stroke="rgba(255,255,255,0.25)" strokeWidth="1" fill="none" />

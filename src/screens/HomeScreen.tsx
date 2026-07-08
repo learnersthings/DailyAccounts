@@ -9,6 +9,7 @@ import { useExpenseContext } from '../context/ExpenseContext';
 import { Ionicons } from '@expo/vector-icons';
 import { formatAmount } from '../utils/format';
 import AddTransactionModal from '../components/AddTransactionModal';
+import PremiumCardBackground from '../components/PremiumCardBackground';
 
 export default function HomeScreen({ navigation }: any) {
   const colors = useThemeColors();
@@ -63,7 +64,7 @@ export default function HomeScreen({ navigation }: any) {
     return (
       <ScaleDecorator>
         <TouchableOpacity
-          style={[styles.card, { backgroundColor: colors.card, elevation: isActive ? 8 : 4, zIndex: activeDropdown === acc ? 100 : 1 }]}
+          style={[isActive && { transform: [{ scale: 1.05 }], elevation: 8, zIndex: activeDropdown === acc ? 100 : 1 }]}
           onPress={() => {
             if (activeDropdown) {
               setActiveDropdown(null);
@@ -74,78 +75,80 @@ export default function HomeScreen({ navigation }: any) {
           onLongPress={drag}
           activeOpacity={0.8}
         >
-          <View style={styles.cardHeader}>
-            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-              <Ionicons name="card" size={24} color={colors.primary} style={{ marginRight: 8 }} />
-              <AppText style={[styles.cardTitle, { color: colors.text }]}>{acc}</AppText>
+          <PremiumCardBackground color={colors.primary}>
+            <View style={styles.cardHeader}>
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <Ionicons name="card" size={24} color="#fff" style={{ marginRight: 8 }} />
+                <AppText style={[styles.cardTitle, { color: '#fff' }]}>{acc}</AppText>
+              </View>
+
+              <View style={{ position: 'relative' }}>
+                <TouchableOpacity
+                  onPress={() => setActiveDropdown(activeDropdown === acc ? null : acc)}
+                  style={{ padding: 4 }}
+                >
+                  <Ionicons name="ellipsis-vertical" size={20} color="rgba(255,255,255,0.7)" />
+                </TouchableOpacity>
+
+                {activeDropdown === acc && (
+                  <View style={[styles.dropdownMenu, { backgroundColor: colors.surface }]}>
+                    <TouchableOpacity
+                      style={styles.dropdownItem}
+                      onPress={() => {
+                        setActiveDropdown(null);
+                        navigation.navigate('AccountTransactions', { account: acc });
+                      }}
+                    >
+                      <Ionicons name="eye-outline" size={18} color={colors.text} style={{ marginRight: 8 }} />
+                      <AppText style={{ color: colors.text }}>View</AppText>
+                    </TouchableOpacity>
+
+                    <View style={{ height: 1, backgroundColor: colors.border }} />
+
+                    <TouchableOpacity
+                      style={styles.dropdownItem}
+                      onPress={() => handleDeleteAccount(acc)}
+                    >
+                      <Ionicons name="trash-outline" size={18} color="#ff4444" style={{ marginRight: 8 }} />
+                      <AppText style={{ color: '#ff4444' }}>Delete</AppText>
+                    </TouchableOpacity>
+                  </View>
+                )}
+              </View>
             </View>
+            <View style={styles.cardBody}>
+              <AppText style={[styles.balanceLabel, { color: 'rgba(255,255,255,0.8)' }]}>Available Balance</AppText>
+              <AppText style={[styles.balanceAmount, { color: '#fff' }]}>
+                {currency}{formatAmount(stats.balance)}
+              </AppText>
 
-            <View style={{ position: 'relative' }}>
-              <TouchableOpacity
-                onPress={() => setActiveDropdown(activeDropdown === acc ? null : acc)}
-                style={{ padding: 4 }}
-              >
-                <Ionicons name="ellipsis-vertical" size={20} color={colors.textMuted} />
-              </TouchableOpacity>
-
-              {activeDropdown === acc && (
-                <View style={[styles.dropdownMenu, { backgroundColor: colors.surface }]}>
-                  <TouchableOpacity
-                    style={styles.dropdownItem}
-                    onPress={() => {
-                      setActiveDropdown(null);
-                      navigation.navigate('AccountTransactions', { account: acc });
-                    }}
-                  >
-                    <Ionicons name="eye-outline" size={18} color={colors.text} style={{ marginRight: 8 }} />
-                    <AppText style={{ color: colors.text }}>View</AppText>
-                  </TouchableOpacity>
-
-                  <View style={{ height: 1, backgroundColor: colors.border }} />
-
-                  <TouchableOpacity
-                    style={styles.dropdownItem}
-                    onPress={() => handleDeleteAccount(acc)}
-                  >
-                    <Ionicons name="trash-outline" size={18} color="#ff4444" style={{ marginRight: 8 }} />
-                    <AppText style={{ color: '#ff4444' }}>Delete</AppText>
-                  </TouchableOpacity>
+              {showCardStats && (
+                <View style={{ flexDirection: 'row', marginTop: 16, paddingTop: 16, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.2)' }}>
+                  <View style={{ flex: 1 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
+                      <Ionicons name="arrow-down-circle" size={16} color="#4CAF50" style={{ marginRight: 4 }} />
+                      <AppText style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)' }}>CREDIT</AppText>
+                    </View>
+                    <AppText style={{ fontSize: 16, fontWeight: 'bold', color: '#4CAF50' }}>{currency}{formatAmount(stats.totalCredit)}</AppText>
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
+                      <Ionicons name="arrow-up-circle" size={16} color="#F44336" style={{ marginRight: 4 }} />
+                      <AppText style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)' }}>DEBIT</AppText>
+                    </View>
+                    <AppText style={{ fontSize: 16, fontWeight: 'bold', color: '#F44336' }}>{currency}{formatAmount(stats.totalDebit)}</AppText>
+                  </View>
                 </View>
               )}
             </View>
-          </View>
-          <View style={styles.cardBody}>
-            <AppText style={styles.balanceLabel}>Available Balance</AppText>
-            <AppText style={[styles.balanceAmount, { color: stats.balance >= 0 ? colors.text : '#ff4444' }]}>
-              {currency}{formatAmount(stats.balance)}
-            </AppText>
-
-            {showCardStats && (
-              <View style={{ flexDirection: 'row', marginTop: 16, paddingTop: 16, borderTopWidth: 1, borderTopColor: colors.border }}>
-                <View style={{ flex: 1 }}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
-                    <Ionicons name="arrow-down-circle" size={16} color="#4CAF50" style={{ marginRight: 4 }} />
-                    <AppText style={{ fontSize: 12, color: colors.textMuted }}>CREDIT</AppText>
-                  </View>
-                  <AppText style={{ fontSize: 16, fontWeight: 'bold', color: '#4CAF50' }}>{currency}{formatAmount(stats.totalCredit)}</AppText>
-                </View>
-                <View style={{ flex: 1 }}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
-                    <Ionicons name="arrow-up-circle" size={16} color="#F44336" style={{ marginRight: 4 }} />
-                    <AppText style={{ fontSize: 12, color: colors.textMuted }}>DEBIT</AppText>
-                  </View>
-                  <AppText style={{ fontSize: 16, fontWeight: 'bold', color: '#F44336' }}>{currency}{formatAmount(stats.totalDebit)}</AppText>
-                </View>
-              </View>
-            )}
-          </View>
+          </PremiumCardBackground>
         </TouchableOpacity>
       </ScaleDecorator>
     );
   };
 
   const listHeader = accounts.length > 0 ? (
-    <View style={[styles.card, { backgroundColor: colors.primary, marginBottom: 24 }]}>
+    <PremiumCardBackground color={colors.primary} style={{ marginBottom: 24 }}>
       <View style={styles.cardHeader}>
         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
           <Ionicons name="wallet" size={24} color="#fff" style={{ marginRight: 8 }} />
@@ -162,22 +165,22 @@ export default function HomeScreen({ navigation }: any) {
           <View style={{ flexDirection: 'row', marginTop: 16, paddingTop: 16, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.2)' }}>
             <View style={{ flex: 1 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
-                <Ionicons name="arrow-down-circle" size={16} color="rgba(255,255,255,0.9)" style={{ marginRight: 4 }} />
+                <Ionicons name="arrow-down-circle" size={16} color="#4CAF50" style={{ marginRight: 4 }} />
                 <AppText style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)' }}>TOTAL CREDIT</AppText>
               </View>
-              <AppText style={{ fontSize: 16, fontWeight: 'bold', color: '#fff' }}>{currency}{formatAmount(totalCredit)}</AppText>
+              <AppText style={{ fontSize: 16, fontWeight: 'bold', color: '#4CAF50' }}>{currency}{formatAmount(totalCredit)}</AppText>
             </View>
             <View style={{ flex: 1 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
-                <Ionicons name="arrow-up-circle" size={16} color="rgba(255,255,255,0.9)" style={{ marginRight: 4 }} />
+                <Ionicons name="arrow-up-circle" size={16} color="#F44336" style={{ marginRight: 4 }} />
                 <AppText style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)' }}>TOTAL DEBIT</AppText>
               </View>
-              <AppText style={{ fontSize: 16, fontWeight: 'bold', color: '#fff' }}>{currency}{formatAmount(totalDebit)}</AppText>
+              <AppText style={{ fontSize: 16, fontWeight: 'bold', color: '#F44336' }}>{currency}{formatAmount(totalDebit)}</AppText>
             </View>
           </View>
         )}
       </View>
-    </View>
+    </PremiumCardBackground>
   ) : null;
 
   return (
