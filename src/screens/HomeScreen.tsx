@@ -14,7 +14,7 @@ export default function HomeScreen({ navigation }: any) {
   const colors = useThemeColors();
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
   const { user } = useAuthContext();
-  const { accounts, getAccountStats, updateAccountOrder, deleteAccount, excludedFromTotal } = useTransactionContext();
+  const { accounts, getAccountStats, updateAccountOrder, deleteAccount, excludedFromTotal, showCardStats } = useTransactionContext();
   const { currency } = useExpenseContext();
 
   const currentHour = new Date().getHours();
@@ -120,22 +120,24 @@ export default function HomeScreen({ navigation }: any) {
               {currency}{formatAmount(stats.balance)}
             </AppText>
 
-            <View style={{ flexDirection: 'row', marginTop: 16, paddingTop: 16, borderTopWidth: 1, borderTopColor: colors.border }}>
-              <View style={{ flex: 1 }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
-                  <Ionicons name="arrow-down-circle" size={16} color="#4CAF50" style={{ marginRight: 4 }} />
-                  <AppText style={{ fontSize: 12, color: colors.textMuted }}>CREDIT</AppText>
+            {showCardStats && (
+              <View style={{ flexDirection: 'row', marginTop: 16, paddingTop: 16, borderTopWidth: 1, borderTopColor: colors.border }}>
+                <View style={{ flex: 1 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
+                    <Ionicons name="arrow-down-circle" size={16} color="#4CAF50" style={{ marginRight: 4 }} />
+                    <AppText style={{ fontSize: 12, color: colors.textMuted }}>CREDIT</AppText>
+                  </View>
+                  <AppText style={{ fontSize: 16, fontWeight: 'bold', color: '#4CAF50' }}>{currency}{formatAmount(stats.totalCredit)}</AppText>
                 </View>
-                <AppText style={{ fontSize: 16, fontWeight: 'bold', color: '#4CAF50' }}>{currency}{formatAmount(stats.totalCredit)}</AppText>
-              </View>
-              <View style={{ flex: 1 }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
-                  <Ionicons name="arrow-up-circle" size={16} color="#F44336" style={{ marginRight: 4 }} />
-                  <AppText style={{ fontSize: 12, color: colors.textMuted }}>DEBIT</AppText>
+                <View style={{ flex: 1 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
+                    <Ionicons name="arrow-up-circle" size={16} color="#F44336" style={{ marginRight: 4 }} />
+                    <AppText style={{ fontSize: 12, color: colors.textMuted }}>DEBIT</AppText>
+                  </View>
+                  <AppText style={{ fontSize: 16, fontWeight: 'bold', color: '#F44336' }}>{currency}{formatAmount(stats.totalDebit)}</AppText>
                 </View>
-                <AppText style={{ fontSize: 16, fontWeight: 'bold', color: '#F44336' }}>{currency}{formatAmount(stats.totalDebit)}</AppText>
               </View>
-            </View>
+            )}
           </View>
         </TouchableOpacity>
       </ScaleDecorator>
@@ -156,22 +158,24 @@ export default function HomeScreen({ navigation }: any) {
           {currency}{formatAmount(totalBalance)}
         </AppText>
 
-        <View style={{ flexDirection: 'row', marginTop: 16, paddingTop: 16, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.2)' }}>
-          <View style={{ flex: 1 }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
-              <Ionicons name="arrow-down-circle" size={16} color="rgba(255,255,255,0.9)" style={{ marginRight: 4 }} />
-              <AppText style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)' }}>TOTAL CREDIT</AppText>
+        {showCardStats && (
+          <View style={{ flexDirection: 'row', marginTop: 16, paddingTop: 16, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.2)' }}>
+            <View style={{ flex: 1 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
+                <Ionicons name="arrow-down-circle" size={16} color="rgba(255,255,255,0.9)" style={{ marginRight: 4 }} />
+                <AppText style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)' }}>TOTAL CREDIT</AppText>
+              </View>
+              <AppText style={{ fontSize: 16, fontWeight: 'bold', color: '#fff' }}>{currency}{formatAmount(totalCredit)}</AppText>
             </View>
-            <AppText style={{ fontSize: 16, fontWeight: 'bold', color: '#fff' }}>{currency}{formatAmount(totalCredit)}</AppText>
-          </View>
-          <View style={{ flex: 1 }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
-              <Ionicons name="arrow-up-circle" size={16} color="rgba(255,255,255,0.9)" style={{ marginRight: 4 }} />
-              <AppText style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)' }}>TOTAL DEBIT</AppText>
+            <View style={{ flex: 1 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
+                <Ionicons name="arrow-up-circle" size={16} color="rgba(255,255,255,0.9)" style={{ marginRight: 4 }} />
+                <AppText style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)' }}>TOTAL DEBIT</AppText>
+              </View>
+              <AppText style={{ fontSize: 16, fontWeight: 'bold', color: '#fff' }}>{currency}{formatAmount(totalDebit)}</AppText>
             </View>
-            <AppText style={{ fontSize: 16, fontWeight: 'bold', color: '#fff' }}>{currency}{formatAmount(totalDebit)}</AppText>
           </View>
-        </View>
+        )}
       </View>
     </View>
   ) : null;

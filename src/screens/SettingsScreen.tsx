@@ -24,7 +24,7 @@ export default function SettingsScreen({ navigation }: any) {
   const [isAccentExpanded, setIsAccentExpanded] = useState(false);
   const [isTotalBalanceExpanded, setIsTotalBalanceExpanded] = useState(false);
   const { currency, refreshExpenseData, downloadPathUri, updateDownloadPath, backupPathUri, updateBackupPath, analyticsChartType } = useExpenseContext();
-  const { accounts, excludedFromTotal, toggleAccountInTotal, refreshTransactionData } = useTransactionContext();
+  const { accounts, excludedFromTotal, toggleAccountInTotal, refreshTransactionData, showCardStats, toggleShowCardStats } = useTransactionContext();
 
   const handleSetDownloadPath = async () => {
     if (Platform.OS !== 'android') {
@@ -312,7 +312,7 @@ export default function SettingsScreen({ navigation }: any) {
           </View>
           <Ionicons name={isTotalBalanceExpanded ? "chevron-up" : "chevron-down"} size={20} color={colors.text} />
         </TouchableOpacity>
-        
+
         {isTotalBalanceExpanded && (
           <View style={{ paddingHorizontal: 16, paddingBottom: 16 }}>
             <AppText style={{ color: colors.textMuted, fontSize: 13, marginBottom: 12 }}>
@@ -340,6 +340,19 @@ export default function SettingsScreen({ navigation }: any) {
             )}
           </View>
         )}
+        <View style={styles.divider} />
+        <View style={[styles.row, { paddingVertical: 12 }]}>
+          <View style={styles.rowLeft}>
+            <Ionicons name="stats-chart-outline" size={22} color={colors.primary} style={styles.icon} />
+            <AppText style={[styles.text, { color: colors.text }]}>Show Credit/Debit on Cards</AppText>
+          </View>
+          <Switch
+            value={showCardStats}
+            onValueChange={toggleShowCardStats}
+            trackColor={{ false: '#767577', true: colors.primary }}
+            thumbColor={showCardStats ? '#fff' : '#f4f3f4'}
+          />
+        </View>
       </View>
 
       <View style={[styles.group, { backgroundColor: colors.card }]}>
@@ -459,7 +472,7 @@ export default function SettingsScreen({ navigation }: any) {
         visible={isImportModalVisible}
         onClose={() => setIsImportModalVisible(false)}
       />
-      
+
       <ImportTransactionalSheetModal
         visible={isImportTxModalVisible}
         onClose={() => setIsImportTxModalVisible(false)}

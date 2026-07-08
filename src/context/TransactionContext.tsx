@@ -25,7 +25,9 @@ interface TransactionContextType {
   getAccountBalance: (account: string) => number;
   getAccountStats: (account: string) => { balance: number; totalCredit: number; totalDebit: number };
   excludedFromTotal: string[];
+  showCardStats: boolean;
   toggleAccountInTotal: (account: string) => Promise<void>;
+  toggleShowCardStats: () => Promise<void>;
   refreshTransactionData: () => Promise<void>;
   isLoading: boolean;
 }
@@ -44,7 +46,9 @@ const TransactionContext = createContext<TransactionContextType>({
   getAccountBalance: () => 0,
   getAccountStats: () => ({ balance: 0, totalCredit: 0, totalDebit: 0 }),
   excludedFromTotal: [],
+  showCardStats: true,
   toggleAccountInTotal: async () => {},
+  toggleShowCardStats: async () => {},
   refreshTransactionData: async () => {},
   isLoading: true,
 });
@@ -57,12 +61,14 @@ export const TransactionProvider: React.FC<{ children: React.ReactNode }> = ({ c
   const [transactions, setTransactions] = useState<AccountTransaction[]>([]);
   const [accountOrder, setAccountOrder] = useState<string[]>([]);
   const [excludedFromTotal, setExcludedFromTotal] = useState<string[]>([]);
+  const [showCardStats, setShowCardStats] = useState<boolean>(true);
   const [isLoading, setIsLoading] = useState(true);
   const { user } = useAuthContext();
 
   const storageKey = user ? `${TRANSACTIONS_KEY}_${user.email}` : TRANSACTIONS_KEY;
   const orderStorageKey = user ? `@app_account_order_${user.email}` : '@app_account_order';
   const excludedStorageKey = user ? `@app_account_excluded_${user.email}` : '@app_account_excluded';
+  const showStatsStorageKey = user ? `@app_show_card_stats_${user.email}` : '@app_show_card_stats';
 
   const loadData = async () => {
     try {
@@ -86,6 +92,13 @@ export const TransactionProvider: React.FC<{ children: React.ReactNode }> = ({ c
         setExcludedFromTotal(JSON.parse(storedExcluded));
       } else {
         setExcludedFromTotal([]);
+      }
+
+      const storedShowStats = await AsyncStorage.getItem(showStatsStorageKey);
+      if (storedShowStats !== null) {
+        setShowCardStats(JSON.parse(storedShowStats));
+      } else {
+        setShowCardStats(true);
       }
     } catch (e) {
       console.error('Failed to load transaction data', e);
@@ -231,6 +244,12 @@ export const TransactionProvider: React.FC<{ children: React.ReactNode }> = ({ c
     await AsyncStorage.setItem(excludedStorageKey, JSON.stringify(newExcluded));
   };
 
+  const toggleShowCardStats = async () => {
+    const newVal = !showCardStats;
+    setShowCardStats(newVal);
+    await AsyncStorage.setItem(showStatsStorageKey, JSON.stringify(newVal));
+  };
+
   const accounts = useMemo(() => {
     const usedAccounts = new Set(transactions.map(t => t.account));
     const allAccounts = Array.from(usedAccounts);
@@ -264,7 +283,9 @@ export const TransactionProvider: React.FC<{ children: React.ReactNode }> = ({ c
       getAccountBalance,
       getAccountStats,
       excludedFromTotal,
+      showCardStats,
       toggleAccountInTotal,
+      toggleShowCardStats,
       refreshTransactionData: loadData,
       isLoading
     }}>
