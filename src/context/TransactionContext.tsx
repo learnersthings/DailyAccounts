@@ -105,23 +105,26 @@ export const TransactionProvider: React.FC<{ children: React.ReactNode }> = ({ c
   };
 
   const bulkImportTransactions = async (newTransactions: AccountTransaction[]) => {
-    // Merge without duplicates based on date, description, amount, type, account
     const merged = [...transactions];
+    const unmatchedExisting = [...transactions];
+    
     for (const newTx of newTransactions) {
       const newTxDateStr = new Date(newTx.date).toDateString();
-      const existingIdx = merged.findIndex(e => 
+      const poolIdx = unmatchedExisting.findIndex(e => 
         new Date(e.date).toDateString() === newTxDateStr &&
         e.amount === newTx.amount &&
         e.type === newTx.type &&
         e.account === newTx.account &&
         e.description.trim().toLowerCase() === newTx.description.trim().toLowerCase()
       );
-      if (existingIdx !== -1) {
-        merged[existingIdx] = { ...merged[existingIdx], description: newTx.description };
+      
+      if (poolIdx !== -1) {
+        unmatchedExisting.splice(poolIdx, 1);
       } else {
         merged.push(newTx);
       }
     }
+    
     merged.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     setTransactions(merged);
     await AsyncStorage.setItem(storageKey, JSON.stringify(merged));

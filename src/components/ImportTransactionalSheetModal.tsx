@@ -120,18 +120,26 @@ export default function ImportTransactionalSheetModal({ visible, onClose }: Impo
         const parsed = Papa.parse(csvText, { header: false, skipEmptyLines: true });
         const rows: any[] = parsed.data;
 
+        let lastValidDateStr = '';
+
         for (let i = 0; i < rows.length; i++) {
           // Skip first row and last row
           if (i === 0 || i === rows.length - 1) continue;
 
           const row = rows[i];
-          const dateStr = String(row[0] || '').trim();
+          let dateStr = String(row[0] || '').trim();
           const descStr = String(row[1] || '').trim();
           const debitStr = String(row[2] || '').replace(/,/g, '').trim();
           const creditStr = String(row[3] || '').replace(/,/g, '').trim();
 
-          // Skip if blank date or blank description
-          if (!dateStr || !descStr) continue;
+          if (dateStr) {
+            lastValidDateStr = dateStr;
+          } else {
+            dateStr = lastValidDateStr;
+          }
+
+          // Skip if description or date is blank
+          if (!descStr || !dateStr) continue;
 
           const debitAmount = parseFloat(debitStr) || 0;
           const creditAmount = parseFloat(creditStr) || 0;
