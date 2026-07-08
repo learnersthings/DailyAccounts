@@ -24,7 +24,7 @@ export default function SettingsScreen({ navigation }: any) {
   const [isAccentExpanded, setIsAccentExpanded] = useState(false);
   const [isTotalBalanceExpanded, setIsTotalBalanceExpanded] = useState(false);
   const { currency, refreshExpenseData, downloadPathUri, updateDownloadPath, backupPathUri, updateBackupPath, analyticsChartType } = useExpenseContext();
-  const { accounts, excludedFromTotal, toggleAccountInTotal } = useTransactionContext();
+  const { accounts, excludedFromTotal, toggleAccountInTotal, refreshTransactionData } = useTransactionContext();
 
   const handleSetDownloadPath = async () => {
     if (Platform.OS !== 'android') {
@@ -152,6 +152,7 @@ export default function SettingsScreen({ navigation }: any) {
       await refreshAuth();
       await refreshTheme();
       await refreshExpenseData();
+      await refreshTransactionData();
 
       alert('Restore Successful! Your data has been loaded instantly.');
     } catch (e: any) {
