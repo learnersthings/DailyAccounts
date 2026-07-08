@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useThemeColors } from '../hooks/useThemeColors';
-import { View, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, TouchableOpacity } from 'react-native';
+import DraggableFlatList, { ScaleDecorator, RenderItemParams } from 'react-native-draggable-flatlist';
 import AppText from '../components/AppText';
 import { useAuthContext } from '../context/AuthContext';
 import { useTransactionContext } from '../context/TransactionContext';
@@ -12,7 +13,7 @@ import AddTransactionModal from '../components/AddTransactionModal';
 export default function HomeScreen({ navigation }: any) {
   const colors = useThemeColors();
   const { user } = useAuthContext();
-  const { accounts, getAccountBalance } = useTransactionContext();
+  const { accounts, getAccountBalance, updateAccountOrder } = useTransactionContext();
   const { currency } = useExpenseContext();
 
   const currentHour = new Date().getHours();
@@ -29,6 +30,55 @@ export default function HomeScreen({ navigation }: any) {
 
   const totalBalance = accounts.reduce((sum, acc) => sum + getAccountBalance(acc), 0);
 
+  const handleDragEnd = async ({ data }: { data: string[] }) => {
+    await updateAccountOrder(data);
+  };
+
+  const renderItem = ({ item: acc, drag, isActive }: RenderItemParams<string>) => {
+    const balance = getAccountBalance(acc);
+    return (
+      <ScaleDecorator>
+        <TouchableOpacity
+          style={[styles.card, { backgroundColor: colors.card, elevation: isActive ? 8 : 4 }]}
+          onPress={() => navigation.navigate('AccountTransactions', { account: acc })}
+          onLongPress={drag}
+          activeOpacity={0.8}
+        >
+          <View style={styles.cardHeader}>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <Ionicons name="card" size={24} color={colors.primary} style={{ marginRight: 8 }} />
+              <AppText style={[styles.cardTitle, { color: colors.text }]}>{acc}</AppText>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
+          </View>
+          <View style={styles.cardBody}>
+            <AppText style={styles.balanceLabel}>Available Balance</AppText>
+            <AppText style={[styles.balanceAmount, { color: balance >= 0 ? colors.text : '#ff4444' }]}>
+              {currency}{formatAmount(balance)}
+            </AppText>
+          </View>
+        </TouchableOpacity>
+      </ScaleDecorator>
+    );
+  };
+
+  const listHeader = accounts.length > 0 ? (
+    <View style={[styles.card, { backgroundColor: colors.primary, marginBottom: 24 }]}>
+      <View style={styles.cardHeader}>
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <Ionicons name="wallet" size={24} color="#fff" style={{ marginRight: 8 }} />
+          <AppText style={[styles.cardTitle, { color: '#fff' }]}>Total Balance</AppText>
+        </View>
+      </View>
+      <View style={styles.cardBody}>
+        <AppText style={[styles.balanceLabel, { color: 'rgba(255,255,255,0.8)' }]}>Overall Available Balance</AppText>
+        <AppText style={[styles.balanceAmount, { color: '#fff', fontSize: 32 }]}>
+          {currency}{formatAmount(totalBalance)}
+        </AppText>
+      </View>
+    </View>
+  ) : null;
+
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={styles.header}>
@@ -37,49 +87,15 @@ export default function HomeScreen({ navigation }: any) {
         </AppText>
       </View>
 
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        {accounts.length > 0 && (
-          <View style={[styles.card, { backgroundColor: colors.primary, marginBottom: 24 }]}>
-            <View style={styles.cardHeader}>
-              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                <Ionicons name="wallet" size={24} color="#fff" style={{ marginRight: 8 }} />
-                <AppText style={[styles.cardTitle, { color: '#fff' }]}>Total Balance</AppText>
-              </View>
-            </View>
-            <View style={styles.cardBody}>
-              <AppText style={[styles.balanceLabel, { color: 'rgba(255,255,255,0.8)' }]}>Overall Available Balance</AppText>
-              <AppText style={[styles.balanceAmount, { color: '#fff', fontSize: 32 }]}>
-                {currency}{formatAmount(totalBalance)}
-              </AppText>
-            </View>
-          </View>
-        )}
-
-        {accounts.map(acc => {
-          const balance = getAccountBalance(acc);
-          return (
-            <TouchableOpacity
-              key={acc}
-              style={[styles.card, { backgroundColor: colors.card }]}
-              onPress={() => navigation.navigate('AccountTransactions', { account: acc })}
-            >
-              <View style={styles.cardHeader}>
-                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                  <Ionicons name="card" size={24} color={colors.primary} style={{ marginRight: 8 }} />
-                  <AppText style={[styles.cardTitle, { color: colors.text }]}>{acc}</AppText>
-                </View>
-                <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
-              </View>
-              <View style={styles.cardBody}>
-                <AppText style={styles.balanceLabel}>Available Balance</AppText>
-                <AppText style={[styles.balanceAmount, { color: balance >= 0 ? colors.text : '#ff4444' }]}>
-                  {currency}{formatAmount(balance)}
-                </AppText>
-              </View>
-            </TouchableOpacity>
-          );
-        })}
-      </ScrollView>
+      <DraggableFlatList
+        data={accounts}
+        keyExtractor={item => item}
+        onDragEnd={handleDragEnd}
+        renderItem={renderItem}
+        ListHeaderComponent={listHeader}
+        contentContainerStyle={styles.scrollContent}
+        activationDistance={20}
+      />
     </View>
   );
 }
