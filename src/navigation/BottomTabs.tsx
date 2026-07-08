@@ -69,7 +69,11 @@ export default function BottomTabs() {
         },
       })}
     >
-      <Tab.Screen name="Home" component={HomeStack} />
+      <Tab.Screen 
+        name="Home" 
+        component={HomeStack} 
+        options={{ headerShown: false }}
+      />
       <Tab.Screen name="Dashboard" component={DashboardScreen} />
       <Tab.Screen name="Transactions" component={TransactionsScreen} />
       <Tab.Screen name="Analytics" component={AnalyticsScreen} />

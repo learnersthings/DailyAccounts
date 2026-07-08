@@ -13,9 +13,6 @@ export default function AccountTransactionsScreen({ route }: any) {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <View style={[styles.header, { backgroundColor: colors.card }]}>
-        <AppText style={[styles.title, { color: colors.text }]}>{account} Transactions</AppText>
-      </View>
       <BankTransactionList accountFilter={account} />
       
       {/* Floating Action Button */}
@@ -38,17 +35,6 @@ export default function AccountTransactionsScreen({ route }: any) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-  },
-  header: {
-    padding: 16,
-    paddingTop: 24,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#888',
-    elevation: 2,
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: 'bold',
   },
   fab: {
     position: 'absolute',
