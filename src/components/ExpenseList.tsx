@@ -18,7 +18,7 @@ import * as FileSystem from 'expo-file-system/legacy';
 import { generateDashboardPDFHTML } from '../utils/pdfGenerator';
 import Svg, { Circle, Text as SvgText } from 'react-native-svg';
 
-export type ListItem = 
+export type ListItem =
   | { type: 'header'; id: string; title: string }
   | { type: 'expense'; id: string; expense: Expense };
 
@@ -243,12 +243,12 @@ export default function ExpenseList({ ListHeaderComponent, hideTitle, isExpenses
   const handleDragEnd = async ({ data, from, to }: { data: ListItem[], from: number, to: number }) => {
     const draggedDate = draggedItemDateRef.current;
     if (!draggedDate) return;
-    
+
     if (from !== to) {
       let crossedDifferentDate = false;
       const minIdx = Math.min(from, to);
       const maxIdx = Math.max(from, to);
-      
+
       for (let i = minIdx; i <= maxIdx; i++) {
         if (i === to) continue;
         const item = data[i];
@@ -267,7 +267,7 @@ export default function ExpenseList({ ListHeaderComponent, hideTitle, isExpenses
         // Temporarily accept the invalid data so the list internal state syncs up
         setFlatDataState(data);
         Alert.alert(
-          "Invalid Move", 
+          "Invalid Move",
           "You can only reorder transactions within the same date.",
           [
             {
@@ -367,36 +367,36 @@ export default function ExpenseList({ ListHeaderComponent, hideTitle, isExpenses
             disabled={isActive}
             activeOpacity={0.8}
           >
-          <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
-            {isSelectMode && (
-              <View style={[styles.checkbox, { borderColor: colors.primary, backgroundColor: selectedExpenseIds.includes(exp.id) ? colors.primary : 'transparent' }]}>
-                {selectedExpenseIds.includes(exp.id) && <Ionicons name="checkmark" size={16} color="#fff" />}
-              </View>
-            )}
-            {category ? (
-              <View style={[styles.expenseIcon, { backgroundColor: category.color }]}>
-                <Ionicons name={category.icon as any} size={20} color="#fff" />
-              </View>
-            ) : (
-              <View style={[styles.expenseIcon, { backgroundColor: isDarkTheme ? '#333' : '#eee' }]}>
-                <Ionicons name="cash-outline" size={20} color={colors.text} />
-              </View>
-            )}
-            <View style={{ flex: 1, paddingRight: 10 }}>
-              <AppText style={[styles.expenseDesc, { color: colors.text }]} numberOfLines={1}>{exp.description}</AppText>
-              <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
-                <AppText style={styles.expenseDate}>{new Date(exp.date).toLocaleDateString()}</AppText>
-                {paymentMode && (
-                  <>
-                    <AppText style={styles.dotSeparator}>•</AppText>
-                    <Ionicons name={paymentMode.icon as any} size={12} color={paymentMode.color} style={{ marginRight: 4 }} />
-                    <AppText style={[styles.paymentModeText, { color: paymentMode.color }]} numberOfLines={1}>{paymentMode.name}</AppText>
-                  </>
-                )}
+            <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+              {isSelectMode && (
+                <View style={[styles.checkbox, { borderColor: colors.primary, backgroundColor: selectedExpenseIds.includes(exp.id) ? colors.primary : 'transparent' }]}>
+                  {selectedExpenseIds.includes(exp.id) && <Ionicons name="checkmark" size={16} color="#fff" />}
+                </View>
+              )}
+              {category ? (
+                <View style={[styles.expenseIcon, { backgroundColor: category.color }]}>
+                  <Ionicons name={category.icon as any} size={20} color="#fff" />
+                </View>
+              ) : (
+                <View style={[styles.expenseIcon, { backgroundColor: isDarkTheme ? '#333' : '#eee' }]}>
+                  <Ionicons name="cash-outline" size={20} color={colors.text} />
+                </View>
+              )}
+              <View style={{ flex: 1, paddingRight: 10 }}>
+                <AppText style={[styles.expenseDesc, { color: colors.text }]} numberOfLines={1}>{exp.description}</AppText>
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
+                  <AppText style={styles.expenseDate}>{new Date(exp.date).toLocaleDateString()}</AppText>
+                  {paymentMode && (
+                    <>
+                      <AppText style={styles.dotSeparator}>•</AppText>
+                      <Ionicons name={paymentMode.icon as any} size={12} color={paymentMode.color} style={{ marginRight: 4 }} />
+                      <AppText style={[styles.paymentModeText, { color: paymentMode.color }]} numberOfLines={1}>{paymentMode.name}</AppText>
+                    </>
+                  )}
+                </View>
               </View>
             </View>
-          </View>
-          <AppText style={[styles.expenseAmount, { color: '#ff4444' }]}>-{currency}{formatAmount(exp.amount)}</AppText>
+            <AppText style={[styles.expenseAmount, { color: '#ff4444' }]}>-{currency}{formatAmount(exp.amount)}</AppText>
           </TouchableOpacity>
         </Swipeable>
       </ScaleDecorator>
@@ -424,7 +424,7 @@ export default function ExpenseList({ ListHeaderComponent, hideTitle, isExpenses
             <Ionicons name="search" size={20} color={colors.textMuted} style={styles.searchIcon} />
             <TextInput
               style={[styles.searchInput, { color: colors.text }]}
-              placeholder="Search Expense..."
+              placeholder="Search..."
               placeholderTextColor={colors.textMuted}
               value={searchQuery}
               onChangeText={setSearchQuery}

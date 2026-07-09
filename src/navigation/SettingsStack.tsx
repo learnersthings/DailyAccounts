@@ -1,6 +1,6 @@
 import React from 'react';
 import { useThemeColors } from '../hooks/useThemeColors';
-import { View } from 'react-native';
+import { View, Platform } from 'react-native';
 import AppText from '../components/AppText';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
@@ -46,7 +46,7 @@ export default function SettingsStack() {
         component={ProfileScreen} 
         options={{ 
           headerTitle: () => (
-            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginLeft: Platform.OS === 'android' ? -20 : 0 }}>
               <Ionicons name="person" size={22} color={colors.text} style={{ marginRight: 8 }} />
               <AppText style={{ color: colors.text, fontSize: 18, fontWeight: '600' }}>User Profile</AppText>
             </View>
@@ -58,7 +58,7 @@ export default function SettingsStack() {
         component={CurrencyScreen} 
         options={{ 
           headerTitle: () => (
-            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginLeft: Platform.OS === 'android' ? -20 : 0 }}>
               <Ionicons name="cash" size={22} color={colors.text} style={{ marginRight: 8 }} />
               <AppText style={{ color: colors.text, fontSize: 18, fontWeight: '600' }}>Select Currency</AppText>
             </View>
@@ -70,7 +70,7 @@ export default function SettingsStack() {
         component={BudgetScreen} 
         options={{ 
           headerTitle: () => (
-            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginLeft: Platform.OS === 'android' ? -20 : 0 }}>
               <Ionicons name="wallet" size={22} color={colors.text} style={{ marginRight: 8 }} />
               <AppText style={{ color: colors.text, fontSize: 18, fontWeight: '600' }}>Set Budget</AppText>
             </View>
@@ -82,7 +82,7 @@ export default function SettingsStack() {
         component={CategoriesScreen} 
         options={{ 
           headerTitle: () => (
-            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginLeft: Platform.OS === 'android' ? -20 : 0 }}>
               <Ionicons name="pricetag" size={22} color={colors.text} style={{ marginRight: 8 }} />
               <AppText style={{ color: colors.text, fontSize: 18, fontWeight: '600' }}>Manage Categories</AppText>
             </View>
@@ -94,7 +94,7 @@ export default function SettingsStack() {
         component={PaymentModesScreen} 
         options={{ 
           headerTitle: () => (
-            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginLeft: Platform.OS === 'android' ? -20 : 0 }}>
               <Ionicons name="card" size={22} color={colors.text} style={{ marginRight: 8 }} />
               <AppText style={{ color: colors.text, fontSize: 18, fontWeight: '600' }}>Payment Modes</AppText>
             </View>
@@ -106,7 +106,7 @@ export default function SettingsStack() {
         component={AnalyticsChartSettingsScreen} 
         options={{ 
           headerTitle: () => (
-            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginLeft: Platform.OS === 'android' ? -20 : 0 }}>
               <Ionicons name="bar-chart" size={22} color={colors.text} style={{ marginRight: 8 }} />
               <AppText style={{ color: colors.text, fontSize: 18, fontWeight: '600' }}>Analytics Chart</AppText>
             </View>
