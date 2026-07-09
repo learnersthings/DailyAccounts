@@ -156,9 +156,11 @@ export default function IncomeScreen() {
 
       <ScrollView contentContainerStyle={styles.scroll}>
         <View style={styles.header}>
-          <AppText style={[styles.title, { color: colors.text }]}>Monthly Income</AppText>
-          <AppText style={styles.subtitle}>
-            {selectedYear === 'All' ? 'View your yearly income and expense overview.' : 'Set your income for each month to calculate your available balance against your tracked expenses.'}
+          <AppText style={[styles.title, { color: colors.text }]}>
+            {selectedYear === 'All' ? 'Yearly Income' : 'Monthly Income'}
+          </AppText>
+          <AppText style={styles.subtitle} numberOfLines={1} adjustsFontSizeToFit>
+            {selectedYear === 'All' ? 'View your yearly income and expense overview.' : 'Track income vs expenses to see your balance.'}
           </AppText>
         </View>
 
