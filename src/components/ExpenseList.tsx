@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useRef, useCallback } from 'react';
 import { useThemeColors } from '../hooks/useThemeColors';
-import { View, StyleSheet, TouchableOpacity, Alert, TextInput, Platform, ActivityIndicator } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, Alert, TextInput, Platform, ActivityIndicator, Animated } from 'react-native';
+import Swipeable from 'react-native-gesture-handler/Swipeable';
 import DraggableFlatList, { ScaleDecorator, RenderItemParams } from 'react-native-draggable-flatlist';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AppText from '../components/AppText';
@@ -299,18 +300,73 @@ export default function ExpenseList({ ListHeaderComponent, hideTitle, isExpenses
     const category = categories.find(c => c.id === exp.categoryId);
     const paymentMode = paymentModes.find(m => m.id === exp.paymentModeId);
 
+    const renderRightActions = (progress: Animated.AnimatedInterpolation<number>, dragX: Animated.AnimatedInterpolation<number>) => {
+      const trans = dragX.interpolate({
+        inputRange: [-80, 0],
+        outputRange: [1, 0],
+        extrapolate: 'clamp',
+      });
+      return (
+        <TouchableOpacity
+          style={[styles.swipeAction, { backgroundColor: '#ff4444', marginLeft: 10 }]}
+          onPress={() => {
+            Alert.alert(
+              "Delete Expense",
+              "Are you sure you want to delete this expense?",
+              [
+                { text: "Cancel", style: "cancel" },
+                {
+                  text: "Delete",
+                  style: "destructive",
+                  onPress: () => bulkDeleteExpenses([exp.id])
+                }
+              ]
+            );
+          }}
+        >
+          <Animated.View style={{ transform: [{ scale: trans }] }}>
+            <Ionicons name="trash" size={24} color="#fff" />
+          </Animated.View>
+        </TouchableOpacity>
+      );
+    };
+
+    const renderLeftActions = (progress: Animated.AnimatedInterpolation<number>, dragX: Animated.AnimatedInterpolation<number>) => {
+      const trans = dragX.interpolate({
+        inputRange: [0, 80],
+        outputRange: [0, 1],
+        extrapolate: 'clamp',
+      });
+      return (
+        <TouchableOpacity
+          style={[styles.swipeAction, { backgroundColor: colors.primary, marginRight: 10 }]}
+          onPress={() => handleEditExpense(exp)}
+        >
+          <Animated.View style={{ transform: [{ scale: trans }] }}>
+            <Ionicons name="pencil" size={24} color="#fff" />
+          </Animated.View>
+        </TouchableOpacity>
+      );
+    };
+
     return (
       <ScaleDecorator>
-        <TouchableOpacity
-          style={[styles.expenseRow, { backgroundColor: isActive ? colors.surface : colors.card, elevation: isActive ? 10 : 0 }]}
-          onPress={() => handleRowPress(exp)}
-          onLongPress={() => {
-            draggedItemDateRef.current = new Date(exp.date).toDateString();
-            drag();
-          }}
-          disabled={isActive}
-          activeOpacity={0.8}
+        <Swipeable
+          renderRightActions={isSelectMode ? undefined : renderRightActions}
+          renderLeftActions={isSelectMode ? undefined : renderLeftActions}
+          enabled={!isSelectMode}
         >
+          <TouchableOpacity
+            style={[styles.expenseRow, { backgroundColor: isActive ? colors.surface : colors.card, elevation: isActive ? 10 : 0 }]}
+            onPress={() => handleRowPress(exp)}
+            onLongPress={() => {
+              if (isSelectMode) return;
+              draggedItemDateRef.current = new Date(exp.date).toDateString();
+              drag();
+            }}
+            disabled={isActive}
+            activeOpacity={0.8}
+          >
           <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
             {isSelectMode && (
               <View style={[styles.checkbox, { borderColor: colors.primary, backgroundColor: selectedExpenseIds.includes(exp.id) ? colors.primary : 'transparent' }]}>
@@ -341,10 +397,11 @@ export default function ExpenseList({ ListHeaderComponent, hideTitle, isExpenses
             </View>
           </View>
           <AppText style={[styles.expenseAmount, { color: '#ff4444' }]}>-{currency}{formatAmount(exp.amount)}</AppText>
-        </TouchableOpacity>
+          </TouchableOpacity>
+        </Swipeable>
       </ScaleDecorator>
     );
-  }, [categories, paymentModes, colors, isDarkTheme, isSelectMode, selectedExpenseIds, currency]);
+  }, [categories, paymentModes, colors, isDarkTheme, isSelectMode, selectedExpenseIds, currency, bulkDeleteExpenses]);
 
   const listHeader = (
     <>
@@ -778,6 +835,13 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
+  },
+  swipeAction: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: 80,
+    borderRadius: 12,
+    marginBottom: 12,
   },
 });
 

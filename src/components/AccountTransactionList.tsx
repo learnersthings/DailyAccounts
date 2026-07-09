@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { useThemeColors } from '../hooks/useThemeColors';
-import { View, StyleSheet, TouchableOpacity, Alert, TextInput, ActivityIndicator, Platform } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, Alert, TextInput, ActivityIndicator, Platform, Animated } from 'react-native';
+import Swipeable from 'react-native-gesture-handler/Swipeable';
 import DraggableFlatList, { ScaleDecorator, RenderItemParams } from 'react-native-draggable-flatlist';
 import AppText from '../components/AppText';
 import { Ionicons } from '@expo/vector-icons';
@@ -26,6 +27,7 @@ interface TransactionListItemProps {
   accountFilter?: string;
   handleRowPress: (tx: AccountTransaction) => void;
   draggedItemDateRef: React.MutableRefObject<string | null>;
+  onDelete: (id: string) => void;
 }
 
 const TransactionListItem = React.memo(({
@@ -39,19 +41,75 @@ const TransactionListItem = React.memo(({
   accountFilter,
   handleRowPress,
   draggedItemDateRef,
+  onDelete,
 }: TransactionListItemProps) => {
   const isCredit = tx.type === 'Credit';
+
+  const renderRightActions = (progress: Animated.AnimatedInterpolation<number>, dragX: Animated.AnimatedInterpolation<number>) => {
+    const trans = dragX.interpolate({
+      inputRange: [-80, 0],
+      outputRange: [1, 0],
+      extrapolate: 'clamp',
+    });
+    return (
+      <TouchableOpacity
+        style={[styles.swipeAction, { backgroundColor: '#ff4444', marginLeft: 10 }]}
+        onPress={() => {
+          Alert.alert(
+            "Delete Transaction",
+            "Are you sure you want to delete this transaction?",
+            [
+              { text: "Cancel", style: "cancel" },
+              {
+                text: "Delete",
+                style: "destructive",
+                onPress: () => onDelete(tx.id)
+              }
+            ]
+          );
+        }}
+      >
+        <Animated.View style={{ transform: [{ scale: trans }] }}>
+          <Ionicons name="trash" size={24} color="#fff" />
+        </Animated.View>
+      </TouchableOpacity>
+    );
+  };
+
+  const renderLeftActions = (progress: Animated.AnimatedInterpolation<number>, dragX: Animated.AnimatedInterpolation<number>) => {
+    const trans = dragX.interpolate({
+      inputRange: [0, 80],
+      outputRange: [0, 1],
+      extrapolate: 'clamp',
+    });
+    return (
+      <TouchableOpacity
+        style={[styles.swipeAction, { backgroundColor: colors.primary, marginRight: 10 }]}
+        onPress={() => handleRowPress(tx)}
+      >
+        <Animated.View style={{ transform: [{ scale: trans }] }}>
+          <Ionicons name="pencil" size={24} color="#fff" />
+        </Animated.View>
+      </TouchableOpacity>
+    );
+  };
   return (
     <ScaleDecorator>
-      <TouchableOpacity
-        style={[styles.expenseRow, { backgroundColor: isSelected ? colors.surface : colors.card, elevation: isSelected ? 4 : (isActive ? 8 : 0) }]}
-        onPress={() => handleRowPress(tx)}
-        onLongPress={() => {
-          draggedItemDateRef.current = new Date(tx.date).toDateString();
-          drag();
-        }}
-        activeOpacity={0.8}
+      <Swipeable
+        renderRightActions={isSelectMode ? undefined : renderRightActions}
+        renderLeftActions={isSelectMode ? undefined : renderLeftActions}
+        enabled={!isSelectMode}
       >
+        <TouchableOpacity
+          style={[styles.expenseRow, { backgroundColor: isSelected ? colors.surface : colors.card, elevation: isSelected ? 4 : (isActive ? 8 : 0) }]}
+          onPress={() => handleRowPress(tx)}
+          onLongPress={() => {
+            if (isSelectMode) return;
+            draggedItemDateRef.current = new Date(tx.date).toDateString();
+            drag();
+          }}
+          activeOpacity={0.8}
+        >
         <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
           {isSelectMode && (
             <View style={[styles.checkbox, { borderColor: colors.primary, backgroundColor: isSelected ? colors.primary : 'transparent' }]}>
@@ -77,7 +135,8 @@ const TransactionListItem = React.memo(({
         <AppText style={[styles.expenseAmount, { color: isCredit ? '#00C851' : '#ff4444' }]}>
           {isCredit ? '+' : '-'}{currency}{formatAmount(tx.amount)}
         </AppText>
-      </TouchableOpacity>
+        </TouchableOpacity>
+      </Swipeable>
     </ScaleDecorator>
   );
 }, (prevProps, nextProps) => {
@@ -295,9 +354,10 @@ export default function AccountTransactionList({ accountFilter }: AccountTransac
         accountFilter={accountFilter}
         handleRowPress={handleRowPress}
         draggedItemDateRef={draggedItemDateRef}
+        onDelete={(id) => bulkDeleteTransactions([id])}
       />
     );
-  }, [selectedIds, isSelectMode, colors, currency, accountFilter, handleRowPress]);
+  }, [selectedIds, isSelectMode, colors, currency, accountFilter, handleRowPress, bulkDeleteTransactions]);
 
   const listHeader = (
     <View style={{ marginBottom: 16 }}>
@@ -572,5 +632,12 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: 'bold',
     marginRight: 4,
+  },
+  swipeAction: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: 80,
+    borderRadius: 12,
+    marginBottom: 12,
   },
 });
