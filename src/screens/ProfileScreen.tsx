@@ -39,13 +39,6 @@ export default function ProfileScreen({ navigation }: any) {
     setIsSuccess(false);
 
     let isValid = true;
-    if (!email.trim()) {
-      setEmailError('Email cannot be empty.');
-      isValid = false;
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      setEmailError('Please enter a valid email address.');
-      isValid = false;
-    }
     if (!firstName.trim()) {
       setFirstNameError('First Name cannot be empty.');
       isValid = false;
@@ -57,11 +50,7 @@ export default function ProfileScreen({ navigation }: any) {
     if (!isValid) return;
 
     try {
-      const newEmail = email.toLowerCase();
-      if (user?.email && newEmail !== user.email) {
-        await migrateUserEmail(user.email, newEmail);
-      }
-      await updateProfile(firstName, lastName, newEmail);
+      await updateProfile(firstName, lastName, user?.email || '');
       setGeneralMessage('Profile updated successfully!');
       setIsSuccess(true);
     } catch (error: any) {
@@ -120,14 +109,12 @@ export default function ProfileScreen({ navigation }: any) {
             <TextInput
               style={[
                 styles.input,
-                { backgroundColor: colors.surface, color: colors.text, borderColor: emailError ? '#ff4444' : (colors.border) }
+                { backgroundColor: colors.surface, color: colors.text, borderColor: colors.border, opacity: 0.6 }
               ]}
               placeholder="Email Address"
               placeholderTextColor={placeholderColor}
               value={email}
-              onChangeText={(text) => { setEmail(text); setEmailError(''); setGeneralMessage(''); }}
-              autoCapitalize="none"
-              keyboardType="email-address"
+              editable={false}
             />
             {emailError ? <AppText style={styles.errorText}>{emailError}</AppText> : null}
           </View>
