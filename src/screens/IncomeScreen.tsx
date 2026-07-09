@@ -55,6 +55,18 @@ export default function IncomeScreen() {
     });
   }, [selectedYear, expenses, monthlyIncomes]);
 
+  const yearlyTotals = useMemo(() => {
+    return monthlyStats.reduce(
+      (acc, curr) => {
+        acc.income += curr.income;
+        acc.expense += curr.expense;
+        acc.balance += curr.balance;
+        return acc;
+      },
+      { income: 0, expense: 0, balance: 0 }
+    );
+  }, [monthlyStats]);
+
   const handleOpenModal = (monthIndex: number, monthName: string, currentIncome: number) => {
     setSelectedMonth({ monthIndex, monthName });
     setIncomeInput(currentIncome > 0 ? currentIncome.toString() : '');
@@ -108,6 +120,34 @@ export default function IncomeScreen() {
         <View style={styles.header}>
           <AppText style={[styles.title, { color: colors.text }]}>Monthly Income</AppText>
           <AppText style={styles.subtitle}>Set your income for each month to calculate your available balance against your tracked expenses.</AppText>
+        </View>
+
+        <View style={[styles.yearlySummaryCard, { backgroundColor: colors.card, shadowColor: colors.shadow }]}>
+          <View style={{ marginBottom: 16 }}>
+            <AppText style={{ fontSize: 16, color: colors.text, fontWeight: 'bold' }}>
+              {selectedYear} Overview
+            </AppText>
+          </View>
+          <View style={styles.yearlyStatsRow}>
+            <View style={styles.yearlyStatColumn}>
+              <AppText style={styles.statLabel}>Total Income</AppText>
+              <AppText style={[styles.statValue, { color: yearlyTotals.income === 0 ? colors.text : '#00C851' }]} numberOfLines={1}>
+                {currency}{formatAmount(yearlyTotals.income)}
+              </AppText>
+            </View>
+            <View style={styles.yearlyStatColumn}>
+              <AppText style={styles.statLabel}>Total Expense</AppText>
+              <AppText style={[styles.statValue, { color: yearlyTotals.expense === 0 ? colors.text : '#ff4444' }]} numberOfLines={1}>
+                {currency}{formatAmount(yearlyTotals.expense)}
+              </AppText>
+            </View>
+            <View style={[styles.yearlyStatColumn, { alignItems: 'flex-end' }]}>
+              <AppText style={styles.statLabel}>Available</AppText>
+              <AppText style={[styles.statValue, { color: yearlyTotals.balance === 0 ? colors.text : (yearlyTotals.balance > 0 ? '#00C851' : '#ff4444') }]} numberOfLines={1}>
+                {yearlyTotals.balance === 0 ? '' : (yearlyTotals.balance > 0 ? '+' : '-')}{currency}{formatAmount(Math.abs(yearlyTotals.balance))}
+              </AppText>
+            </View>
+          </View>
         </View>
 
         <View style={styles.list}>
@@ -234,6 +274,22 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#888',
     lineHeight: 20,
+  },
+  yearlySummaryCard: {
+    marginBottom: 24,
+    padding: 16,
+    borderRadius: 16,
+    elevation: 2,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  yearlyStatsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  yearlyStatColumn: {
+    flex: 1,
   },
   list: {
     gap: 16,
