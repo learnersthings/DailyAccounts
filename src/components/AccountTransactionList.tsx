@@ -497,6 +497,7 @@ export default function AccountTransactionList({ accountFilter }: AccountTransac
         visible={isModalVisible}
         onClose={() => setIsModalVisible(false)}
         transactionToEdit={selectedTransaction}
+        initialAccount={accountFilter}
       />
       <AccountFilterModal
         visible={isFilterModalVisible}
