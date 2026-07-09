@@ -291,6 +291,9 @@ const styles = StyleSheet.create({
   yearlyStatColumn: {
     flex: 1,
   },
+  list: {
+    gap: 0,
+  },
   monthCard: {
     borderRadius: 16,
     overflow: 'hidden',

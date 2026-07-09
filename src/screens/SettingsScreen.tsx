@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useThemeColors } from '../hooks/useThemeColors';
-import { View, StyleSheet, Switch, TouchableOpacity, Alert, ScrollView, Platform } from 'react-native';
+import { View, StyleSheet, Switch, TouchableOpacity, Alert, ScrollView, Platform, ActivityIndicator, Modal } from 'react-native';
 import AppText from '../components/AppText';
 import { useThemeContext, ACCENT_COLORS } from '../context/ThemeContext';
 import { useAuthContext } from '../context/AuthContext';
@@ -499,6 +499,15 @@ export default function SettingsScreen({ navigation }: any) {
         visible={isImportTxModalVisible}
         onClose={() => setIsImportTxModalVisible(false)}
       />
+
+      <Modal visible={isProcessing} transparent animationType="fade">
+        <View style={styles.processingOverlay}>
+          <View style={[styles.processingBox, { backgroundColor: colors.card }]}>
+            <ActivityIndicator size="large" color={colors.primary} />
+            <AppText style={[styles.processingText, { color: colors.text }]}>Processing...</AppText>
+          </View>
+        </View>
+      </Modal>
     </ScrollView>
   );
 }
@@ -562,6 +571,24 @@ const styles = StyleSheet.create({
   logoutText: {
     color: '#ffffff',
     fontSize: 18,
+    fontWeight: 'bold',
+  },
+  processingOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  processingBox: {
+    padding: 24,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minWidth: 150,
+  },
+  processingText: {
+    marginTop: 16,
+    fontSize: 16,
     fontWeight: 'bold',
   },
 });
