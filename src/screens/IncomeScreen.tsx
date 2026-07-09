@@ -7,6 +7,7 @@ import { useThemeContext } from '../context/ThemeContext';
 import { useExpenseContext } from '../context/ExpenseContext';
 import { Ionicons } from '@expo/vector-icons';
 import { formatAmount } from '../utils/format';
+import PremiumCardBackground from '../components/PremiumCardBackground';
 
 const MONTHS = [
   'January', 'February', 'March', 'April', 'May', 'June',
@@ -122,71 +123,74 @@ export default function IncomeScreen() {
           <AppText style={styles.subtitle}>Set your income for each month to calculate your available balance against your tracked expenses.</AppText>
         </View>
 
-        <View style={[styles.yearlySummaryCard, { backgroundColor: colors.card, shadowColor: colors.shadow }]}>
+        <PremiumCardBackground color={colors.primary} style={styles.yearlySummaryCard}>
           <View style={{ marginBottom: 16 }}>
-            <AppText style={{ fontSize: 16, color: colors.text, fontWeight: 'bold' }}>
+            <AppText style={{ fontSize: 16, color: '#FFF', fontWeight: 'bold' }}>
               {selectedYear} Overview
             </AppText>
           </View>
           <View style={styles.yearlyStatsRow}>
             <View style={styles.yearlyStatColumn}>
-              <AppText style={styles.statLabel}>Total Income</AppText>
-              <AppText style={[styles.statValue, { color: yearlyTotals.income === 0 ? colors.text : '#00C851' }]} numberOfLines={1}>
+              <AppText style={styles.statLabelWhite}>Total Income</AppText>
+              <AppText style={[styles.statValue, { color: yearlyTotals.income === 0 ? '#FFF' : '#00C851' }]} numberOfLines={1}>
                 {currency}{formatAmount(yearlyTotals.income)}
               </AppText>
             </View>
             <View style={styles.yearlyStatColumn}>
-              <AppText style={styles.statLabel}>Total Expense</AppText>
-              <AppText style={[styles.statValue, { color: yearlyTotals.expense === 0 ? colors.text : '#ff4444' }]} numberOfLines={1}>
+              <AppText style={styles.statLabelWhite}>Total Expense</AppText>
+              <AppText style={[styles.statValue, { color: yearlyTotals.expense === 0 ? '#FFF' : '#ff4444' }]} numberOfLines={1}>
                 {currency}{formatAmount(yearlyTotals.expense)}
               </AppText>
             </View>
             <View style={[styles.yearlyStatColumn, { alignItems: 'flex-end' }]}>
-              <AppText style={styles.statLabel}>Available</AppText>
-              <AppText style={[styles.statValue, { color: yearlyTotals.balance === 0 ? colors.text : (yearlyTotals.balance > 0 ? '#00C851' : '#ff4444') }]} numberOfLines={1}>
+              <AppText style={styles.statLabelWhite}>Available</AppText>
+              <AppText style={[styles.statValue, { color: yearlyTotals.balance === 0 ? '#FFF' : (yearlyTotals.balance > 0 ? '#00C851' : '#ff4444') }]} numberOfLines={1}>
                 {yearlyTotals.balance === 0 ? '' : (yearlyTotals.balance > 0 ? '+' : '-')}{currency}{formatAmount(Math.abs(yearlyTotals.balance))}
               </AppText>
             </View>
           </View>
-        </View>
+        </PremiumCardBackground>
+        
+        <View style={{ height: 2, backgroundColor: colors.accent, borderRadius: 1, marginBottom: 24 }} />
 
         <View style={styles.list}>
-          {monthlyStats.map((stat) => (
+          {monthlyStats.map((stat, index) => (
             <TouchableOpacity
               key={stat.monthIndex}
-              style={[styles.monthCard, { backgroundColor: colors.card, shadowColor: colors.shadow }]}
               onPress={() => handleOpenModal(stat.monthIndex, stat.monthName, stat.income)}
             >
-              <View style={styles.cardHeader}>
-                <AppText style={[styles.monthName, { color: colors.text }]}>{stat.monthName}</AppText>
-                <Ionicons name="pencil" size={18} color={colors.primary} />
-              </View>
-
-              <View style={styles.statsRow}>
-                <View style={styles.statColumn}>
-                  <AppText style={styles.statLabel}>Income</AppText>
-                  <AppText style={[styles.statValue, { color: stat.income === 0 ? colors.text : '#00C851' }]} numberOfLines={1}>
-                    {currency}{formatAmount(stat.income)}
-                  </AppText>
+              <PremiumCardBackground color={colors.primary} style={styles.monthCard}>
+                <View style={styles.cardHeader}>
+                  <AppText style={[styles.monthName, { color: '#FFF' }]}>{stat.monthName}</AppText>
+                  <Ionicons name="pencil" size={18} color="#FFF" />
                 </View>
 
-                <View style={styles.statColumn}>
-                  <AppText style={styles.statLabel}>Expense</AppText>
-                  <AppText style={[styles.statValue, { color: stat.expense === 0 ? colors.text : '#ff4444' }]} numberOfLines={1}>
-                    {currency}{formatAmount(stat.expense)}
-                  </AppText>
-                </View>
+                <View style={styles.statsRow}>
+                  <View style={styles.statColumn}>
+                    <AppText style={styles.statLabelWhite}>Income</AppText>
+                    <AppText style={[styles.statValue, { color: stat.income === 0 ? '#FFF' : '#00C851' }]} numberOfLines={1}>
+                      {currency}{formatAmount(stat.income)}
+                    </AppText>
+                  </View>
 
-                <View style={[styles.statColumn, { alignItems: 'flex-end' }]}>
-                  <AppText style={styles.statLabel}>Available</AppText>
-                  <AppText
-                    style={[styles.statValue, { color: stat.balance === 0 ? colors.text : (stat.balance > 0 ? '#00C851' : '#ff4444') }]}
-                    numberOfLines={1}
-                  >
-                    {stat.balance === 0 ? '' : (stat.balance > 0 ? '+' : '-')}{currency}{formatAmount(Math.abs(stat.balance))}
-                  </AppText>
+                  <View style={styles.statColumn}>
+                    <AppText style={styles.statLabelWhite}>Expense</AppText>
+                    <AppText style={[styles.statValue, { color: stat.expense === 0 ? '#FFF' : '#ff4444' }]} numberOfLines={1}>
+                      {currency}{formatAmount(stat.expense)}
+                    </AppText>
+                  </View>
+
+                  <View style={[styles.statColumn, { alignItems: 'flex-end' }]}>
+                    <AppText style={styles.statLabelWhite}>Available</AppText>
+                    <AppText
+                      style={[styles.statValue, { color: stat.balance === 0 ? '#FFF' : (stat.balance > 0 ? '#00C851' : '#ff4444') }]}
+                      numberOfLines={1}
+                    >
+                      {stat.balance === 0 ? '' : (stat.balance > 0 ? '+' : '-')}{currency}{formatAmount(Math.abs(stat.balance))}
+                    </AppText>
+                  </View>
                 </View>
-              </View>
+              </PremiumCardBackground>
             </TouchableOpacity>
           ))}
         </View>
@@ -276,13 +280,9 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   yearlySummaryCard: {
-    marginBottom: 24,
-    padding: 16,
+    marginBottom: 20,
     borderRadius: 16,
-    elevation: 2,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    overflow: 'hidden',
   },
   yearlyStatsRow: {
     flexDirection: 'row',
@@ -295,12 +295,8 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   monthCard: {
-    padding: 16,
     borderRadius: 16,
-    elevation: 2,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    overflow: 'hidden',
   },
   cardHeader: {
     flexDirection: 'row',
@@ -322,6 +318,13 @@ const styles = StyleSheet.create({
   statLabel: {
     fontSize: 12,
     color: '#888',
+    textTransform: 'uppercase',
+    marginBottom: 4,
+    fontWeight: '600',
+  },
+  statLabelWhite: {
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.7)',
     textTransform: 'uppercase',
     marginBottom: 4,
     fontWeight: '600',
