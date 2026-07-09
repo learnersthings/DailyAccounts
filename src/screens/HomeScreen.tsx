@@ -211,6 +211,7 @@ const styles = StyleSheet.create({
   header: {
     padding: 20,
     paddingTop: 10,
+    paddingBottom: 0,
   },
   greetingText: {
     fontSize: 24,
@@ -218,6 +219,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: 20,
+    paddingTop: 10,
     paddingBottom: 100, // padding for FAB
   },
   card: {
