@@ -361,7 +361,7 @@ export default function AccountTransactionList({ accountFilter }: AccountTransac
 
   const listHeader = (
     <View style={{ marginBottom: 16 }}>
-      {filteredTransactions.length > 0 && (
+      {baseTransactions.length > 0 && (
         <View style={styles.searchFilterContainer}>
           <View style={[styles.searchBar, { backgroundColor: colors.surface, borderColor: colors.border }]}>
             <Ionicons name="search" size={20} color={colors.textMuted} style={styles.searchIcon} />
@@ -473,7 +473,9 @@ export default function AccountTransactionList({ accountFilter }: AccountTransac
         removeClippedSubviews={Platform.OS === 'android'}
         ListEmptyComponent={
           <View style={styles.emptyState}>
-            <AppText style={styles.emptyStateText}>No transactions found.</AppText>
+            <AppText style={styles.emptyStateText}>
+              {baseTransactions.length === 0 ? "No transactions found." : "No transactions match your search or filters."}
+            </AppText>
           </View>
         }
         ListFooterComponent={
