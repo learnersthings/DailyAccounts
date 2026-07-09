@@ -6,7 +6,7 @@ import { useThemeContext } from '../context/ThemeContext';
 import { useExpenseContext } from '../context/ExpenseContext';
 import { formatAmount } from '../utils/format';
 import Svg, { Circle } from 'react-native-svg';
-import TransactionList from '../components/TransactionList';
+import ExpenseList from '../components/ExpenseList';
 import PremiumCardBackground from '../components/PremiumCardBackground';
 
 export default function DashboardScreen() {
@@ -108,7 +108,7 @@ export default function DashboardScreen() {
     </View>
   );
 
-  return <TransactionList ListHeaderComponent={renderCards()} />;
+  return <ExpenseList ListHeaderComponent={renderCards()} />;
 }
 
 const styles = StyleSheet.create({

@@ -6,7 +6,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import DashboardScreen from '../screens/DashboardScreen';
 import HomeStack from './HomeStack';
-import TransactionsScreen from '../screens/TransactionsScreen';
+import ExpensesScreen from '../screens/ExpensesScreen';
 import AnalyticsScreen from '../screens/AnalyticsScreen';
 import SettingsStack from './SettingsStack';
 
@@ -29,7 +29,7 @@ export default function BottomTabs() {
           let iconName: keyof typeof Ionicons.glyphMap;
           if (route.name === 'Home') iconName = 'home';
           else if (route.name === 'Dashboard') iconName = 'grid';
-          else if (route.name === 'Transactions') iconName = 'newspaper';
+          else if (route.name === 'Expenses') iconName = 'newspaper';
           else if (route.name === 'Analytics') iconName = 'stats-chart';
           else if (route.name === 'Settings') iconName = 'settings';
           else iconName = 'ellipse';
@@ -55,7 +55,7 @@ export default function BottomTabs() {
             iconName = focused ? 'home' : 'home-outline';
           } else if (route.name === 'Dashboard') {
             iconName = focused ? 'grid' : 'grid-outline';
-          } else if (route.name === 'Transactions') {
+          } else if (route.name === 'Expenses') {
             iconName = focused ? 'newspaper' : 'newspaper-outline';
           } else if (route.name === 'Analytics') {
             iconName = focused ? 'stats-chart' : 'stats-chart-outline';
@@ -75,7 +75,7 @@ export default function BottomTabs() {
         options={{ headerShown: false }}
       />
       <Tab.Screen name="Dashboard" component={DashboardScreen} />
-      <Tab.Screen name="Transactions" component={TransactionsScreen} />
+      <Tab.Screen name="Expenses" component={ExpensesScreen} />
       <Tab.Screen name="Analytics" component={AnalyticsScreen} />
       <Tab.Screen
         name="Settings"

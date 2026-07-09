@@ -21,13 +21,13 @@ export type ListItem =
   | { type: 'header'; id: string; title: string }
   | { type: 'expense'; id: string; expense: Expense };
 
-interface TransactionListProps {
+interface ExpenseListProps {
   ListHeaderComponent?: React.ReactNode;
   hideTitle?: boolean;
-  isTransactionsScreen?: boolean;
+  isExpensesScreen?: boolean;
 }
 
-export default function TransactionList({ ListHeaderComponent, hideTitle, isTransactionsScreen }: TransactionListProps) {
+export default function ExpenseList({ ListHeaderComponent, hideTitle, isExpensesScreen }: ExpenseListProps) {
   const colors = useThemeColors();
   const navigation = useNavigation<any>();
   const { isDarkTheme } = useThemeContext();
@@ -350,11 +350,11 @@ export default function TransactionList({ ListHeaderComponent, hideTitle, isTran
     <>
       {ListHeaderComponent}
 
-      {!isTransactionsScreen && (
+      {!isExpensesScreen && (
         <View style={styles.sectionHeader}>
           {!hideTitle && <AppText style={[styles.sectionTitle, { color: colors.text }]}>Recent Activity</AppText>}
           {expenses.length > 0 && (
-            <TouchableOpacity onPress={() => navigation.navigate('Transactions')}>
+            <TouchableOpacity onPress={() => navigation.navigate('Expenses')}>
               <AppText style={{ color: colors.primary, fontWeight: '600' }}>See All</AppText>
             </TouchableOpacity>
           )}
@@ -378,7 +378,7 @@ export default function TransactionList({ ListHeaderComponent, hideTitle, isTran
               </TouchableOpacity>
             )}
           </View>
-          {isTransactionsScreen && (
+          {isExpensesScreen && (
             <>
               <TouchableOpacity
                 style={[styles.filterButton, { backgroundColor: colors.surface, borderColor: colors.border, marginRight: 10 }]}
