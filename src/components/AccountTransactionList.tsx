@@ -265,7 +265,9 @@ export default function AccountTransactionList({ accountFilter }: AccountTransac
       const { uri, base64 } = await Print.printToFileAsync({ html, base64: true });
 
       if (downloadPathUri && Platform.OS === 'android') {
-        const fileUri = await FileSystem.StorageAccessFramework.createFileAsync(downloadPathUri, `Bank_Transactions_${accountFilter ? accountFilter : 'All'}_${new Date().getTime()}.pdf`, 'application/pdf');
+        const prefix = accountFilter ? accountFilter.replace(/\s+/g, '_') : 'All';
+        const fileName = `${prefix}_Transactions_${new Date().getTime()}.pdf`;
+        const fileUri = await FileSystem.StorageAccessFramework.createFileAsync(downloadPathUri, fileName, 'application/pdf');
         if (base64) {
           await FileSystem.writeAsStringAsync(fileUri, base64, { encoding: FileSystem.EncodingType.Base64 });
           Alert.alert('Success', 'PDF saved automatically to your chosen download folder.');

@@ -104,8 +104,7 @@ export const generateAccountTransactionsPDFHTML = (
         </style>
       </head>
       <body>
-        <h1>Bank Transactions Report</h1>
-        ${accountName ? `<h2>Account: ${accountName}</h2>` : ''}
+        <h1>${accountName ? `${accountName} Transactions Report` : 'All Transactions Report'}</h1>
         <div class="summary-container">
           <div class="summary-item">Total Records: ${transactions.length}</div>
           <div class="summary-item credit">Total Credits: +${currency}${formatAmount(totalCredits)}</div>
