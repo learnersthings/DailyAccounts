@@ -36,12 +36,14 @@ interface ExpenseContextType {
   showYearlyBudget: boolean;
   showYearCard: boolean;
   analyticsChartType: 'Pie' | 'Donut';
-  chartStyle: 'Classic' | '3D' | 'Spaced' | 'Semi-Circle';
+  monthlyIncomes: Record<string, number>;
   addExpense: (amount: number, description: string, date: Date, categoryId?: string, paymentModeId?: string) => Promise<void>;
   updateExpense: (id: string, amount: number, description: string, date: Date, categoryId?: string, paymentModeId?: string) => Promise<void>;
   deleteExpense: (id: string) => Promise<void>;
   bulkDeleteExpenses: (ids: string[]) => Promise<void>;
   reorderExpensesByDate: (dateStr: string, reorderedDayExpenses: Expense[]) => Promise<void>;
+  
+  updateMonthlyIncome: (year: number, month: number, amount: number) => Promise<void>;
   
   addCategory: (name: string, icon: string, color: string) => Promise<void>;
   updateCategory: (id: string, name: string, icon: string, color: string) => Promise<void>;
@@ -83,11 +85,13 @@ const ExpenseContext = createContext<ExpenseContextType>({
   showYearCard: true,
   analyticsChartType: 'Pie',
   chartStyle: 'Classic',
+  monthlyIncomes: {},
   addExpense: async () => {},
   updateExpense: async () => {},
   deleteExpense: async () => {},
   bulkDeleteExpenses: async () => {},
   reorderExpensesByDate: async () => {},
+  updateMonthlyIncome: async () => {},
   addCategory: async () => {},
   updateCategory: async () => {},
   deleteCategory: async () => {},
@@ -142,6 +146,7 @@ export const ExpenseProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [chartStyle, setChartStyle] = useState<'Classic' | '3D' | 'Spaced' | 'Semi-Circle'>('Classic');
   const [downloadPathUri, setDownloadPathUri] = useState<string | null>(null);
   const [backupPathUri, setBackupPathUri] = useState<string | null>(null);
+  const [monthlyIncomes, setMonthlyIncomes] = useState<Record<string, number>>({});
   const [isLoading, setIsLoading] = useState(true);
   const { user } = useAuthContext();
 
@@ -157,6 +162,7 @@ export const ExpenseProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const chartStyleStorageKey = user ? `${CHART_STYLE_KEY}_${user.email}` : CHART_STYLE_KEY;
   const downloadPathStorageKey = user ? `${DOWNLOAD_PATH_KEY}_${user.email}` : DOWNLOAD_PATH_KEY;
   const backupPathStorageKey = user ? `${BACKUP_PATH_KEY}_${user.email}` : BACKUP_PATH_KEY;
+  const monthlyIncomesStorageKey = user ? `@app_monthly_incomes_${user.email}` : '@app_monthly_incomes';
 
   const loadData = async () => {
     try {
@@ -251,6 +257,14 @@ export const ExpenseProvider: React.FC<{ children: React.ReactNode }> = ({ child
       } else {
         setBackupPathUri(null);
       }
+
+      const storedMonthlyIncomes = await AsyncStorage.getItem(monthlyIncomesStorageKey);
+      if (storedMonthlyIncomes !== null) {
+        setMonthlyIncomes(JSON.parse(storedMonthlyIncomes));
+      } else {
+        setMonthlyIncomes({});
+      }
+
     } catch (e) {
       console.error('Failed to load data', e);
     } finally {
@@ -326,6 +340,13 @@ export const ExpenseProvider: React.FC<{ children: React.ReactNode }> = ({ child
     
     setExpenses(newExpenses);
     await AsyncStorage.setItem(storageKey, JSON.stringify(newExpenses));
+  };
+
+  const updateMonthlyIncome = async (year: number, month: number, amount: number) => {
+    const key = `${year}-${String(month).padStart(2, '0')}`;
+    const updated = { ...monthlyIncomes, [key]: amount };
+    setMonthlyIncomes(updated);
+    await AsyncStorage.setItem(monthlyIncomesStorageKey, JSON.stringify(updated));
   };
 
   const addCategory = async (name: string, icon: string, color: string) => {
@@ -518,7 +539,9 @@ export const ExpenseProvider: React.FC<{ children: React.ReactNode }> = ({ child
     <ExpenseContext.Provider value={{ 
       expenses, categories, paymentModes, currency, monthlyBudget, yearlyBudget, 
       showMonthlyBudget, showYearlyBudget, showYearCard, analyticsChartType, chartStyle,
+      monthlyIncomes,
       addExpense, updateExpense, deleteExpense, bulkDeleteExpenses, reorderExpensesByDate,
+      updateMonthlyIncome,
       addCategory, updateCategory, deleteCategory,
       addPaymentMode, updatePaymentMode, deletePaymentMode,
       bulkImport,

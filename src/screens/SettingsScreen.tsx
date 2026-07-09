@@ -268,6 +268,17 @@ export default function SettingsScreen({ navigation }: any) {
         <View style={styles.divider} />
         <TouchableOpacity
           style={styles.row}
+          onPress={() => navigation.navigate('Income')}
+        >
+          <View style={styles.rowLeft}>
+            <Ionicons name="cash-outline" size={22} color={colors.primary} style={styles.icon} />
+            <AppText style={[styles.text, { color: colors.text }]}>Monthly Income</AppText>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color={colors.text} />
+        </TouchableOpacity>
+        <View style={styles.divider} />
+        <TouchableOpacity
+          style={styles.row}
           onPress={() => navigation.navigate('Categories')}
         >
           <View style={styles.rowLeft}>

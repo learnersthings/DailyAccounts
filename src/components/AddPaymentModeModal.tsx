@@ -134,7 +134,7 @@ export default function AddPaymentModeModal({ visible, onClose, modeToEdit }: Ad
                 <AppText style={styles.label}>Payment Mode Name</AppText>
                 <TextInput
                   style={[styles.input, { backgroundColor: colors.surface, color: colors.text, borderColor: colors.border }]}
-                  placeholder="e.g. Credit Card"
+                  placeholder="Payment Mode"
                   placeholderTextColor={placeholderColor}
                   value={name}
                   onChangeText={(text) => { setName(text); setError(''); }}
@@ -143,7 +143,7 @@ export default function AddPaymentModeModal({ visible, onClose, modeToEdit }: Ad
 
               <View style={styles.inputWrapper}>
                 <AppText style={styles.label}>Select Color</AppText>
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={[styles.pickerButton, { borderColor: colors.border, backgroundColor: colors.surface }]}
                   onPress={() => setColorPickerVisible(true)}
                 >
@@ -161,7 +161,7 @@ export default function AddPaymentModeModal({ visible, onClose, modeToEdit }: Ad
 
               <View style={styles.inputWrapper}>
                 <AppText style={styles.label}>Select Icon</AppText>
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={[styles.pickerButton, { borderColor: colors.border, backgroundColor: colors.surface }]}
                   onPress={() => setIconPickerVisible(true)}
                 >
@@ -199,18 +199,18 @@ export default function AddPaymentModeModal({ visible, onClose, modeToEdit }: Ad
         </View>
       </TouchableWithoutFeedback>
 
-      <ColorPickerModal 
-        visible={colorPickerVisible} 
-        onClose={() => setColorPickerVisible(false)} 
-        color={color} 
-        onSelect={setColor} 
+      <ColorPickerModal
+        visible={colorPickerVisible}
+        onClose={() => setColorPickerVisible(false)}
+        color={color}
+        onSelect={setColor}
       />
-      
-      <IconPickerModal 
-        visible={iconPickerVisible} 
-        onClose={() => setIconPickerVisible(false)} 
-        icon={icon} 
-        onSelect={setIcon} 
+
+      <IconPickerModal
+        visible={iconPickerVisible}
+        onClose={() => setIconPickerVisible(false)}
+        icon={icon}
+        onSelect={setIcon}
       />
     </Modal>
   );
