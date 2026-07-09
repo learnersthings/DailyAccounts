@@ -10,6 +10,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { formatAmount } from '../utils/format';
 import AddTransactionModal from '../components/AddTransactionModal';
 import PremiumCardBackground from '../components/PremiumCardBackground';
+import EmptyState from '../components/EmptyState';
 
 export default function HomeScreen({ navigation }: any) {
   const colors = useThemeColors();
@@ -200,6 +201,13 @@ export default function HomeScreen({ navigation }: any) {
         onDragEnd={handleDragEnd}
         renderItem={renderItem}
         ListHeaderComponent={listHeader}
+        ListEmptyComponent={
+          <EmptyState
+            icon="business-outline"
+            title="No Bank Accounts"
+            message="You don't have any accounts set up yet. Bank accounts are automatically created when you add your first transaction!"
+          />
+        }
         contentContainerStyle={styles.scrollContent}
         activationDistance={20}
       />

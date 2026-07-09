@@ -11,6 +11,7 @@ import { useThemeContext } from '../context/ThemeContext';
 import { useExpenseContext, Expense } from '../context/ExpenseContext';
 import AddExpenseModal from '../components/AddExpenseModal';
 import FilterModal from '../components/FilterModal';
+import EmptyState from '../components/EmptyState';
 import { formatAmount } from '../utils/format';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
@@ -529,11 +530,13 @@ export default function ExpenseList({ ListHeaderComponent, hideTitle, isExpenses
   );
 
   const listEmpty = (
-    <View style={styles.emptyState}>
-      <AppText style={styles.emptyStateText}>
-        {expenses.length === 0 ? "No expenses yet. Add one!" : "No expenses match your search or filters."}
-      </AppText>
-    </View>
+    <EmptyState
+      icon={expenses.length === 0 ? "wallet-outline" : "search-outline"}
+      title={expenses.length === 0 ? "No Expenses Yet" : "No Results"}
+      message={expenses.length === 0 ? "Start tracking your spending by adding your first expense." : "We couldn't find any expenses matching your search or filters."}
+      actionLabel={expenses.length === 0 && !isExpensesScreen ? "Add Expense" : undefined}
+      onAction={expenses.length === 0 && !isExpensesScreen ? handleOpenAddModal : undefined}
+    />
   );
 
   return (

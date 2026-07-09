@@ -9,8 +9,9 @@ import { useThemeContext } from '../context/ThemeContext';
 import { useTransactionContext, AccountTransaction } from '../context/TransactionContext';
 import { useExpenseContext } from '../context/ExpenseContext';
 import { formatAmount } from '../utils/format';
-import AddTransactionModal from './AddTransactionModal';
-import AccountFilterModal from './AccountFilterModal';
+import AddTransactionModal from '../components/AddTransactionModal';
+import AccountFilterModal from '../components/AccountFilterModal';
+import EmptyState from '../components/EmptyState';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system/legacy';
@@ -472,11 +473,13 @@ export default function AccountTransactionList({ accountFilter }: AccountTransac
         updateCellsBatchingPeriod={30}
         removeClippedSubviews={Platform.OS === 'android'}
         ListEmptyComponent={
-          <View style={styles.emptyState}>
-            <AppText style={styles.emptyStateText}>
-              {baseTransactions.length === 0 ? "No transactions found." : "No transactions match your search or filters."}
-            </AppText>
-          </View>
+          <EmptyState
+            icon={baseTransactions.length === 0 ? "card-outline" : "search-outline"}
+            title={baseTransactions.length === 0 ? "No Transactions Yet" : "No Results"}
+            message={baseTransactions.length === 0 ? "You haven't added any transactions to this account yet." : "No transactions match your search or filters."}
+            actionLabel={baseTransactions.length === 0 ? "Add Transaction" : undefined}
+            onAction={baseTransactions.length === 0 ? () => setIsModalVisible(true) : undefined}
+          />
         }
         ListFooterComponent={
           filteredTransactions.length > displayCount ? (
