@@ -190,7 +190,11 @@ export default function HomeScreen({ navigation }: any) {
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={styles.header}>
-        <AppText style={[styles.greetingText, { color: colors.text }]}>
+        <AppText 
+          style={[styles.greetingText, { color: colors.primary }]}
+          numberOfLines={1}
+          adjustsFontSizeToFit
+        >
           {greeting}, {user?.firstName || 'User'}{user?.lastName ? ` ${user.lastName}` : ''}!
         </AppText>
       </View>
