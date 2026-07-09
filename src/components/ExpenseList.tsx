@@ -534,8 +534,8 @@ export default function ExpenseList({ ListHeaderComponent, hideTitle, isExpenses
       icon={expenses.length === 0 ? "wallet-outline" : "search-outline"}
       title={expenses.length === 0 ? "No Expenses Yet" : "No Results"}
       message={expenses.length === 0 ? "Start tracking your spending by adding your first expense." : "We couldn't find any expenses matching your search or filters."}
-      actionLabel={expenses.length === 0 && !isExpensesScreen ? "Add Expense" : undefined}
-      onAction={expenses.length === 0 && !isExpensesScreen ? handleOpenAddModal : undefined}
+      actionLabel={expenses.length === 0 ? "Add Expense" : undefined}
+      onAction={expenses.length === 0 ? handleOpenAddModal : undefined}
     />
   );
 
