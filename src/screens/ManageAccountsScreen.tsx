@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useThemeColors } from '../hooks/useThemeColors';
 import { View, StyleSheet, TouchableOpacity, ScrollView, TextInput, Modal, Alert, KeyboardAvoidingView, Platform, TouchableWithoutFeedback, Keyboard } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AppText from '../components/AppText';
 import { useThemeContext } from '../context/ThemeContext';
 import { useTransactionContext } from '../context/TransactionContext';
@@ -11,6 +12,7 @@ export default function ManageAccountsScreen() {
   const colors = useThemeColors();
   const { isDarkTheme } = useThemeContext();
   const { accounts, addManualAccount, deleteAccount } = useTransactionContext();
+  const insets = useSafeAreaInsets();
 
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [newAccountName, setNewAccountName] = useState('');
@@ -103,7 +105,7 @@ export default function ManageAccountsScreen() {
           <View style={styles.modalOverlay}>
             <KeyboardAvoidingView
               behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-              style={[styles.modalContent, { backgroundColor: colors.background }]}
+              style={[styles.modalContent, { backgroundColor: colors.background, paddingBottom: Math.max(24, insets.bottom + 16) }]}
             >
               <View style={styles.modalHeader}>
                 <AppText style={[styles.modalTitle, { color: colors.text }]}>Add Account</AppText>
@@ -213,7 +215,6 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     padding: 24,
-    paddingBottom: Platform.OS === 'ios' ? 40 : 24,
     maxHeight: '90%',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -2 },
