@@ -44,32 +44,74 @@ export default function SettingsStack() {
       <Stack.Screen 
         name="Profile" 
         component={ProfileScreen} 
-        options={{ title: 'User Profile' }} 
+        options={{ 
+          headerTitle: () => (
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <Ionicons name="person" size={22} color={colors.text} style={{ marginRight: 8 }} />
+              <AppText style={{ color: colors.text, fontSize: 18, fontWeight: '600' }}>User Profile</AppText>
+            </View>
+          )
+        }} 
       />
       <Stack.Screen 
         name="Currency" 
         component={CurrencyScreen} 
-        options={{ title: 'Select Currency' }} 
+        options={{ 
+          headerTitle: () => (
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <Ionicons name="cash" size={22} color={colors.text} style={{ marginRight: 8 }} />
+              <AppText style={{ color: colors.text, fontSize: 18, fontWeight: '600' }}>Select Currency</AppText>
+            </View>
+          )
+        }} 
       />
       <Stack.Screen 
         name="Budget" 
         component={BudgetScreen} 
-        options={{ title: 'Set Budget' }} 
+        options={{ 
+          headerTitle: () => (
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <Ionicons name="wallet" size={22} color={colors.text} style={{ marginRight: 8 }} />
+              <AppText style={{ color: colors.text, fontSize: 18, fontWeight: '600' }}>Set Budget</AppText>
+            </View>
+          )
+        }} 
       />
       <Stack.Screen 
         name="Categories" 
         component={CategoriesScreen} 
-        options={{ title: 'Manage Categories' }} 
+        options={{ 
+          headerTitle: () => (
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <Ionicons name="pricetag" size={22} color={colors.text} style={{ marginRight: 8 }} />
+              <AppText style={{ color: colors.text, fontSize: 18, fontWeight: '600' }}>Manage Categories</AppText>
+            </View>
+          )
+        }} 
       />
       <Stack.Screen 
         name="PaymentModes" 
         component={PaymentModesScreen} 
-        options={{ title: 'Payment Modes' }} 
+        options={{ 
+          headerTitle: () => (
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <Ionicons name="card" size={22} color={colors.text} style={{ marginRight: 8 }} />
+              <AppText style={{ color: colors.text, fontSize: 18, fontWeight: '600' }}>Payment Modes</AppText>
+            </View>
+          )
+        }} 
       />
       <Stack.Screen 
         name="AnalyticsChartSettings" 
         component={AnalyticsChartSettingsScreen} 
-        options={{ title: 'Analytics Chart' }} 
+        options={{ 
+          headerTitle: () => (
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <Ionicons name="bar-chart" size={22} color={colors.text} style={{ marginRight: 8 }} />
+              <AppText style={{ color: colors.text, fontSize: 18, fontWeight: '600' }}>Analytics Chart</AppText>
+            </View>
+          )
+        }} 
       />
     </Stack.Navigator>
   );
