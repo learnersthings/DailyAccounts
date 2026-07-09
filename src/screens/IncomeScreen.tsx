@@ -150,8 +150,8 @@ export default function IncomeScreen() {
             </View>
           </View>
         </PremiumCardBackground>
-        
-        <View style={{ height: 2, backgroundColor: colors.accent, borderRadius: 1, marginBottom: 24 }} />
+
+        <View style={{ height: 2, backgroundColor: colors.accent, borderRadius: 1, marginBottom: 16 }} />
 
         <View style={styles.list}>
           {monthlyStats.map((stat, index) => (
@@ -280,7 +280,7 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   yearlySummaryCard: {
-    marginBottom: 20,
+    marginBottom: 16,
     borderRadius: 16,
     overflow: 'hidden',
   },
@@ -290,9 +290,6 @@ const styles = StyleSheet.create({
   },
   yearlyStatColumn: {
     flex: 1,
-  },
-  list: {
-    gap: 16,
   },
   monthCard: {
     borderRadius: 16,
