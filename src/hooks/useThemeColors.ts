@@ -7,6 +7,7 @@ export function useThemeColors() {
 
   return {
     ...colors,
+    accent: accentColor,
     surface: isDarkTheme ? '#1e1e1e' : '#f5f5f5',
     surfaceVariant: isDarkTheme ? '#2a2a2a' : '#eaeaea',
     textMuted: isDarkTheme ? '#888' : '#aaa',

@@ -148,39 +148,42 @@ export default function HomeScreen({ navigation }: any) {
   };
 
   const listHeader = accounts.length > 0 ? (
-    <PremiumCardBackground color={colors.primary} style={{ marginBottom: 24 }}>
-      <View style={styles.cardHeader}>
-        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-          <Ionicons name="wallet" size={24} color="#fff" style={{ marginRight: 8 }} />
-          <AppText style={[styles.cardTitle, { color: '#fff' }]}>Total Balance</AppText>
-        </View>
-      </View>
-      <View style={styles.cardBody}>
-        <AppText style={[styles.balanceLabel, { color: 'rgba(255,255,255,0.8)' }]}>Overall Available Balance</AppText>
-        <AppText style={[styles.balanceAmount, { color: '#fff', fontSize: 32 }]}>
-          {currency}{formatAmount(totalBalance)}
-        </AppText>
-
-        {showCardStats && (
-          <View style={{ flexDirection: 'row', marginTop: 16, paddingTop: 16, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.2)' }}>
-            <View style={{ flex: 1 }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
-                <Ionicons name="arrow-down-circle" size={16} color="#4CAF50" style={{ marginRight: 4 }} />
-                <AppText style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)' }}>TOTAL CREDIT</AppText>
-              </View>
-              <AppText style={{ fontSize: 16, fontWeight: 'bold', color: '#4CAF50' }}>{currency}{formatAmount(totalCredit)}</AppText>
-            </View>
-            <View style={{ flex: 1 }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
-                <Ionicons name="arrow-up-circle" size={16} color="#F44336" style={{ marginRight: 4 }} />
-                <AppText style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)' }}>TOTAL DEBIT</AppText>
-              </View>
-              <AppText style={{ fontSize: 16, fontWeight: 'bold', color: '#F44336' }}>{currency}{formatAmount(totalDebit)}</AppText>
-            </View>
+    <View style={{ marginBottom: 20 }}>
+      <PremiumCardBackground color={colors.primary} style={{ marginBottom: 20 }}>
+        <View style={styles.cardHeader}>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <Ionicons name="wallet" size={24} color="#fff" style={{ marginRight: 8 }} />
+            <AppText style={[styles.cardTitle, { color: '#fff' }]}>Total Balance</AppText>
           </View>
-        )}
-      </View>
-    </PremiumCardBackground>
+        </View>
+        <View style={styles.cardBody}>
+          <AppText style={[styles.balanceLabel, { color: 'rgba(255,255,255,0.8)' }]}>Overall Available Balance</AppText>
+          <AppText style={[styles.balanceAmount, { color: '#fff', fontSize: 32 }]}>
+            {currency}{formatAmount(totalBalance)}
+          </AppText>
+
+          {showCardStats && (
+            <View style={{ flexDirection: 'row', marginTop: 16, paddingTop: 16, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.2)' }}>
+              <View style={{ flex: 1 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
+                  <Ionicons name="arrow-down-circle" size={16} color="#4CAF50" style={{ marginRight: 4 }} />
+                  <AppText style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)' }}>TOTAL CREDIT</AppText>
+                </View>
+                <AppText style={{ fontSize: 16, fontWeight: 'bold', color: '#4CAF50' }}>{currency}{formatAmount(totalCredit)}</AppText>
+              </View>
+              <View style={{ flex: 1 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
+                  <Ionicons name="arrow-up-circle" size={16} color="#F44336" style={{ marginRight: 4 }} />
+                  <AppText style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)' }}>TOTAL DEBIT</AppText>
+                </View>
+                <AppText style={{ fontSize: 16, fontWeight: 'bold', color: '#F44336' }}>{currency}{formatAmount(totalDebit)}</AppText>
+              </View>
+            </View>
+          )}
+        </View>
+      </PremiumCardBackground>
+      <View style={{ height: 2, backgroundColor: colors.accent, borderRadius: 1 }} />
+    </View>
   ) : null;
 
   return (
