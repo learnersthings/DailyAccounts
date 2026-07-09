@@ -67,29 +67,29 @@ export default function SettingsStack() {
           )
         }}
       />
-      <Stack.Screen 
-        name="Budget" 
-        component={BudgetScreen} 
-        options={{ 
+      <Stack.Screen
+        name="Budget"
+        component={BudgetScreen}
+        options={{
           headerTitle: () => (
             <View style={{ flexDirection: 'row', alignItems: 'center', marginLeft: Platform.OS === 'android' ? -20 : 0 }}>
               <Ionicons name="wallet" size={22} color={colors.text} style={{ marginRight: 8 }} />
               <AppText style={{ color: colors.text, fontSize: 18, fontWeight: '600' }}>Budget</AppText>
             </View>
           )
-        }} 
+        }}
       />
-      <Stack.Screen 
-        name="Income" 
-        component={IncomeScreen} 
-        options={{ 
+      <Stack.Screen
+        name="Income"
+        component={IncomeScreen}
+        options={{
           headerTitle: () => (
             <View style={{ flexDirection: 'row', alignItems: 'center', marginLeft: Platform.OS === 'android' ? -20 : 0 }}>
-              <Ionicons name="cash" size={22} color={colors.text} style={{ marginRight: 8 }} />
+              <Ionicons name="calendar" size={22} color={colors.text} style={{ marginRight: 8 }} />
               <AppText style={{ color: colors.text, fontSize: 18, fontWeight: '600' }}>Monthly Income</AppText>
             </View>
           )
-        }} 
+        }}
       />
       <Stack.Screen
         name="Categories"

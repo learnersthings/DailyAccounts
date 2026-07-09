@@ -125,14 +125,14 @@ export default function IncomeScreen() {
               <View style={styles.statsRow}>
                 <View style={styles.statColumn}>
                   <AppText style={styles.statLabel}>Income</AppText>
-                  <AppText style={[styles.statValue, { color: '#00C851' }]} numberOfLines={1}>
+                  <AppText style={[styles.statValue, { color: stat.income === 0 ? colors.text : '#00C851' }]} numberOfLines={1}>
                     {currency}{formatAmount(stat.income)}
                   </AppText>
                 </View>
 
                 <View style={styles.statColumn}>
                   <AppText style={styles.statLabel}>Expense</AppText>
-                  <AppText style={[styles.statValue, { color: '#ff4444' }]} numberOfLines={1}>
+                  <AppText style={[styles.statValue, { color: stat.expense === 0 ? colors.text : '#ff4444' }]} numberOfLines={1}>
                     {currency}{formatAmount(stat.expense)}
                   </AppText>
                 </View>
@@ -140,10 +140,10 @@ export default function IncomeScreen() {
                 <View style={[styles.statColumn, { alignItems: 'flex-end' }]}>
                   <AppText style={styles.statLabel}>Available</AppText>
                   <AppText
-                    style={[styles.statValue, { color: stat.balance >= 0 ? '#00C851' : '#ff4444' }]}
+                    style={[styles.statValue, { color: stat.balance === 0 ? colors.text : (stat.balance > 0 ? '#00C851' : '#ff4444') }]}
                     numberOfLines={1}
                   >
-                    {stat.balance >= 0 ? '+' : '-'}{currency}{formatAmount(Math.abs(stat.balance))}
+                    {stat.balance === 0 ? '' : (stat.balance > 0 ? '+' : '-')}{currency}{formatAmount(Math.abs(stat.balance))}
                   </AppText>
                 </View>
               </View>
