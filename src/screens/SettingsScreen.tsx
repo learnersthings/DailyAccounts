@@ -304,6 +304,17 @@ export default function SettingsScreen({ navigation }: any) {
         <View style={styles.divider} />
         <TouchableOpacity
           style={styles.row}
+          onPress={() => navigation.navigate('ManageAccounts')}
+        >
+          <View style={styles.rowLeft}>
+            <Ionicons name="business-outline" size={22} color={colors.primary} style={styles.icon} />
+            <AppText style={[styles.text, { color: colors.text }]}>Manage Accounts</AppText>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color={colors.text} />
+        </TouchableOpacity>
+        <View style={styles.divider} />
+        <TouchableOpacity
+          style={styles.row}
           onPress={() => setIsTotalBalanceExpanded(!isTotalBalanceExpanded)}
         >
           <View style={styles.rowLeft}>

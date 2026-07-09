@@ -208,8 +208,8 @@ export default function HomeScreen({ navigation }: any) {
         ListEmptyComponent={
           <EmptyState
             icon="business-outline"
-            title="No Bank Accounts"
-            message="You don't have any accounts set up yet. Bank accounts are automatically created when you add your first transaction!"
+            title="No Accounts"
+            message="You don't have any accounts set up yet. Accounts are automatically created when you add your first transaction!"
           />
         }
         contentContainerStyle={styles.scrollContent}

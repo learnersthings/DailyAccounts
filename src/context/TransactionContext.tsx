@@ -21,6 +21,7 @@ interface TransactionContextType {
   bulkImportTransactions: (newTransactions: AccountTransaction[]) => Promise<void>;
   reorderTransactionsByDate: (dateStr: string, reorderedDayTransactions: AccountTransaction[]) => Promise<void>;
   updateAccountOrder: (newOrder: string[]) => Promise<void>;
+  addManualAccount: (account: string) => Promise<void>;
   deleteAccount: (account: string) => Promise<void>;
   getAccountBalance: (account: string) => number;
   getAccountStats: (account: string) => { balance: number; totalCredit: number; totalDebit: number };
@@ -42,6 +43,7 @@ const TransactionContext = createContext<TransactionContextType>({
   bulkImportTransactions: async () => {},
   reorderTransactionsByDate: async () => {},
   updateAccountOrder: async () => {},
+  addManualAccount: async () => {},
   deleteAccount: async () => {},
   getAccountBalance: () => 0,
   getAccountStats: () => ({ balance: 0, totalCredit: 0, totalDebit: 0 }),
@@ -60,6 +62,7 @@ const TRANSACTIONS_KEY = '@app_bank_transactions';
 export const TransactionProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [transactions, setTransactions] = useState<AccountTransaction[]>([]);
   const [accountOrder, setAccountOrder] = useState<string[]>([]);
+  const [manualAccounts, setManualAccounts] = useState<string[]>([]);
   const [excludedFromTotal, setExcludedFromTotal] = useState<string[]>([]);
   const [showCardStats, setShowCardStats] = useState<boolean>(true);
   const [isLoading, setIsLoading] = useState(true);
@@ -67,6 +70,7 @@ export const TransactionProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
   const storageKey = user ? `${TRANSACTIONS_KEY}_${user.email}` : TRANSACTIONS_KEY;
   const orderStorageKey = user ? `@app_account_order_${user.email}` : '@app_account_order';
+  const manualAccountsStorageKey = user ? `@app_manual_accounts_${user.email}` : '@app_manual_accounts';
   const excludedStorageKey = user ? `@app_account_excluded_${user.email}` : '@app_account_excluded';
   const showStatsStorageKey = user ? `@app_show_card_stats_${user.email}` : '@app_show_card_stats';
 
@@ -85,6 +89,13 @@ export const TransactionProvider: React.FC<{ children: React.ReactNode }> = ({ c
         setAccountOrder(JSON.parse(storedOrder));
       } else {
         setAccountOrder([]);
+      }
+
+      const storedManualAccounts = await AsyncStorage.getItem(manualAccountsStorageKey);
+      if (storedManualAccounts) {
+        setManualAccounts(JSON.parse(storedManualAccounts));
+      } else {
+        setManualAccounts([]);
       }
 
       const storedExcluded = await AsyncStorage.getItem(excludedStorageKey);
@@ -219,6 +230,15 @@ export const TransactionProvider: React.FC<{ children: React.ReactNode }> = ({ c
     await AsyncStorage.setItem(orderStorageKey, JSON.stringify(newOrder));
   };
 
+  const addManualAccount = async (account: string) => {
+    if (manualAccounts.includes(account) || transactions.some(t => t.account === account)) {
+      return; // Already exists
+    }
+    const newManualAccounts = [...manualAccounts, account];
+    setManualAccounts(newManualAccounts);
+    await AsyncStorage.setItem(manualAccountsStorageKey, JSON.stringify(newManualAccounts));
+  };
+
   const deleteAccount = async (account: string) => {
     const updated = transactions.filter(tx => tx.account !== account);
     setTransactions(updated);
@@ -227,6 +247,10 @@ export const TransactionProvider: React.FC<{ children: React.ReactNode }> = ({ c
     const newOrder = accountOrder.filter(a => a !== account);
     setAccountOrder(newOrder);
     await AsyncStorage.setItem(orderStorageKey, JSON.stringify(newOrder));
+
+    const newManualAccounts = manualAccounts.filter(a => a !== account);
+    setManualAccounts(newManualAccounts);
+    await AsyncStorage.setItem(manualAccountsStorageKey, JSON.stringify(newManualAccounts));
 
     const newExcluded = excludedFromTotal.filter(a => a !== account);
     setExcludedFromTotal(newExcluded);
@@ -251,7 +275,7 @@ export const TransactionProvider: React.FC<{ children: React.ReactNode }> = ({ c
   };
 
   const accounts = useMemo(() => {
-    const usedAccounts = new Set(transactions.map(t => t.account));
+    const usedAccounts = new Set([...transactions.map(t => t.account), ...manualAccounts]);
     const allAccounts = Array.from(usedAccounts);
     
     // Sort based on accountOrder
@@ -266,7 +290,7 @@ export const TransactionProvider: React.FC<{ children: React.ReactNode }> = ({ c
     });
     
     return allAccounts;
-  }, [transactions, accountOrder]);
+  }, [transactions, accountOrder, manualAccounts]);
 
   return (
     <TransactionContext.Provider value={{
@@ -279,6 +303,7 @@ export const TransactionProvider: React.FC<{ children: React.ReactNode }> = ({ c
       bulkImportTransactions,
       reorderTransactionsByDate,
       updateAccountOrder,
+      addManualAccount,
       deleteAccount,
       getAccountBalance,
       getAccountStats,
