@@ -36,6 +36,7 @@ interface ExpenseContextType {
   showYearlyBudget: boolean;
   showYearCard: boolean;
   analyticsChartType: 'Pie' | 'Donut';
+  chartStyle: 'Classic' | '3D' | 'Spaced' | 'Semi-Circle';
   monthlyIncomes: Record<string, number>;
   addExpense: (amount: number, description: string, date: Date, categoryId?: string, paymentModeId?: string) => Promise<void>;
   updateExpense: (id: string, amount: number, description: string, date: Date, categoryId?: string, paymentModeId?: string) => Promise<void>;
