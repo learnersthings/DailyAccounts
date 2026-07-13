@@ -336,7 +336,7 @@ export default function AccountTransactionList({ accountFilter }: AccountTransac
         await Sharing.shareAsync(uri, { UTI: '.pdf', mimeType: 'application/pdf' });
       }
     } catch (error) {
-      Alert.alert('Error', 'Failed to generate or save PDF report.');
+      Alert.alert('Error', 'Failed to generate or save PDF report.' + error);
     } finally {
       setIsDownloading(false);
     }

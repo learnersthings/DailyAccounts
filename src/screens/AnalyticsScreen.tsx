@@ -178,7 +178,7 @@ export default function AnalyticsScreen() {
         await Sharing.shareAsync(uri, { UTI: '.pdf', mimeType: 'application/pdf' });
       }
     } catch (error) {
-      Alert.alert('Error', 'Failed to generate or save PDF report.');
+      Alert.alert('Error', 'Failed to generate or save PDF report.' + error);
     } finally {
       setIsDownloading(false);
     }
