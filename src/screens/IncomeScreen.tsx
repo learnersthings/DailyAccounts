@@ -132,6 +132,28 @@ export default function IncomeScreen() {
     await updateMonthlyIncome(selectedYear, selectedMonth.monthIndex, amount);
     setIsModalVisible(false);
   };
+  const renderProgressBar = (income: number, expense: number, balance: number) => {
+    const expensePercent = income > 0 ? (expense / income) * 100 : (expense > 0 ? 100 : 0);
+    const availablePercent = income > 0 ? (balance / income) * 100 : (balance > 0 ? 100 : 0);
+
+    return (
+      <View style={{ marginTop: 20, paddingTop: 16, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.1)' }}>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }}>
+          <AppText style={{ fontSize: 12, color: 'rgba(255,255,255,0.8)', fontWeight: 'bold' }}>
+            EXPENSE {expensePercent.toFixed(2)}%
+          </AppText>
+          <AppText style={{ fontSize: 12, color: 'rgba(255,255,255,0.8)', fontWeight: 'bold' }}>
+            AVAILABLE BALANCE {availablePercent.toFixed(2)}%
+          </AppText>
+        </View>
+        <View style={{ height: 8, backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 4, flexDirection: 'row', overflow: 'hidden' }}>
+          <View style={{ height: '100%', width: `${Math.min(100, expensePercent)}%`, backgroundColor: '#ff4444' }} />
+          <View style={{ height: '100%', width: `${Math.max(0, 100 - expensePercent)}%`, backgroundColor: income > 0 && balance > 0 ? '#00C851' : 'transparent' }} />
+        </View>
+      </View>
+    );
+  };
+
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -186,12 +208,13 @@ export default function IncomeScreen() {
                   </AppText>
                 </View>
                 <View style={styles.yearlyStatColumn}>
-                  <AppText style={styles.statLabelWhite}>Available</AppText>
+                  <AppText style={styles.statLabelWhite}>Available Balance</AppText>
                   <AppText style={[styles.statValue, { color: overallTotals.balance === 0 ? '#FFF' : (overallTotals.balance > 0 ? '#00C851' : '#ff4444') }]}>
                     {overallTotals.balance === 0 ? '' : (overallTotals.balance > 0 ? '+' : '-')}{currency}{formatAmount(Math.abs(overallTotals.balance))}
                   </AppText>
                 </View>
               </View>
+              {renderProgressBar(overallTotals.income, overallTotals.expense, overallTotals.balance)}
             </PremiumCardBackground>
 
             <View style={{ height: 2, backgroundColor: colors.accent, borderRadius: 1, marginBottom: 16 }} />
@@ -224,7 +247,7 @@ export default function IncomeScreen() {
                       </View>
 
                       <View style={styles.statColumn}>
-                        <AppText style={styles.statLabelWhite}>Available</AppText>
+                        <AppText style={styles.statLabelWhite}>Available Balance</AppText>
                         <AppText
                           style={[styles.statValue, { color: stat.balance === 0 ? '#FFF' : (stat.balance > 0 ? '#00C851' : '#ff4444') }]}
                         >
@@ -232,6 +255,7 @@ export default function IncomeScreen() {
                         </AppText>
                       </View>
                     </View>
+                    {renderProgressBar(stat.income, stat.expense, stat.balance)}
                   </PremiumCardBackground>
                 </TouchableOpacity>
               ))}
@@ -259,12 +283,13 @@ export default function IncomeScreen() {
                   </AppText>
                 </View>
                 <View style={styles.yearlyStatColumn}>
-                  <AppText style={styles.statLabelWhite}>Available</AppText>
+                  <AppText style={styles.statLabelWhite}>Available Balance</AppText>
                   <AppText style={[styles.statValue, { color: yearlyTotals.balance === 0 ? '#FFF' : (yearlyTotals.balance > 0 ? '#00C851' : '#ff4444') }]}>
                     {yearlyTotals.balance === 0 ? '' : (yearlyTotals.balance > 0 ? '+' : '-')}{currency}{formatAmount(Math.abs(yearlyTotals.balance))}
                   </AppText>
                 </View>
               </View>
+              {renderProgressBar(yearlyTotals.income, yearlyTotals.expense, yearlyTotals.balance)}
             </PremiumCardBackground>
 
             <View style={{ height: 2, backgroundColor: colors.accent, borderRadius: 1, marginBottom: 16 }} />
@@ -297,7 +322,7 @@ export default function IncomeScreen() {
                       </View>
 
                       <View style={styles.statColumn}>
-                        <AppText style={styles.statLabelWhite}>Available</AppText>
+                        <AppText style={styles.statLabelWhite}>Available  Balance</AppText>
                         <AppText
                           style={[styles.statValue, { color: stat.balance === 0 ? '#FFF' : (stat.balance > 0 ? '#00C851' : '#ff4444') }]}
                         >
@@ -305,6 +330,7 @@ export default function IncomeScreen() {
                         </AppText>
                       </View>
                     </View>
+                    {renderProgressBar(stat.income, stat.expense, stat.balance)}
                   </PremiumCardBackground>
                 </TouchableOpacity>
               ))}
