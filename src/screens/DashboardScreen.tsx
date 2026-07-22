@@ -22,6 +22,14 @@ export default function DashboardScreen() {
     .filter(exp => new Date(exp.date).getFullYear() === currentYear)
     .reduce((sum, exp) => sum + exp.amount, 0);
 
+  const daysInCurrentMonth = new Date().getDate();
+  const daysToConsiderMonthly = Math.max(daysInCurrentMonth - 1, 1);
+  const monthlyDailyAverage = total / daysToConsiderMonthly;
+
+  const currentMonthIndex = new Date().getMonth(); // 0 for Jan, 1 for Feb, etc.
+  const monthsToConsider = Math.max(currentMonthIndex, 1);
+  const yearlyMonthlyAverage = currentYearTotal / monthsToConsider;
+
   const renderCards = () => (
     <View>
       {/* Monthly Spending Card */}
@@ -33,13 +41,16 @@ export default function DashboardScreen() {
               {currency}{formatAmount(total)}
             </AppText>
             {monthlyBudget > 0 && showMonthlyBudget && (
-              <View style={{ height: 6, backgroundColor: 'rgba(255,255,255,0.3)', borderRadius: 3, width: '100%', overflow: 'hidden', position: 'relative' }}>
+              <View style={{ height: 6, backgroundColor: 'rgba(255,255,255,0.3)', borderRadius: 3, width: '100%', overflow: 'hidden', position: 'relative', marginBottom: 8 }}>
                 <View style={{ height: '100%', backgroundColor: total >= monthlyBudget * 0.8 ? '#ffcccc' : '#FFF', width: `${Math.min((total / monthlyBudget) * 100, 100)}%` }} />
                 {total > monthlyBudget && (
                   <View style={{ position: 'absolute', left: 0, top: 0, height: '100%', backgroundColor: '#ff4444', width: `${Math.min(((total - monthlyBudget) / monthlyBudget) * 100, 100)}%` }} />
                 )}
               </View>
             )}
+            <AppText style={{ fontSize: 13, color: '#FFF', opacity: 0.8 }}>
+              Daily Avg: {currency}{formatAmount(monthlyDailyAverage)}
+            </AppText>
           </View>
 
           {monthlyBudget > 0 && showMonthlyBudget && (
@@ -86,13 +97,16 @@ export default function DashboardScreen() {
                 {currency}{formatAmount(currentYearTotal)}
               </AppText>
               {yearlyBudget > 0 && showYearlyBudget && (
-                <View style={{ height: 6, backgroundColor: 'rgba(255,255,255,0.3)', borderRadius: 3, width: '100%', overflow: 'hidden', position: 'relative' }}>
+                <View style={{ height: 6, backgroundColor: 'rgba(255,255,255,0.3)', borderRadius: 3, width: '100%', overflow: 'hidden', position: 'relative', marginBottom: 8 }}>
                   <View style={{ height: '100%', backgroundColor: currentYearTotal >= yearlyBudget * 0.8 ? '#ffcccc' : '#FFF', width: `${Math.min((currentYearTotal / yearlyBudget) * 100, 100)}%` }} />
                   {currentYearTotal > yearlyBudget && (
                     <View style={{ position: 'absolute', left: 0, top: 0, height: '100%', backgroundColor: '#ff4444', width: `${Math.min(((currentYearTotal - yearlyBudget) / yearlyBudget) * 100, 100)}%` }} />
                   )}
                 </View>
               )}
+              <AppText style={{ fontSize: 13, color: '#FFF', opacity: 0.8 }}>
+                Monthly Avg: {currency}{formatAmount(yearlyMonthlyAverage)}
+              </AppText>
             </View>
 
             {yearlyBudget > 0 && showYearlyBudget && (
