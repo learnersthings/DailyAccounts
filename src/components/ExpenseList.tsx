@@ -20,7 +20,7 @@ import { generateDashboardPDFHTML } from '../utils/pdfGenerator';
 import Svg, { Circle, Text as SvgText } from 'react-native-svg';
 
 export type ListItem =
-  | { type: 'header'; id: string; title: string }
+  | { type: 'header'; id: string; title: string; totalAmount?: number }
   | { type: 'expense'; id: string; expense: Expense };
 
 interface ExpenseListProps {
@@ -226,10 +226,17 @@ export default function ExpenseList({ ListHeaderComponent, hideTitle, isExpenses
     const visibleExpenses = filteredExpenses.slice(0, displayCount);
     const data: ListItem[] = [];
     let lastGroupTitle = '';
+
+    const monthTotals: Record<string, number> = {};
+    filteredExpenses.forEach(exp => {
+      const monthYear = new Date(exp.date).toLocaleString('default', { month: 'long', year: 'numeric' });
+      monthTotals[monthYear] = (monthTotals[monthYear] || 0) + exp.amount;
+    });
+
     visibleExpenses.forEach(exp => {
       const monthYear = new Date(exp.date).toLocaleString('default', { month: 'long', year: 'numeric' });
       if (monthYear !== lastGroupTitle) {
-        data.push({ type: 'header', id: `header-${monthYear}`, title: monthYear });
+        data.push({ type: 'header', id: `header-${monthYear}`, title: monthYear, totalAmount: monthTotals[monthYear] });
         lastGroupTitle = monthYear;
       }
       data.push({ type: 'expense', id: exp.id, expense: exp });
@@ -294,7 +301,16 @@ export default function ExpenseList({ ListHeaderComponent, hideTitle, isExpenses
 
   const renderItem = useCallback(({ item, drag, isActive }: RenderItemParams<ListItem>) => {
     if (item.type === 'header') {
-      return <AppText style={[styles.monthHeader, { color: colors.text }]}>{item.title}</AppText>;
+      return (
+        <View style={styles.monthHeaderContainer}>
+          <AppText style={[styles.monthHeader, { color: colors.text }]}>{item.title}</AppText>
+          {item.totalAmount !== undefined && (
+            <AppText style={[styles.monthHeaderTotal, { color: '#ff4444' }]}>
+              {currency}{formatAmount(item.totalAmount)}
+            </AppText>
+          )}
+        </View>
+      );
     }
 
     const exp = item.expense;
@@ -756,13 +772,23 @@ const styles = StyleSheet.create({
     color: '#888',
     fontStyle: 'italic',
   },
-  monthHeader: {
-    fontSize: 15,
-    fontWeight: 'bold',
+  monthHeaderContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginTop: 16,
     marginBottom: 8,
     marginLeft: 4,
+    marginRight: 4,
+  },
+  monthHeader: {
+    fontSize: 15,
+    fontWeight: 'bold',
     opacity: 0.8,
+  },
+  monthHeaderTotal: {
+    fontSize: 15,
+    fontWeight: 'bold',
   },
   expenseRow: {
     flexDirection: 'row',
