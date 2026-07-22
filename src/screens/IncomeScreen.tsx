@@ -176,13 +176,13 @@ export default function IncomeScreen() {
                 <View style={styles.yearlyStatColumn}>
                   <AppText style={styles.statLabelWhite}>Total Income</AppText>
                   <AppText style={[styles.statValue, { color: overallTotals.income === 0 ? '#FFF' : '#00C851' }]}>
-                    {currency}{formatAmount(overallTotals.income)}
+                    +{currency}{formatAmount(overallTotals.income)}
                   </AppText>
                 </View>
                 <View style={styles.yearlyStatColumn}>
                   <AppText style={styles.statLabelWhite}>Total Expense</AppText>
                   <AppText style={[styles.statValue, { color: overallTotals.expense === 0 ? '#FFF' : '#ff4444' }]}>
-                    {currency}{formatAmount(overallTotals.expense)}
+                    -{currency}{formatAmount(overallTotals.expense)}
                   </AppText>
                 </View>
                 <View style={styles.yearlyStatColumn}>
@@ -212,14 +212,14 @@ export default function IncomeScreen() {
                       <View style={styles.statColumn}>
                         <AppText style={styles.statLabelWhite}>Total Income</AppText>
                         <AppText style={[styles.statValue, { color: stat.income === 0 ? '#FFF' : '#00C851' }]}>
-                          {currency}{formatAmount(stat.income)}
+                          +{currency}{formatAmount(stat.income)}
                         </AppText>
                       </View>
 
                       <View style={styles.statColumn}>
                         <AppText style={styles.statLabelWhite}>Total Expense</AppText>
                         <AppText style={[styles.statValue, { color: stat.expense === 0 ? '#FFF' : '#ff4444' }]}>
-                          {currency}{formatAmount(stat.expense)}
+                          -{currency}{formatAmount(stat.expense)}
                         </AppText>
                       </View>
 
@@ -249,13 +249,13 @@ export default function IncomeScreen() {
                 <View style={styles.yearlyStatColumn}>
                   <AppText style={styles.statLabelWhite}>Total Income</AppText>
                   <AppText style={[styles.statValue, { color: yearlyTotals.income === 0 ? '#FFF' : '#00C851' }]}>
-                    {currency}{formatAmount(yearlyTotals.income)}
+                    +{currency}{formatAmount(yearlyTotals.income)}
                   </AppText>
                 </View>
                 <View style={styles.yearlyStatColumn}>
                   <AppText style={styles.statLabelWhite}>Total Expense</AppText>
                   <AppText style={[styles.statValue, { color: yearlyTotals.expense === 0 ? '#FFF' : '#ff4444' }]}>
-                    {currency}{formatAmount(yearlyTotals.expense)}
+                    -{currency}{formatAmount(yearlyTotals.expense)}
                   </AppText>
                 </View>
                 <View style={styles.yearlyStatColumn}>
@@ -285,14 +285,14 @@ export default function IncomeScreen() {
                       <View style={styles.statColumn}>
                         <AppText style={styles.statLabelWhite}>Income</AppText>
                         <AppText style={[styles.statValue, { color: stat.income === 0 ? '#FFF' : '#00C851' }]}>
-                          {currency}{formatAmount(stat.income)}
+                          +{currency}{formatAmount(stat.income)}
                         </AppText>
                       </View>
 
                       <View style={styles.statColumn}>
                         <AppText style={styles.statLabelWhite}>Expense</AppText>
                         <AppText style={[styles.statValue, { color: stat.expense === 0 ? '#FFF' : '#ff4444' }]}>
-                          {currency}{formatAmount(stat.expense)}
+                          -{currency}{formatAmount(stat.expense)}
                         </AppText>
                       </View>
 
