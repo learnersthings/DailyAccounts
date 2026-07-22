@@ -33,8 +33,11 @@ export default function DashboardScreen() {
               {currency}{formatAmount(total)}
             </AppText>
             {monthlyBudget > 0 && showMonthlyBudget && (
-              <View style={{ height: 6, backgroundColor: 'rgba(255,255,255,0.3)', borderRadius: 3, width: '100%', overflow: 'hidden' }}>
+              <View style={{ height: 6, backgroundColor: 'rgba(255,255,255,0.3)', borderRadius: 3, width: '100%', overflow: 'hidden', position: 'relative' }}>
                 <View style={{ height: '100%', backgroundColor: total > monthlyBudget ? '#ffcccc' : '#FFF', width: `${Math.min((total / monthlyBudget) * 100, 100)}%` }} />
+                {total > monthlyBudget && (
+                  <View style={{ position: 'absolute', left: 0, top: 0, height: '100%', backgroundColor: '#ff4444', width: `${Math.min(((total - monthlyBudget) / monthlyBudget) * 100, 100)}%` }} />
+                )}
               </View>
             )}
           </View>
@@ -50,6 +53,15 @@ export default function DashboardScreen() {
                   strokeDashoffset={2 * Math.PI * 50 - (Math.min((total / monthlyBudget) * 100, 100) / 100) * 2 * Math.PI * 50}
                   strokeLinecap="round" fill="none" transform="rotate(-90 60 60)"
                 />
+                {total > monthlyBudget && (
+                  <Circle
+                    stroke="#ff4444"
+                    cx={60} cy={60} r={50} strokeWidth={8}
+                    strokeDasharray={`${2 * Math.PI * 50} ${2 * Math.PI * 50}`}
+                    strokeDashoffset={2 * Math.PI * 50 - (Math.min(((total - monthlyBudget) / monthlyBudget) * 100, 100) / 100) * 2 * Math.PI * 50}
+                    strokeLinecap="round" fill="none" transform="rotate(-90 60 60)"
+                  />
+                )}
               </Svg>
               <View style={{ position: 'absolute', alignItems: 'center', justifyContent: 'center' }}>
                 <AppText style={{ fontSize: 15, fontWeight: 'bold', color: '#FFF' }}>
@@ -74,8 +86,11 @@ export default function DashboardScreen() {
                 {currency}{formatAmount(currentYearTotal)}
               </AppText>
               {yearlyBudget > 0 && showYearlyBudget && (
-                <View style={{ height: 6, backgroundColor: 'rgba(255,255,255,0.3)', borderRadius: 3, width: '100%', overflow: 'hidden' }}>
+                <View style={{ height: 6, backgroundColor: 'rgba(255,255,255,0.3)', borderRadius: 3, width: '100%', overflow: 'hidden', position: 'relative' }}>
                   <View style={{ height: '100%', backgroundColor: currentYearTotal > yearlyBudget ? '#ffcccc' : '#FFF', width: `${Math.min((currentYearTotal / yearlyBudget) * 100, 100)}%` }} />
+                  {currentYearTotal > yearlyBudget && (
+                    <View style={{ position: 'absolute', left: 0, top: 0, height: '100%', backgroundColor: '#ff4444', width: `${Math.min(((currentYearTotal - yearlyBudget) / yearlyBudget) * 100, 100)}%` }} />
+                  )}
                 </View>
               )}
             </View>
@@ -91,6 +106,15 @@ export default function DashboardScreen() {
                     strokeDashoffset={2 * Math.PI * 50 - (Math.min((currentYearTotal / yearlyBudget) * 100, 100) / 100) * 2 * Math.PI * 50}
                     strokeLinecap="round" fill="none" transform="rotate(-90 60 60)"
                   />
+                  {currentYearTotal > yearlyBudget && (
+                    <Circle
+                      stroke="#ff4444"
+                      cx={60} cy={60} r={50} strokeWidth={8}
+                      strokeDasharray={`${2 * Math.PI * 50} ${2 * Math.PI * 50}`}
+                      strokeDashoffset={2 * Math.PI * 50 - (Math.min(((currentYearTotal - yearlyBudget) / yearlyBudget) * 100, 100) / 100) * 2 * Math.PI * 50}
+                      strokeLinecap="round" fill="none" transform="rotate(-90 60 60)"
+                    />
+                  )}
                 </Svg>
                 <View style={{ position: 'absolute', alignItems: 'center', justifyContent: 'center' }}>
                   <AppText style={{ fontSize: 15, fontWeight: 'bold', color: '#FFF' }}>
