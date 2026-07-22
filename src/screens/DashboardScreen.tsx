@@ -29,12 +29,12 @@ export default function DashboardScreen() {
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
           <View style={{ flex: 1, paddingRight: 16 }}>
             <AppText style={{ fontSize: 14, color: '#FFF', opacity: 0.9, marginBottom: 8, fontWeight: '600', textTransform: 'uppercase' }}>{currentMonthName} Spending</AppText>
-            <AppText style={{ fontSize: 32, fontWeight: 'bold', color: monthlyBudget > 0 && total > monthlyBudget ? '#ff4444' : '#FFF', marginBottom: monthlyBudget > 0 && showMonthlyBudget ? 16 : 0 }} numberOfLines={1} adjustsFontSizeToFit>
+            <AppText style={{ fontSize: 32, fontWeight: 'bold', color: monthlyBudget > 0 ? (total > monthlyBudget ? '#ff4444' : (total >= monthlyBudget * 0.8 ? '#ffcccc' : '#FFF')) : '#FFF', marginBottom: monthlyBudget > 0 && showMonthlyBudget ? 16 : 0 }} numberOfLines={1} adjustsFontSizeToFit>
               {currency}{formatAmount(total)}
             </AppText>
             {monthlyBudget > 0 && showMonthlyBudget && (
               <View style={{ height: 6, backgroundColor: 'rgba(255,255,255,0.3)', borderRadius: 3, width: '100%', overflow: 'hidden', position: 'relative' }}>
-                <View style={{ height: '100%', backgroundColor: total > monthlyBudget ? '#ffcccc' : '#FFF', width: `${Math.min((total / monthlyBudget) * 100, 100)}%` }} />
+                <View style={{ height: '100%', backgroundColor: total >= monthlyBudget * 0.8 ? '#ffcccc' : '#FFF', width: `${Math.min((total / monthlyBudget) * 100, 100)}%` }} />
                 {total > monthlyBudget && (
                   <View style={{ position: 'absolute', left: 0, top: 0, height: '100%', backgroundColor: '#ff4444', width: `${Math.min(((total - monthlyBudget) / monthlyBudget) * 100, 100)}%` }} />
                 )}
@@ -47,7 +47,7 @@ export default function DashboardScreen() {
               <Svg width={120} height={120}>
                 <Circle stroke="rgba(255,255,255,0.2)" cx={60} cy={60} r={50} strokeWidth={8} fill="none" />
                 <Circle
-                  stroke={total > monthlyBudget ? '#ffcccc' : '#FFF'}
+                  stroke={total >= monthlyBudget * 0.8 ? '#ffcccc' : '#FFF'}
                   cx={60} cy={60} r={50} strokeWidth={8}
                   strokeDasharray={`${2 * Math.PI * 50} ${2 * Math.PI * 50}`}
                   strokeDashoffset={2 * Math.PI * 50 - (Math.min((total / monthlyBudget) * 100, 100) / 100) * 2 * Math.PI * 50}
@@ -64,7 +64,7 @@ export default function DashboardScreen() {
                 )}
               </Svg>
               <View style={{ position: 'absolute', alignItems: 'center', justifyContent: 'center' }}>
-                <AppText style={{ fontSize: 15, fontWeight: 'bold', color: total > monthlyBudget ? '#ff4444' : '#FFF' }}>
+                <AppText style={{ fontSize: 15, fontWeight: 'bold', color: total > monthlyBudget ? '#ff4444' : (total >= monthlyBudget * 0.8 ? '#ffcccc' : '#FFF') }}>
                   {`${String(((total / monthlyBudget) * 100).toFixed(2)).padStart(5, '0')}%`}
                 </AppText>
                 <AppText style={{ fontSize: 10, color: '#FFF', opacity: 0.8, marginTop: 2 }}>
@@ -82,12 +82,12 @@ export default function DashboardScreen() {
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
             <View style={{ flex: 1, paddingRight: 16 }}>
               <AppText style={{ fontSize: 14, color: '#FFF', opacity: 0.9, marginBottom: 8, fontWeight: '600', textTransform: 'uppercase' }}>{currentYear} Total Spending</AppText>
-              <AppText style={{ fontSize: 32, fontWeight: 'bold', color: yearlyBudget > 0 && currentYearTotal > yearlyBudget ? '#ff4444' : '#FFF', marginBottom: yearlyBudget > 0 && showYearlyBudget ? 16 : 0 }} numberOfLines={1} adjustsFontSizeToFit>
+              <AppText style={{ fontSize: 32, fontWeight: 'bold', color: yearlyBudget > 0 ? (currentYearTotal > yearlyBudget ? '#ff4444' : (currentYearTotal >= yearlyBudget * 0.8 ? '#ffcccc' : '#FFF')) : '#FFF', marginBottom: yearlyBudget > 0 && showYearlyBudget ? 16 : 0 }} numberOfLines={1} adjustsFontSizeToFit>
                 {currency}{formatAmount(currentYearTotal)}
               </AppText>
               {yearlyBudget > 0 && showYearlyBudget && (
                 <View style={{ height: 6, backgroundColor: 'rgba(255,255,255,0.3)', borderRadius: 3, width: '100%', overflow: 'hidden', position: 'relative' }}>
-                  <View style={{ height: '100%', backgroundColor: currentYearTotal > yearlyBudget ? '#ffcccc' : '#FFF', width: `${Math.min((currentYearTotal / yearlyBudget) * 100, 100)}%` }} />
+                  <View style={{ height: '100%', backgroundColor: currentYearTotal >= yearlyBudget * 0.8 ? '#ffcccc' : '#FFF', width: `${Math.min((currentYearTotal / yearlyBudget) * 100, 100)}%` }} />
                   {currentYearTotal > yearlyBudget && (
                     <View style={{ position: 'absolute', left: 0, top: 0, height: '100%', backgroundColor: '#ff4444', width: `${Math.min(((currentYearTotal - yearlyBudget) / yearlyBudget) * 100, 100)}%` }} />
                   )}
@@ -100,7 +100,7 @@ export default function DashboardScreen() {
                 <Svg width={120} height={120}>
                   <Circle stroke="rgba(255,255,255,0.2)" cx={60} cy={60} r={50} strokeWidth={8} fill="none" />
                   <Circle
-                    stroke={currentYearTotal > yearlyBudget ? '#ffcccc' : '#FFF'}
+                    stroke={currentYearTotal >= yearlyBudget * 0.8 ? '#ffcccc' : '#FFF'}
                     cx={60} cy={60} r={50} strokeWidth={8}
                     strokeDasharray={`${2 * Math.PI * 50} ${2 * Math.PI * 50}`}
                     strokeDashoffset={2 * Math.PI * 50 - (Math.min((currentYearTotal / yearlyBudget) * 100, 100) / 100) * 2 * Math.PI * 50}
@@ -117,7 +117,7 @@ export default function DashboardScreen() {
                   )}
                 </Svg>
                 <View style={{ position: 'absolute', alignItems: 'center', justifyContent: 'center' }}>
-                  <AppText style={{ fontSize: 15, fontWeight: 'bold', color: currentYearTotal > yearlyBudget ? '#ff4444' : '#FFF' }}>
+                  <AppText style={{ fontSize: 15, fontWeight: 'bold', color: currentYearTotal > yearlyBudget ? '#ff4444' : (currentYearTotal >= yearlyBudget * 0.8 ? '#ffcccc' : '#FFF') }}>
                     {`${String(((currentYearTotal / yearlyBudget) * 100).toFixed(2)).padStart(5, '0')}%`}
                   </AppText>
                   <AppText style={{ fontSize: 10, color: '#FFF', opacity: 0.8, marginTop: 2 }}>
