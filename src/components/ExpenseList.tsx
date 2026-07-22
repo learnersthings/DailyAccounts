@@ -306,7 +306,7 @@ export default function ExpenseList({ ListHeaderComponent, hideTitle, isExpenses
           <AppText style={[styles.monthHeader, { color: colors.text }]}>{item.title}</AppText>
           {item.totalAmount !== undefined && (
             <AppText style={[styles.monthHeaderTotal, { color: '#ff4444' }]}>
-              {currency}{formatAmount(item.totalAmount)}
+              -{currency}{formatAmount(item.totalAmount)}
             </AppText>
           )}
         </View>

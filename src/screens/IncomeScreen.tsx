@@ -175,19 +175,19 @@ export default function IncomeScreen() {
               <View style={styles.yearlyStatsRow}>
                 <View style={styles.yearlyStatColumn}>
                   <AppText style={styles.statLabelWhite}>Total Income</AppText>
-                  <AppText style={[styles.statValue, { color: overallTotals.income === 0 ? '#FFF' : '#00C851' }]} numberOfLines={1}>
+                  <AppText style={[styles.statValue, { color: overallTotals.income === 0 ? '#FFF' : '#00C851' }]}>
                     {currency}{formatAmount(overallTotals.income)}
                   </AppText>
                 </View>
                 <View style={styles.yearlyStatColumn}>
                   <AppText style={styles.statLabelWhite}>Total Expense</AppText>
-                  <AppText style={[styles.statValue, { color: overallTotals.expense === 0 ? '#FFF' : '#ff4444' }]} numberOfLines={1}>
+                  <AppText style={[styles.statValue, { color: overallTotals.expense === 0 ? '#FFF' : '#ff4444' }]}>
                     {currency}{formatAmount(overallTotals.expense)}
                   </AppText>
                 </View>
-                <View style={[styles.yearlyStatColumn, { alignItems: 'flex-end' }]}>
+                <View style={styles.yearlyStatColumn}>
                   <AppText style={styles.statLabelWhite}>Available</AppText>
-                  <AppText style={[styles.statValue, { color: overallTotals.balance === 0 ? '#FFF' : (overallTotals.balance > 0 ? '#00C851' : '#ff4444') }]} numberOfLines={1}>
+                  <AppText style={[styles.statValue, { color: overallTotals.balance === 0 ? '#FFF' : (overallTotals.balance > 0 ? '#00C851' : '#ff4444') }]}>
                     {overallTotals.balance === 0 ? '' : (overallTotals.balance > 0 ? '+' : '-')}{currency}{formatAmount(Math.abs(overallTotals.balance))}
                   </AppText>
                 </View>
@@ -211,23 +211,22 @@ export default function IncomeScreen() {
                     <View style={styles.statsRow}>
                       <View style={styles.statColumn}>
                         <AppText style={styles.statLabelWhite}>Total Income</AppText>
-                        <AppText style={[styles.statValue, { color: stat.income === 0 ? '#FFF' : '#00C851' }]} numberOfLines={1}>
+                        <AppText style={[styles.statValue, { color: stat.income === 0 ? '#FFF' : '#00C851' }]}>
                           {currency}{formatAmount(stat.income)}
                         </AppText>
                       </View>
 
                       <View style={styles.statColumn}>
                         <AppText style={styles.statLabelWhite}>Total Expense</AppText>
-                        <AppText style={[styles.statValue, { color: stat.expense === 0 ? '#FFF' : '#ff4444' }]} numberOfLines={1}>
+                        <AppText style={[styles.statValue, { color: stat.expense === 0 ? '#FFF' : '#ff4444' }]}>
                           {currency}{formatAmount(stat.expense)}
                         </AppText>
                       </View>
 
-                      <View style={[styles.statColumn, { alignItems: 'flex-end' }]}>
+                      <View style={styles.statColumn}>
                         <AppText style={styles.statLabelWhite}>Available</AppText>
                         <AppText
                           style={[styles.statValue, { color: stat.balance === 0 ? '#FFF' : (stat.balance > 0 ? '#00C851' : '#ff4444') }]}
-                          numberOfLines={1}
                         >
                           {stat.balance === 0 ? '' : (stat.balance > 0 ? '+' : '-')}{currency}{formatAmount(Math.abs(stat.balance))}
                         </AppText>
@@ -249,19 +248,19 @@ export default function IncomeScreen() {
               <View style={styles.yearlyStatsRow}>
                 <View style={styles.yearlyStatColumn}>
                   <AppText style={styles.statLabelWhite}>Total Income</AppText>
-                  <AppText style={[styles.statValue, { color: yearlyTotals.income === 0 ? '#FFF' : '#00C851' }]} numberOfLines={1}>
+                  <AppText style={[styles.statValue, { color: yearlyTotals.income === 0 ? '#FFF' : '#00C851' }]}>
                     {currency}{formatAmount(yearlyTotals.income)}
                   </AppText>
                 </View>
                 <View style={styles.yearlyStatColumn}>
                   <AppText style={styles.statLabelWhite}>Total Expense</AppText>
-                  <AppText style={[styles.statValue, { color: yearlyTotals.expense === 0 ? '#FFF' : '#ff4444' }]} numberOfLines={1}>
+                  <AppText style={[styles.statValue, { color: yearlyTotals.expense === 0 ? '#FFF' : '#ff4444' }]}>
                     {currency}{formatAmount(yearlyTotals.expense)}
                   </AppText>
                 </View>
-                <View style={[styles.yearlyStatColumn, { alignItems: 'flex-end' }]}>
+                <View style={styles.yearlyStatColumn}>
                   <AppText style={styles.statLabelWhite}>Available</AppText>
-                  <AppText style={[styles.statValue, { color: yearlyTotals.balance === 0 ? '#FFF' : (yearlyTotals.balance > 0 ? '#00C851' : '#ff4444') }]} numberOfLines={1}>
+                  <AppText style={[styles.statValue, { color: yearlyTotals.balance === 0 ? '#FFF' : (yearlyTotals.balance > 0 ? '#00C851' : '#ff4444') }]}>
                     {yearlyTotals.balance === 0 ? '' : (yearlyTotals.balance > 0 ? '+' : '-')}{currency}{formatAmount(Math.abs(yearlyTotals.balance))}
                   </AppText>
                 </View>
@@ -285,23 +284,22 @@ export default function IncomeScreen() {
                     <View style={styles.statsRow}>
                       <View style={styles.statColumn}>
                         <AppText style={styles.statLabelWhite}>Income</AppText>
-                        <AppText style={[styles.statValue, { color: stat.income === 0 ? '#FFF' : '#00C851' }]} numberOfLines={1}>
+                        <AppText style={[styles.statValue, { color: stat.income === 0 ? '#FFF' : '#00C851' }]}>
                           {currency}{formatAmount(stat.income)}
                         </AppText>
                       </View>
 
                       <View style={styles.statColumn}>
                         <AppText style={styles.statLabelWhite}>Expense</AppText>
-                        <AppText style={[styles.statValue, { color: stat.expense === 0 ? '#FFF' : '#ff4444' }]} numberOfLines={1}>
+                        <AppText style={[styles.statValue, { color: stat.expense === 0 ? '#FFF' : '#ff4444' }]}>
                           {currency}{formatAmount(stat.expense)}
                         </AppText>
                       </View>
 
-                      <View style={[styles.statColumn, { alignItems: 'flex-end' }]}>
+                      <View style={styles.statColumn}>
                         <AppText style={styles.statLabelWhite}>Available</AppText>
                         <AppText
                           style={[styles.statValue, { color: stat.balance === 0 ? '#FFF' : (stat.balance > 0 ? '#00C851' : '#ff4444') }]}
-                          numberOfLines={1}
                         >
                           {stat.balance === 0 ? '' : (stat.balance > 0 ? '+' : '-')}{currency}{formatAmount(Math.abs(stat.balance))}
                         </AppText>
@@ -404,11 +402,13 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   yearlyStatsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: 'column',
+    gap: 8,
   },
   yearlyStatColumn: {
-    flex: 1,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   list: {
     gap: 0,
@@ -428,24 +428,24 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   statsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: 'column',
+    gap: 8,
   },
   statColumn: {
-    flex: 1,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   statLabel: {
     fontSize: 12,
     color: '#888',
     textTransform: 'uppercase',
-    marginBottom: 4,
     fontWeight: '600',
   },
   statLabelWhite: {
     fontSize: 12,
     color: 'rgba(255,255,255,0.7)',
     textTransform: 'uppercase',
-    marginBottom: 4,
     fontWeight: '600',
   },
   statValue: {
