@@ -47,19 +47,31 @@ export default function IncomeScreen() {
 
       const balance = income - expense;
 
+      const now = new Date();
+      let daysToConsider = 1;
+      if (selectedYear === now.getFullYear() && monthNumber === now.getMonth() + 1) {
+        daysToConsider = Math.max(now.getDate() - 1, 1);
+      } else if ((selectedYear as number) < now.getFullYear() || ((selectedYear as number) === now.getFullYear() && monthNumber < now.getMonth() + 1)) {
+        daysToConsider = new Date(selectedYear as number, monthNumber, 0).getDate();
+      } else {
+        daysToConsider = new Date(selectedYear as number, monthNumber, 0).getDate();
+      }
+      const dailyAverage = expense / daysToConsider;
+
       return {
         monthIndex: monthNumber,
         monthName,
         income,
         expense,
-        balance
+        balance,
+        dailyAverage
       };
     });
   }, [selectedYear, expenses, monthlyIncomes]);
 
   const yearlyTotals = useMemo(() => {
-    if (selectedYear === 'All') return { income: 0, expense: 0, balance: 0 };
-    return monthlyStats.reduce(
+    if (selectedYear === 'All') return { income: 0, expense: 0, balance: 0, monthlyAverage: 0 };
+    const totals = monthlyStats.reduce(
       (acc, curr) => {
         acc.income += curr.income;
         acc.expense += curr.expense;
@@ -68,6 +80,17 @@ export default function IncomeScreen() {
       },
       { income: 0, expense: 0, balance: 0 }
     );
+    
+    const now = new Date();
+    let monthsToConsider = 12;
+    if (selectedYear === now.getFullYear()) {
+      monthsToConsider = Math.max(now.getMonth(), 1);
+    } else if ((selectedYear as number) < now.getFullYear()) {
+      monthsToConsider = 12;
+    }
+    const monthlyAverage = totals.expense / monthsToConsider;
+
+    return { ...totals, monthlyAverage };
   }, [monthlyStats, selectedYear]);
 
   const allYearsStats = useMemo(() => {
@@ -85,24 +108,36 @@ export default function IncomeScreen() {
         const key = `${year}-${String(i).padStart(2, '0')}`;
         income += (monthlyIncomes[key] || 0);
       }
+      
+      const now = new Date();
+      let monthsToConsider = 12;
+      if (year === now.getFullYear()) {
+        monthsToConsider = Math.max(now.getMonth(), 1);
+      }
+      const monthlyAverage = expense / monthsToConsider;
 
       return {
         year,
         income,
         expense,
-        balance: income - expense
+        balance: income - expense,
+        monthlyAverage
       };
     });
   }, [selectedYear, years, expenses, monthlyIncomes]);
 
   const overallTotals = useMemo(() => {
-    if (selectedYear !== 'All') return { income: 0, expense: 0, balance: 0 };
-    return allYearsStats.reduce((acc, curr) => {
+    if (selectedYear !== 'All') return { income: 0, expense: 0, balance: 0, yearlyAverage: 0 };
+    const totals = allYearsStats.reduce((acc, curr) => {
       acc.income += curr.income;
       acc.expense += curr.expense;
       acc.balance += curr.balance;
       return acc;
     }, { income: 0, expense: 0, balance: 0 });
+    
+    const yearlyAverage = totals.expense / Math.max(allYearsStats.length, 1);
+    
+    return { ...totals, yearlyAverage };
   }, [allYearsStats, selectedYear]);
 
   const handleOpenModal = (monthIndex: number, monthName: string, currentIncome: number) => {
@@ -132,7 +167,7 @@ export default function IncomeScreen() {
     await updateMonthlyIncome(selectedYear, selectedMonth.monthIndex, amount);
     setIsModalVisible(false);
   };
-  const renderProgressBar = (income: number, expense: number, balance: number) => {
+  const renderProgressBar = (income: number, expense: number, balance: number, averageText?: string) => {
     const expensePercent = income > 0 ? (expense / income) * 100 : (expense > 0 ? 100 : 0);
     const availablePercent = income > 0 ? (balance / income) * 100 : (balance > 0 ? 100 : 0);
 
@@ -150,6 +185,11 @@ export default function IncomeScreen() {
           <View style={{ height: '100%', width: `${Math.min(100, expensePercent)}%`, backgroundColor: '#ff4444' }} />
           <View style={{ height: '100%', width: `${Math.max(0, 100 - expensePercent)}%`, backgroundColor: income > 0 && balance > 0 ? '#00C851' : 'transparent' }} />
         </View>
+        {averageText && (
+          <AppText style={{ fontSize: 13, color: '#FFF', opacity: 0.8, marginTop: 12 }}>
+            {averageText}
+          </AppText>
+        )}
       </View>
     );
   };
@@ -214,7 +254,7 @@ export default function IncomeScreen() {
                   </AppText>
                 </View>
               </View>
-              {renderProgressBar(overallTotals.income, overallTotals.expense, overallTotals.balance)}
+              {renderProgressBar(overallTotals.income, overallTotals.expense, overallTotals.balance, `Yearly Avg: ${currency}${formatAmount(overallTotals.yearlyAverage)}`)}
             </PremiumCardBackground>
 
             <View style={{ height: 2, backgroundColor: colors.accent, borderRadius: 1, marginBottom: 16 }} />
@@ -255,7 +295,7 @@ export default function IncomeScreen() {
                         </AppText>
                       </View>
                     </View>
-                    {renderProgressBar(stat.income, stat.expense, stat.balance)}
+                    {renderProgressBar(stat.income, stat.expense, stat.balance, `Monthly Avg: ${currency}${formatAmount(stat.monthlyAverage)}`)}
                   </PremiumCardBackground>
                 </TouchableOpacity>
               ))}
@@ -289,7 +329,7 @@ export default function IncomeScreen() {
                   </AppText>
                 </View>
               </View>
-              {renderProgressBar(yearlyTotals.income, yearlyTotals.expense, yearlyTotals.balance)}
+              {renderProgressBar(yearlyTotals.income, yearlyTotals.expense, yearlyTotals.balance, `Monthly Avg: ${currency}${formatAmount(yearlyTotals.monthlyAverage)}`)}
             </PremiumCardBackground>
 
             <View style={{ height: 2, backgroundColor: colors.accent, borderRadius: 1, marginBottom: 16 }} />
@@ -330,7 +370,7 @@ export default function IncomeScreen() {
                         </AppText>
                       </View>
                     </View>
-                    {renderProgressBar(stat.income, stat.expense, stat.balance)}
+                    {renderProgressBar(stat.income, stat.expense, stat.balance, `Daily Avg: ${currency}${formatAmount(stat.dailyAverage)}`)}
                   </PremiumCardBackground>
                 </TouchableOpacity>
               ))}
