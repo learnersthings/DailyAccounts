@@ -19,6 +19,15 @@ import * as FileSystem from 'expo-file-system/legacy';
 import { generateDashboardPDFHTML } from '../utils/pdfGenerator';
 import Svg, { Circle, Text as SvgText } from 'react-native-svg';
 import { parseISOYear, parseISOMonth, getMonthYearString } from '../utils/dateUtils';
+import Constants, { ExecutionEnvironment } from 'expo-constants';
+
+const isExpoGo = Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
+let Notifications: any = null;
+if (!isExpoGo) {
+  try {
+    Notifications = require('expo-notifications');
+  } catch (e) { }
+}
 
 export type ListItem =
   | { type: 'header'; id: string; title: string; totalAmount?: number }
@@ -211,12 +220,24 @@ export default function ExpenseList({ ListHeaderComponent, hideTitle, isExpenses
         const fileUri = await FileSystem.StorageAccessFramework.createFileAsync(downloadPathUri, `Expense_Report_${new Date().getTime()}.pdf`, 'application/pdf');
         if (base64) {
           await FileSystem.writeAsStringAsync(fileUri, base64, { encoding: FileSystem.EncodingType.Base64 });
+          if (Notifications) {
+            await Notifications.scheduleNotificationAsync({
+              content: { title: "Download Complete", body: "Expense report saved to your chosen downloads folder." },
+              trigger: null,
+            });
+          }
           Alert.alert('Success', 'PDF saved automatically to your chosen download folder.');
         }
       } else {
         await Sharing.shareAsync(uri, { UTI: '.pdf', mimeType: 'application/pdf' });
       }
     } catch (error) {
+      if (Notifications) {
+        await Notifications.scheduleNotificationAsync({
+          content: { title: "Download Failed", body: `Failed to generate expense report.` },
+          trigger: null,
+        });
+      }
       Alert.alert('Error', 'Failed to generate or save PDF report.' + error);
     } finally {
       setIsDownloading(false);
