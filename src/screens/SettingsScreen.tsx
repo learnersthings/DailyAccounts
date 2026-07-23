@@ -9,9 +9,7 @@ import ImportTransactionalSheetModal from '../components/ImportTransactionalShee
 import { useExpenseContext } from '../context/ExpenseContext';
 import { useTransactionContext } from '../context/TransactionContext';
 import { Ionicons } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as FileSystem from 'expo-file-system/legacy';
-import * as Sharing from 'expo-sharing';
 import * as DocumentPicker from 'expo-document-picker';
 
 export default function SettingsScreen({ navigation }: any) {
@@ -23,7 +21,7 @@ export default function SettingsScreen({ navigation }: any) {
   const [isProcessing, setIsProcessing] = useState(false);
   const [isAccentExpanded, setIsAccentExpanded] = useState(false);
   const [isTotalBalanceExpanded, setIsTotalBalanceExpanded] = useState(false);
-  const { currency, refreshExpenseData, downloadPathUri, updateDownloadPath, backupPathUri, updateBackupPath, analyticsChartType } = useExpenseContext();
+  const { currency, refreshExpenseData, downloadPathUri, updateDownloadPath, analyticsChartType } = useExpenseContext();
   const { accounts, excludedFromTotal, toggleAccountInTotal, refreshTransactionData, showCardStats, toggleShowCardStats } = useTransactionContext();
 
   const handleSetDownloadPath = async () => {
@@ -43,124 +41,7 @@ export default function SettingsScreen({ navigation }: any) {
     }
   };
 
-  const handleSetBackupPath = async () => {
-    if (Platform.OS !== 'android') {
-      Alert.alert('Unsupported', 'Setting a default backup path is only available on Android devices due to system limitations.');
-      return;
-    }
 
-    try {
-      const permissions = await FileSystem.StorageAccessFramework.requestDirectoryPermissionsAsync();
-      if (permissions.granted) {
-        await updateBackupPath(permissions.directoryUri);
-        Alert.alert('Success', 'Backup path set successfully! Future backups will be saved here automatically (keeping the last 5).');
-      }
-    } catch (e: any) {
-      Alert.alert('Error', 'Failed to set backup path: ' + e.message);
-    }
-  };
-
-  const handleBackup = async () => {
-    try {
-      setIsProcessing(true);
-      const keys = await AsyncStorage.getAllKeys();
-      const stores = await AsyncStorage.multiGet(keys);
-      const backupData = Object.fromEntries(stores);
-      const backupString = JSON.stringify(backupData);
-
-      if (backupPathUri && Platform.OS === 'android') {
-        const timestamp = new Date().getTime();
-        const filename = `DailyAccountsBackup_${timestamp}.json`;
-
-        // Create the new backup file
-        const fileUri = await FileSystem.StorageAccessFramework.createFileAsync(backupPathUri, filename, 'application/json');
-        await FileSystem.writeAsStringAsync(fileUri, backupString, { encoding: FileSystem.EncodingType.UTF8 });
-
-        // Manage old backups
-        const allFiles = await FileSystem.StorageAccessFramework.readDirectoryAsync(backupPathUri);
-
-        // Filter files that contain 'DailyAccountsBackup_' and end with '.json'
-        const backupFiles = allFiles.filter(uri => {
-          const decoded = decodeURIComponent(uri);
-          return decoded.includes('DailyAccountsBackup_') && decoded.endsWith('.json');
-        });
-
-        // Sort ascending by timestamp
-        backupFiles.sort((a, b) => {
-          const getTimestamp = (uri: string) => {
-            const match = decodeURIComponent(uri).match(/DailyAccountsBackup_(\d+)\.json/);
-            return match ? parseInt(match[1], 10) : 0;
-          };
-          return getTimestamp(a) - getTimestamp(b);
-        });
-
-        // Keep only 5 backups
-        const maxBackups = 5;
-        if (backupFiles.length > maxBackups) {
-          const filesToDelete = backupFiles.slice(0, backupFiles.length - maxBackups);
-          for (const fileToDelete of filesToDelete) {
-            await FileSystem.StorageAccessFramework.deleteAsync(fileToDelete);
-          }
-        }
-
-        Alert.alert('Success', 'Backup saved successfully to your chosen folder.');
-      } else {
-        const timestamp = new Date().getTime();
-        const fileUri = FileSystem.documentDirectory + `DailyAccountsBackup_${timestamp}.json`;
-        await FileSystem.writeAsStringAsync(fileUri, backupString);
-
-        const isSharingAvailable = await Sharing.isAvailableAsync();
-        if (isSharingAvailable) {
-          await Sharing.shareAsync(fileUri, { mimeType: 'application/json', dialogTitle: 'Save Backup' });
-        } else {
-          Alert.alert('Error', 'Sharing is not available on this device');
-        }
-      }
-    } catch (e: any) {
-      Alert.alert('Error', 'Backup failed: ' + e.message);
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
-  const handleRestore = async () => {
-    try {
-      setIsProcessing(true);
-      const result = await DocumentPicker.getDocumentAsync({ type: 'application/json', copyToCacheDirectory: true });
-
-      if (result.canceled) {
-        setIsProcessing(false);
-        return;
-      }
-
-      const fileUri = result.assets[0].uri;
-      const fileContent = await FileSystem.readAsStringAsync(fileUri);
-      const parsedData = JSON.parse(fileContent);
-
-      if (typeof parsedData !== 'object' || parsedData === null) {
-        throw new Error('Invalid backup file format');
-      }
-
-      // Convert object back to array of pairs
-      const kvPairs: [string, string][] = Object.entries(parsedData).map(([k, v]) => [k, String(v)]);
-
-      // Clear existing and set new
-      await AsyncStorage.clear();
-      await AsyncStorage.multiSet(kvPairs);
-
-      // Reload all contexts
-      await refreshAuth();
-      await refreshTheme();
-      await refreshExpenseData();
-      await refreshTransactionData();
-
-      alert('Restore Successful! Your data has been loaded instantly.');
-    } catch (e: any) {
-      alert('Restore failed: ' + e.message);
-    } finally {
-      setIsProcessing(false);
-    }
-  };
 
   return (
     <ScrollView contentContainerStyle={[styles.container, { backgroundColor: colors.background }]}>
@@ -401,38 +282,6 @@ export default function SettingsScreen({ navigation }: any) {
           <Ionicons name="chevron-forward" size={20} color={colors.text} />
         </TouchableOpacity>
         <View style={styles.divider} />
-        <TouchableOpacity
-          style={[styles.row, { opacity: isProcessing ? 0.5 : 1 }]}
-          onPress={handleBackup}
-          disabled={isProcessing}
-        >
-          <View style={styles.rowLeft}>
-            <Ionicons name="save-outline" size={22} color={colors.primary} style={styles.icon} />
-            <AppText style={[styles.text, { color: colors.text }]}>Backup Data</AppText>
-          </View>
-          <Ionicons name="chevron-forward" size={20} color={colors.text} />
-        </TouchableOpacity>
-        <View style={styles.divider} />
-        <TouchableOpacity
-          style={[styles.row, { opacity: isProcessing ? 0.5 : 1 }]}
-          onPress={() => {
-            Alert.alert(
-              "Restore Data",
-              "WARNING: This will completely overwrite all current expenses, categories, settings, and profile data with the backup file. This cannot be undone.",
-              [
-                { text: "Cancel", style: "cancel" },
-                { text: "Proceed", style: "destructive", onPress: handleRestore }
-              ]
-            );
-          }}
-          disabled={isProcessing}
-        >
-          <View style={styles.rowLeft}>
-            <Ionicons name="cloud-download-outline" size={22} color={colors.primary} style={styles.icon} />
-            <AppText style={[styles.text, { color: colors.text }]}>Restore Data</AppText>
-          </View>
-          <Ionicons name="chevron-forward" size={20} color={colors.text} />
-        </TouchableOpacity>
         {Platform.OS === 'android' && (
           <>
             <View style={styles.divider} />
@@ -450,28 +299,6 @@ export default function SettingsScreen({ navigation }: any) {
                 </AppText>
                 {downloadPathUri ? (
                   <TouchableOpacity onPress={() => updateDownloadPath(null)} style={{ padding: 4 }}>
-                    <Ionicons name="close-circle" size={20} color="#ff4444" />
-                  </TouchableOpacity>
-                ) : (
-                  <Ionicons name="chevron-forward" size={20} color={colors.text} />
-                )}
-              </View>
-            </TouchableOpacity>
-            <View style={styles.divider} />
-            <TouchableOpacity
-              style={styles.row}
-              onPress={handleSetBackupPath}
-            >
-              <View style={styles.rowLeft}>
-                <Ionicons name="folder-outline" size={22} color={colors.primary} style={styles.icon} />
-                <AppText style={[styles.text, { color: colors.text }]}>Backup Path</AppText>
-              </View>
-              <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1, justifyContent: 'flex-end', marginLeft: 20 }}>
-                <AppText style={{ color: colors.primary, fontSize: 12, marginRight: 8, flexShrink: 1 }} numberOfLines={1} ellipsizeMode="middle">
-                  {backupPathUri ? decodeURIComponent(backupPathUri.split('%3A').pop() || 'Custom Path') : 'Not Set'}
-                </AppText>
-                {backupPathUri ? (
-                  <TouchableOpacity onPress={() => updateBackupPath(null)} style={{ padding: 4 }}>
                     <Ionicons name="close-circle" size={20} color="#ff4444" />
                   </TouchableOpacity>
                 ) : (

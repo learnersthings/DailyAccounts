@@ -380,7 +380,7 @@ export default function AccountTransactionList({ accountFilter }: AccountTransac
             )}
           </View>
 
-          <>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
             <TouchableOpacity
               style={[styles.filterButton, { backgroundColor: colors.surface, borderColor: colors.border, marginRight: 10 }]}
               onPress={handleDownloadPDF}
@@ -424,7 +424,7 @@ export default function AccountTransactionList({ accountFilter }: AccountTransac
                 color={isSelectMode ? colors.primary : colors.text}
               />
             </TouchableOpacity>
-          </>
+          </View>
         </View>
       )}
 

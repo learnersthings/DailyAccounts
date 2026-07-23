@@ -11,7 +11,7 @@
   "dependencies": {
     "@expo-google-fonts/inter": "^0.4.2",
     "@expo/vector-icons": "^15.1.1",
-    "@react-native-async-storage/async-storage": "2.2.0",
+    "@react-native-async-storage/async-storage": "^2.2.0",
     "@react-native-community/datetimepicker": "8.4.4",
     "@react-navigation/bottom-tabs": "^7.18.4",
     "@react-navigation/core": "^7.21.3",
@@ -27,6 +27,7 @@
     "expo-sharing": "~14.0.8",
     "expo-splash-screen": "~31.0.13",
     "expo-status-bar": "~3.0.9",
+    "firebase": "^12.16.0",
     "papaparse": "^5.5.4",
     "react": "19.1.0",
     "react-native": "0.81.5",

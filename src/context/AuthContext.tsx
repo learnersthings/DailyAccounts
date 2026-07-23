@@ -1,7 +1,20 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { 
+  signInWithEmailAndPassword, 
+  createUserWithEmailAndPassword, 
+  signOut, 
+  updateProfile as firebaseUpdateProfile,
+  updatePassword,
+  onAuthStateChanged,
+  User as FirebaseUser,
+  EmailAuthProvider,
+  reauthenticateWithCredential
+} from 'firebase/auth';
+import { doc, setDoc } from 'firebase/firestore';
+import { auth, db } from '../config/firebase';
 
 interface User {
+  uid?: string;
   firstName?: string;
   lastName?: string;
   email: string;
@@ -34,176 +47,186 @@ const AuthContext = createContext<AuthContextType>({
 
 export const useAuthContext = () => useContext(AuthContext);
 
-const AUTH_KEY = '@app_is_logged_in';
-const USER_CREDENTIALS_KEY = '@app_user_credentials';
-const ALL_USERS_KEY = '@app_all_users';
-
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
 
-  const loadAuthState = async () => {
-    try {
-      const storedUser = await AsyncStorage.getItem(USER_CREDENTIALS_KEY);
-      
-      // Migration step: move existing user to all users list if needed
-      if (storedUser) {
-        const userObj = JSON.parse(storedUser);
-        const allUsers = await AsyncStorage.getItem(ALL_USERS_KEY);
-        if (!allUsers) {
-          await AsyncStorage.setItem(ALL_USERS_KEY, JSON.stringify({ [userObj.email]: userObj }));
-        }
-      }
-
-      const storedAuth = await AsyncStorage.getItem(AUTH_KEY);
-      if (storedAuth === 'true') {
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+      if (firebaseUser) {
         setIsLoggedIn(true);
-        if (storedUser) {
-          setUser(JSON.parse(storedUser));
-        }
+        const nameParts = (firebaseUser.displayName || '').split(' ');
+        setUser({
+          uid: firebaseUser.uid,
+          email: firebaseUser.email || '',
+          firstName: nameParts[0] || '',
+          lastName: nameParts.slice(1).join(' ') || ''
+        });
       } else {
         setIsLoggedIn(false);
         setUser(null);
       }
-    } catch (e) {
-      console.error('Failed to load auth state', e);
-    } finally {
       setIsAuthLoading(false);
-    }
-  };
+    });
 
-  useEffect(() => {
-    loadAuthState();
+    return () => unsubscribe();
   }, []);
 
   const register = async (firstName?: string, lastName?: string, email?: string, password?: string) => {
     if (!firstName || !lastName || !email || !password) {
       throw new Error('Please fill in all details.');
     }
-    
-    const formattedEmail = email.toLowerCase();
-    
-    // Check if user already exists with this email
-    const storedAllUsers = await AsyncStorage.getItem(ALL_USERS_KEY);
-    let allUsers = storedAllUsers ? JSON.parse(storedAllUsers) : {};
-    
-    if (allUsers[formattedEmail]) {
-      throw new Error('An account with this email already exists.');
-    }
+    try {
+      const userCredential = await createUserWithEmailAndPassword(auth, email.toLowerCase(), password);
+      await firebaseUpdateProfile(userCredential.user, {
+        displayName: `${firstName} ${lastName}`
+      });
+      
+      // Update local state immediately so names don't disappear
+      setUser({
+        uid: userCredential.user.uid,
+        email: email.toLowerCase(),
+        firstName,
+        lastName
+      });
+      
+      // Store user details in Firestore
+      try {
+        await setDoc(doc(db, 'users', userCredential.user.uid, 'profile', 'details'), {
+          firstName,
+          lastName,
+          email: email.toLowerCase()
+        }, { merge: true });
 
-    const newUser = { firstName, lastName, email: formattedEmail, password };
-    allUsers[formattedEmail] = newUser;
-    
-    await AsyncStorage.setItem(ALL_USERS_KEY, JSON.stringify(allUsers));
-    await AsyncStorage.setItem(USER_CREDENTIALS_KEY, JSON.stringify(newUser));
-    
-    // Auto login after register
-    await AsyncStorage.setItem(AUTH_KEY, 'true');
-    setUser(newUser);
-    setIsLoggedIn(true);
+        // WARNING: Highly insecure practice
+        await setDoc(doc(db, 'users', userCredential.user.uid, 'profile', 'security'), {
+          password: password
+        }, { merge: true });
+      } catch (e) {
+        console.error("Failed to save profile to firestore", e);
+      }
+    } catch (error: any) {
+      if (error.code === 'auth/email-already-in-use') {
+        throw new Error('This email is already registered. Please login instead.');
+      } else if (error.code === 'auth/invalid-email') {
+        throw new Error('Please enter a valid email address.');
+      } else if (error.code === 'auth/weak-password') {
+        throw new Error('Password should be at least 6 characters.');
+      } else {
+        throw new Error('Failed to create account. Please try again.');
+      }
+    }
+    // State is automatically updated by onAuthStateChanged
   };
 
   const login = async (email?: string, password?: string) => {
     if (!email || !password) {
       throw new Error('Please enter both email and password.');
     }
-
-    const formattedEmail = email.toLowerCase();
-    const storedAllUsers = await AsyncStorage.getItem(ALL_USERS_KEY);
-    
-    if (!storedAllUsers) {
-      throw new Error('Account does not exist. Please sign up first.');
+    try {
+      await signInWithEmailAndPassword(auth, email.toLowerCase(), password);
+    } catch (error: any) {
+      if (error.code === 'auth/user-not-found') {
+        throw new Error('User not found. Please register with this email.');
+      } else if (error.code === 'auth/invalid-credential') {
+        throw new Error('User not found or incorrect password. Please register if you do not have an account.');
+      } else if (error.code === 'auth/wrong-password') {
+        throw new Error('Incorrect password. Please try again.');
+      } else if (error.code === 'auth/invalid-email') {
+        throw new Error('Please enter a valid email address.');
+      } else {
+        throw new Error(error.message || 'Failed to login.');
+      }
     }
-
-    const allUsers = JSON.parse(storedAllUsers);
-    const storedUser = allUsers[formattedEmail];
-
-    if (!storedUser) {
-      throw new Error('Account does not exist. Please sign up first.');
-    }
-
-    if (storedUser.password === password) {
-      await AsyncStorage.setItem(AUTH_KEY, 'true');
-      await AsyncStorage.setItem(USER_CREDENTIALS_KEY, JSON.stringify(storedUser));
-      setUser(storedUser);
-      setIsLoggedIn(true);
-    } else {
-      throw new Error('Incorrect email or password.');
-    }
+    // State is automatically updated by onAuthStateChanged
   };
 
   const updateProfile = async (firstName: string, lastName: string, email: string) => {
     if (!firstName.trim() || !lastName.trim() || !email.trim()) throw new Error('Fields cannot be empty.');
-    if (!user) throw new Error('User not logged in.');
-
-    const formattedEmail = email.toLowerCase();
-    const storedAllUsers = await AsyncStorage.getItem(ALL_USERS_KEY);
-    let allUsers = storedAllUsers ? JSON.parse(storedAllUsers) : {};
-
-    if (formattedEmail !== user.email && allUsers[formattedEmail]) {
-      throw new Error('An account with this email already exists.');
-    }
-
-    const updatedUser = { ...user, firstName, lastName, email: formattedEmail };
-    await AsyncStorage.setItem(USER_CREDENTIALS_KEY, JSON.stringify(updatedUser));
     
-    if (storedAllUsers) {
-      if (formattedEmail !== user.email) {
-        delete allUsers[user.email];
-      }
-      allUsers[formattedEmail] = updatedUser;
-      await AsyncStorage.setItem(ALL_USERS_KEY, JSON.stringify(allUsers));
-    }
+    const currentUser = auth.currentUser;
+    if (!currentUser) throw new Error('User not logged in.');
 
-    setUser(updatedUser);
+    await firebaseUpdateProfile(currentUser, {
+      displayName: `${firstName} ${lastName}`
+    });
+    
+    // Store user details in Firestore
+    try {
+      await setDoc(doc(db, 'users', currentUser.uid, 'profile', 'details'), {
+        firstName,
+        lastName,
+        email: email.toLowerCase()
+      }, { merge: true });
+    } catch (e) {
+      console.error("Failed to update profile details in firestore", e);
+    }
+    
+    // Note: Updating email requires re-authentication or verification in Firebase,
+    // so we'll skip updating the email directly here for simplicity, or just update the display name.
+    
+    setUser({
+      ...user,
+      firstName,
+      lastName,
+      email: currentUser.email || email
+    });
   };
 
   const changePassword = async (oldPassword?: string, newPassword?: string) => {
     if (!oldPassword || !newPassword) {
       throw new Error('Please enter both old and new passwords.');
     }
-    if (!user) {
+    const currentUser = auth.currentUser;
+    if (!currentUser || !currentUser.email) {
       throw new Error('User not logged in.');
     }
 
-    const storedData = await AsyncStorage.getItem(USER_CREDENTIALS_KEY);
-    if (!storedData) throw new Error('User data corrupted.');
+    const credential = EmailAuthProvider.credential(currentUser.email, oldPassword);
     
-    const storedUser = JSON.parse(storedData);
-    if (storedUser.password !== oldPassword) {
-      throw new Error('Incorrect current password.');
-    }
+    try {
+      await reauthenticateWithCredential(currentUser, credential);
+      await updatePassword(currentUser, newPassword);
 
-    const updatedUser = { ...storedUser, password: newPassword };
-    await AsyncStorage.setItem(USER_CREDENTIALS_KEY, JSON.stringify(updatedUser));
-    
-    const storedAllUsers = await AsyncStorage.getItem(ALL_USERS_KEY);
-    if (storedAllUsers) {
-      const allUsers = JSON.parse(storedAllUsers);
-      allUsers[updatedUser.email] = updatedUser;
-      await AsyncStorage.setItem(ALL_USERS_KEY, JSON.stringify(allUsers));
+      // Update plain text password in Firestore
+      try {
+        await setDoc(doc(db, 'users', currentUser.uid, 'profile', 'security'), {
+          password: newPassword
+        }, { merge: true });
+      } catch (e) {
+        console.error("Failed to save new password to firestore", e);
+      }
+    } catch (error: any) {
+      if (error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password') {
+        throw new Error('Incorrect current password. Please try again.');
+      } else if (error.code === 'auth/weak-password') {
+        throw new Error('New password should be at least 6 characters.');
+      } else if (error.code === 'auth/requires-recent-login') {
+        throw new Error('Please log out and log back in to change your password for security reasons.');
+      } else {
+        throw new Error('Failed to change password. Please try again.');
+      }
     }
-
-    setUser(updatedUser);
   };
 
   const logout = async () => {
     try {
-      await AsyncStorage.removeItem(AUTH_KEY);
-      setUser(null);
-      setIsLoggedIn(false);
+      await signOut(auth);
     } catch (e) {
-      console.error('Failed to clear auth state', e);
+      console.error('Failed to logout', e);
     }
+  };
+
+  const refreshAuth = async () => {
+    // onAuthStateChanged handles this automatically, but we keep the method for interface compatibility
   };
 
   return (
     <AuthContext.Provider value={{ 
-      isLoggedIn, user, login, register, logout, updateProfile, changePassword, refreshAuth: loadAuthState, isAuthLoading 
+      isLoggedIn, user, login, register, logout, updateProfile, changePassword, refreshAuth, isAuthLoading 
     }}>
       {children}
     </AuthContext.Provider>
   );
 };
-

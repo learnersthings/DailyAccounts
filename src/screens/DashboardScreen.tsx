@@ -8,7 +8,7 @@ import { formatAmount } from '../utils/format';
 import Svg, { Circle } from 'react-native-svg';
 import ExpenseList from '../components/ExpenseList';
 import PremiumCardBackground from '../components/PremiumCardBackground';
-import { parseISOYear } from '../utils/dateUtils';
+import { parseISOYear, MONTH_NAMES } from '../utils/dateUtils';
 
 export default function DashboardScreen() {
   const colors = useThemeColors();
@@ -16,12 +16,14 @@ export default function DashboardScreen() {
   const { getCurrentMonthTotal, expenses, currency, monthlyBudget, yearlyBudget, showMonthlyBudget, showYearlyBudget, showYearCard } = useExpenseContext();
 
   const total = getCurrentMonthTotal();
-  const currentMonthName = new Date().toLocaleString('default', { month: 'long', year: 'numeric' });
+  const currentMonthName = `${MONTH_NAMES[new Date().getMonth()]} ${new Date().getFullYear()}`;
 
   const currentYear = new Date().getFullYear();
-  const currentYearTotal = expenses
-    .filter(exp => parseISOYear(exp.date) === currentYear)
-    .reduce((sum, exp) => sum + exp.amount, 0);
+  const currentYearTotal = React.useMemo(() => {
+    return expenses
+      .filter(exp => parseISOYear(exp.date) === currentYear)
+      .reduce((sum, exp) => sum + exp.amount, 0);
+  }, [expenses, currentYear]);
 
   const daysInCurrentMonth = new Date().getDate();
   const daysToConsiderMonthly = Math.max(daysInCurrentMonth - 1, 1);

@@ -1,5 +1,6 @@
-import React, { createContext, useState, useContext, useEffect } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import React, { createContext, useState, useContext, useEffect, useMemo, useCallback } from 'react';
+import { doc, setDoc, deleteDoc, writeBatch, collection, onSnapshot, query, orderBy } from 'firebase/firestore';
+import { db } from '../config/firebase';
 import { useAuthContext } from './AuthContext';
 import { parseISOYear, parseISOMonth } from '../utils/dateUtils';
 
@@ -70,8 +71,6 @@ interface ExpenseContextType {
   isLoading: boolean;
   downloadPathUri: string | null;
   updateDownloadPath: (uri: string | null) => Promise<void>;
-  backupPathUri: string | null;
-  updateBackupPath: (uri: string | null) => Promise<void>;
   migrateUserEmail: (oldEmail: string, newEmail: string) => Promise<void>;
 }
 
@@ -114,8 +113,6 @@ const ExpenseContext = createContext<ExpenseContextType>({
   isLoading: true,
   downloadPathUri: null,
   updateDownloadPath: async () => {},
-  backupPathUri: null,
-  updateBackupPath: async () => {},
   migrateUserEmail: async () => {},
 });
 
@@ -147,136 +144,77 @@ export const ExpenseProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [analyticsChartType, setAnalyticsChartType] = useState<'Pie' | 'Donut'>('Pie');
   const [chartStyle, setChartStyle] = useState<'Classic' | '3D' | 'Spaced' | 'Semi-Circle'>('Classic');
   const [downloadPathUri, setDownloadPathUri] = useState<string | null>(null);
-  const [backupPathUri, setBackupPathUri] = useState<string | null>(null);
   const [monthlyIncomes, setMonthlyIncomes] = useState<Record<string, number>>({});
   const [isLoading, setIsLoading] = useState(true);
   const { user } = useAuthContext();
 
-  const storageKey = user ? `${EXPENSES_KEY}_${user.email}` : EXPENSES_KEY;
-  const categoriesStorageKey = user ? `${CATEGORIES_KEY}_${user.email}` : CATEGORIES_KEY;
-  const paymentModesStorageKey = user ? `${PAYMENT_MODES_KEY}_${user.email}` : PAYMENT_MODES_KEY;
-  const currencyStorageKey = user ? `${CURRENCY_KEY}_${user.email}` : CURRENCY_KEY;
-  const budgetStorageKey = user ? `${BUDGET_KEY}_${user.email}` : BUDGET_KEY;
-  const showMonthlyBudgetStorageKey = user ? `${SHOW_MONTHLY_BUDGET_KEY}_${user.email}` : SHOW_MONTHLY_BUDGET_KEY;
-  const showYearlyBudgetStorageKey = user ? `${SHOW_YEARLY_BUDGET_KEY}_${user.email}` : SHOW_YEARLY_BUDGET_KEY;
-  const showYearCardStorageKey = user ? `${SHOW_YEAR_CARD_KEY}_${user.email}` : SHOW_YEAR_CARD_KEY;
-  const analyticsChartTypeStorageKey = user ? `${ANALYTICS_CHART_TYPE_KEY}_${user.email}` : ANALYTICS_CHART_TYPE_KEY;
-  const chartStyleStorageKey = user ? `${CHART_STYLE_KEY}_${user.email}` : CHART_STYLE_KEY;
-  const downloadPathStorageKey = user ? `${DOWNLOAD_PATH_KEY}_${user.email}` : DOWNLOAD_PATH_KEY;
-  const backupPathStorageKey = user ? `${BACKUP_PATH_KEY}_${user.email}` : BACKUP_PATH_KEY;
-  const monthlyIncomesStorageKey = user ? `@app_monthly_incomes_${user.email}` : '@app_monthly_incomes';
-
-  const loadData = async () => {
-    try {
-      setIsLoading(true);
-      const storedExpenses = await AsyncStorage.getItem(storageKey);
-      if (storedExpenses) {
-        setExpenses(JSON.parse(storedExpenses));
-      } else {
-        setExpenses([]);
-      }
-
-      const storedCategories = await AsyncStorage.getItem(categoriesStorageKey);
-      if (storedCategories) {
-        const parsed = JSON.parse(storedCategories);
-        parsed.sort((a: Category, b: Category) => a.name.localeCompare(b.name));
-        setCategories(parsed);
-      } else {
-        setCategories([]);
-      }
-
-      const storedPaymentModes = await AsyncStorage.getItem(paymentModesStorageKey);
-      if (storedPaymentModes) {
-        const parsed = JSON.parse(storedPaymentModes);
-        parsed.sort((a: PaymentMode, b: PaymentMode) => a.name.localeCompare(b.name));
-        setPaymentModes(parsed);
-      } else {
-        setPaymentModes([]);
-      }
-
-      const storedCurrency = await AsyncStorage.getItem(currencyStorageKey);
-      if (storedCurrency) {
-        setCurrency(storedCurrency);
-      } else {
-        setCurrency('$');
-      }
-
-      const storedBudgets = await AsyncStorage.getItem(budgetStorageKey);
-      if (storedBudgets) {
-        const parsed = JSON.parse(storedBudgets);
-        if (parsed.monthly) setMonthlyBudget(parsed.monthly);
-        if (parsed.yearly) setYearlyBudget(parsed.yearly);
-      } else {
-        setMonthlyBudget(0);
-        setYearlyBudget(0);
-      }
-
-      const storedShowMonthly = await AsyncStorage.getItem(showMonthlyBudgetStorageKey);
-      if (storedShowMonthly !== null) {
-        setShowMonthlyBudget(storedShowMonthly === 'true');
-      } else {
-        setShowMonthlyBudget(true);
-      }
-
-      const storedShowYearly = await AsyncStorage.getItem(showYearlyBudgetStorageKey);
-      if (storedShowYearly !== null) {
-        setShowYearlyBudget(storedShowYearly === 'true');
-      } else {
-        setShowYearlyBudget(true);
-      }
-
-      const storedShowYearCard = await AsyncStorage.getItem(showYearCardStorageKey);
-      if (storedShowYearCard !== null) {
-        setShowYearCard(storedShowYearCard === 'true');
-      } else {
-        setShowYearCard(true);
-      }
-
-      const storedChartType = await AsyncStorage.getItem(analyticsChartTypeStorageKey);
-      if (storedChartType === 'Pie' || storedChartType === 'Donut') {
-        setAnalyticsChartType(storedChartType);
-      } else {
-        setAnalyticsChartType('Pie');
-      }
-
-      const storedChartStyle = await AsyncStorage.getItem(chartStyleStorageKey);
-      if (storedChartStyle === 'Classic' || storedChartStyle === '3D' || storedChartStyle === 'Spaced' || storedChartStyle === 'Semi-Circle') {
-        setChartStyle(storedChartStyle);
-      } else {
-        setChartStyle('Classic');
-      }
-
-      const storedDownloadPath = await AsyncStorage.getItem(downloadPathStorageKey);
-      if (storedDownloadPath !== null) {
-        setDownloadPathUri(storedDownloadPath);
-      } else {
-        setDownloadPathUri(null);
-      }
-
-      const storedBackupPath = await AsyncStorage.getItem(backupPathStorageKey);
-      if (storedBackupPath !== null) {
-        setBackupPathUri(storedBackupPath);
-      } else {
-        setBackupPathUri(null);
-      }
-
-      const storedMonthlyIncomes = await AsyncStorage.getItem(monthlyIncomesStorageKey);
-      if (storedMonthlyIncomes !== null) {
-        setMonthlyIncomes(JSON.parse(storedMonthlyIncomes));
-      } else {
-        setMonthlyIncomes({});
-      }
-
-    } catch (e) {
-      console.error('Failed to load data', e);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   useEffect(() => {
+    let unsubs: (() => void)[] = [];
+
+    const loadData = () => {
+      if (user && user.uid) {
+        setIsLoading(true);
+
+        const expensesRef = collection(db, 'users', user.uid, 'expenses');
+        const unsubsExp = onSnapshot(expensesRef, (snapshot) => {
+          const exps = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Expense));
+          exps.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+          setExpenses(exps);
+        });
+        unsubs.push(unsubsExp);
+
+        const catRef = collection(db, 'users', user.uid, 'categories');
+        const unsubsCat = onSnapshot(catRef, (snapshot) => {
+          const cats = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Category));
+          cats.sort((a, b) => a.name.localeCompare(b.name));
+          setCategories(cats);
+        });
+        unsubs.push(unsubsCat);
+
+        const pmRef = collection(db, 'users', user.uid, 'paymentModes');
+        const unsubsPm = onSnapshot(pmRef, (snapshot) => {
+          const pms = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as PaymentMode));
+          pms.sort((a, b) => a.name.localeCompare(b.name));
+          setPaymentModes(pms);
+        });
+        unsubs.push(unsubsPm);
+
+        const prefRef = doc(db, 'users', user.uid, 'settings', 'preferences');
+        const unsubsPref = onSnapshot(prefRef, (docSnap) => {
+          if (docSnap.exists()) {
+            const data = docSnap.data();
+            if (data.currency !== undefined) setCurrency(data.currency);
+            if (data.monthlyBudget !== undefined) setMonthlyBudget(data.monthlyBudget);
+            if (data.yearlyBudget !== undefined) setYearlyBudget(data.yearlyBudget);
+            if (data.showMonthlyBudget !== undefined) setShowMonthlyBudget(data.showMonthlyBudget);
+            if (data.showYearlyBudget !== undefined) setShowYearlyBudget(data.showYearlyBudget);
+            if (data.showYearCard !== undefined) setShowYearCard(data.showYearCard);
+            if (data.analyticsChartType !== undefined) setAnalyticsChartType(data.analyticsChartType);
+            if (data.chartStyle !== undefined) setChartStyle(data.chartStyle);
+            if (data.downloadPathUri !== undefined) setDownloadPathUri(data.downloadPathUri);
+            if (data.monthlyIncomes !== undefined) setMonthlyIncomes(data.monthlyIncomes);
+          }
+          setIsLoading(false);
+        });
+        unsubs.push(unsubsPref);
+
+      } else {
+        // Not logged in
+        setExpenses([]);
+        setCategories([]);
+        setPaymentModes([]);
+        setIsLoading(false);
+      }
+    };
+
     loadData();
-  }, [storageKey, categoriesStorageKey, paymentModesStorageKey, currencyStorageKey, budgetStorageKey, showMonthlyBudgetStorageKey, showYearlyBudgetStorageKey, showYearCardStorageKey, analyticsChartTypeStorageKey, chartStyleStorageKey, downloadPathStorageKey, backupPathStorageKey]);
+
+    return () => {
+      unsubs.forEach(unsub => unsub());
+    };
+  }, [user]);
+
+  const loadData = async () => {};
 
   const addExpense = async (amount: number, description: string, date: Date, categoryId?: string, paymentModeId?: string) => {
     const newExpense: Expense = {
@@ -288,11 +226,14 @@ export const ExpenseProvider: React.FC<{ children: React.ReactNode }> = ({ child
       paymentModeId,
     };
 
+    // Optimistic update
     const newExpenses = [newExpense, ...expenses];
     newExpenses.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-
     setExpenses(newExpenses);
-    await AsyncStorage.setItem(storageKey, JSON.stringify(newExpenses));
+
+    if (user && user.uid) {
+      setDoc(doc(db, 'users', user.uid, 'expenses', newExpense.id), newExpense).catch(console.error);
+    }
   };
 
   const updateExpense = async (id: string, amount: number, description: string, date: Date, categoryId?: string, paymentModeId?: string) => {
@@ -302,23 +243,38 @@ export const ExpenseProvider: React.FC<{ children: React.ReactNode }> = ({ child
         : exp
     );
     
-    // Sort by date descending in case the date was changed
+    // Optimistic update
     updatedExpenses.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-
     setExpenses(updatedExpenses);
-    await AsyncStorage.setItem(storageKey, JSON.stringify(updatedExpenses));
+
+    if (user && user.uid) {
+      setDoc(doc(db, 'users', user.uid, 'expenses', id), { amount, description, date: date.toISOString(), categoryId, paymentModeId }, { merge: true }).catch(console.error);
+    }
   };
 
   const deleteExpense = async (id: string) => {
     const updatedExpenses = expenses.filter(exp => exp.id !== id);
+    // Optimistic update
     setExpenses(updatedExpenses);
-    await AsyncStorage.setItem(storageKey, JSON.stringify(updatedExpenses));
+
+    if (user && user.uid) {
+      deleteDoc(doc(db, 'users', user.uid, 'expenses', id)).catch(console.error);
+    }
   };
 
   const bulkDeleteExpenses = async (ids: string[]) => {
     const updatedExpenses = expenses.filter(exp => !ids.includes(exp.id));
+    // Optimistic update
     setExpenses(updatedExpenses);
-    await AsyncStorage.setItem(storageKey, JSON.stringify(updatedExpenses));
+
+    if (user && user.uid) {
+      const uid = user.uid;
+      const batch = writeBatch(db);
+      ids.forEach(id => {
+        batch.delete(doc(db, 'users', uid, 'expenses', id));
+      });
+      batch.commit().catch(console.error);
+    }
   };
 
   const reorderExpensesByDate = async (dateStr: string, reorderedDayExpenses: Expense[]) => {
@@ -340,53 +296,83 @@ export const ExpenseProvider: React.FC<{ children: React.ReactNode }> = ({ child
     const newExpenses = [...updatedReordered, ...otherExpenses];
     newExpenses.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     
+    // Optimistic update
     setExpenses(newExpenses);
-    await AsyncStorage.setItem(storageKey, JSON.stringify(newExpenses));
   };
 
   const updateMonthlyIncome = async (year: number, month: number, amount: number) => {
     const key = `${year}-${String(month).padStart(2, '0')}`;
     const updated = { ...monthlyIncomes, [key]: amount };
+    // Optimistic update
     setMonthlyIncomes(updated);
-    await AsyncStorage.setItem(monthlyIncomesStorageKey, JSON.stringify(updated));
+
+    if (user && user.uid) {
+      setDoc(doc(db, 'users', user.uid, 'settings', 'preferences'), {
+        monthlyIncomes: updated
+      }, { merge: true }).catch(console.error);
+    }
   };
 
   const addCategory = async (name: string, icon: string, color: string) => {
     const newCat: Category = { id: Date.now().toString(), name, icon, color };
     const updated = [...categories, newCat].sort((a, b) => a.name.localeCompare(b.name));
+    // Optimistic update
     setCategories(updated);
-    await AsyncStorage.setItem(categoriesStorageKey, JSON.stringify(updated));
+
+    if (user && user.uid) {
+      setDoc(doc(db, 'users', user.uid, 'categories', newCat.id), newCat).catch(console.error);
+    }
   };
 
   const updateCategory = async (id: string, name: string, icon: string, color: string) => {
     const updated = categories.map(cat => cat.id === id ? { ...cat, name, icon, color } : cat).sort((a, b) => a.name.localeCompare(b.name));
+    // Optimistic update
     setCategories(updated);
-    await AsyncStorage.setItem(categoriesStorageKey, JSON.stringify(updated));
+
+    if (user && user.uid) {
+      setDoc(doc(db, 'users', user.uid, 'categories', id), { name, icon, color }, { merge: true }).catch(console.error);
+    }
   };
 
   const deleteCategory = async (id: string) => {
     const updated = categories.filter(cat => cat.id !== id);
+    // Optimistic update
     setCategories(updated);
-    await AsyncStorage.setItem(categoriesStorageKey, JSON.stringify(updated));
+
+    if (user && user.uid) {
+      deleteDoc(doc(db, 'users', user.uid, 'categories', id)).catch(console.error);
+    }
   };
 
   const addPaymentMode = async (name: string, icon: string, color: string) => {
     const newMode: PaymentMode = { id: Date.now().toString(), name, icon, color };
     const updated = [...paymentModes, newMode].sort((a, b) => a.name.localeCompare(b.name));
+    // Optimistic update
     setPaymentModes(updated);
-    await AsyncStorage.setItem(paymentModesStorageKey, JSON.stringify(updated));
+
+    if (user && user.uid) {
+      setDoc(doc(db, 'users', user.uid, 'paymentModes', newMode.id), newMode).catch(console.error);
+    }
   };
 
   const updatePaymentMode = async (id: string, name: string, icon: string, color: string) => {
     const updated = paymentModes.map(mode => mode.id === id ? { ...mode, name, icon, color } : mode).sort((a, b) => a.name.localeCompare(b.name));
+    // Optimistic update
     setPaymentModes(updated);
-    await AsyncStorage.setItem(paymentModesStorageKey, JSON.stringify(updated));
+
+    if (user && user.uid) {
+      setDoc(doc(db, 'users', user.uid, 'paymentModes', id), { name, icon, color }, { merge: true }).catch(console.error);
+    }
   };
 
   const deletePaymentMode = async (id: string) => {
     const updated = paymentModes.filter(mode => mode.id !== id);
+    // Optimistic update
     setPaymentModes(updated);
-    await AsyncStorage.setItem(paymentModesStorageKey, JSON.stringify(updated));
+
+    if (user && user.uid) {
+      deleteDoc(doc(db, 'users', user.uid, 'paymentModes', id)).catch(console.error);
+    }
   };
 
   const bulkImport = async (newExpenses: Expense[], newCategories: Category[], newPaymentModes: PaymentMode[]) => {
@@ -399,7 +385,6 @@ export const ExpenseProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }
     mergedCategories.sort((a, b) => a.name.localeCompare(b.name));
     setCategories(mergedCategories);
-    await AsyncStorage.setItem(categoriesStorageKey, JSON.stringify(mergedCategories));
 
     // Merge payment modes
     const mergedPaymentModes = [...paymentModes];
@@ -410,7 +395,6 @@ export const ExpenseProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }
     mergedPaymentModes.sort((a, b) => a.name.localeCompare(b.name));
     setPaymentModes(mergedPaymentModes);
-    await AsyncStorage.setItem(paymentModesStorageKey, JSON.stringify(mergedPaymentModes));
 
     // Merge expenses
     const mergedExpenses = [...expenses];
@@ -435,64 +419,108 @@ export const ExpenseProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
     mergedExpenses.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     setExpenses(mergedExpenses);
-    await AsyncStorage.setItem(storageKey, JSON.stringify(mergedExpenses));
+
+    if (user && user.uid) {
+      const uid = user.uid;
+      const batch = writeBatch(db);
+      mergedCategories.forEach(cat => batch.set(doc(db, 'users', uid, 'categories', cat.id), cat));
+      mergedPaymentModes.forEach(mode => batch.set(doc(db, 'users', uid, 'paymentModes', mode.id), mode));
+      mergedExpenses.forEach(exp => batch.set(doc(db, 'users', uid, 'expenses', exp.id), exp));
+      batch.commit().catch(console.error);
+    }
   };
 
   const updateCurrency = async (newCurrency: string) => {
+    // Optimistic update
     setCurrency(newCurrency);
-    await AsyncStorage.setItem(currencyStorageKey, newCurrency);
+
+    if (user && user.uid) {
+      setDoc(doc(db, 'users', user.uid, 'settings', 'preferences'), {
+        currency: newCurrency
+      }, { merge: true }).catch(console.error);
+    }
   };
 
   const updateBudgets = async (monthly: number, yearly: number) => {
+    // Optimistic update
     setMonthlyBudget(monthly);
     setYearlyBudget(yearly);
-    await AsyncStorage.setItem(budgetStorageKey, JSON.stringify({ monthly, yearly }));
+
+    if (user && user.uid) {
+      setDoc(doc(db, 'users', user.uid, 'settings', 'preferences'), {
+        monthlyBudget: monthly,
+        yearlyBudget: yearly
+      }, { merge: true }).catch(console.error);
+    }
   };
 
   const toggleShowMonthlyBudget = async (val: boolean) => {
+    // Optimistic update
     setShowMonthlyBudget(val);
-    await AsyncStorage.setItem(showMonthlyBudgetStorageKey, val.toString());
+
+    if (user && user.uid) {
+      setDoc(doc(db, 'users', user.uid, 'settings', 'preferences'), {
+        showMonthlyBudget: val
+      }, { merge: true }).catch(console.error);
+    }
   };
 
   const toggleShowYearlyBudget = async (val: boolean) => {
+    // Optimistic update
     setShowYearlyBudget(val);
-    await AsyncStorage.setItem(showYearlyBudgetStorageKey, val.toString());
+
+    if (user && user.uid) {
+      setDoc(doc(db, 'users', user.uid, 'settings', 'preferences'), {
+        showYearlyBudget: val
+      }, { merge: true }).catch(console.error);
+    }
   };
 
   const toggleShowYearCard = async (val: boolean) => {
+    // Optimistic update
     setShowYearCard(val);
-    await AsyncStorage.setItem(showYearCardStorageKey, val.toString());
+
+    if (user && user.uid) {
+      setDoc(doc(db, 'users', user.uid, 'settings', 'preferences'), {
+        showYearCard: val
+      }, { merge: true }).catch(console.error);
+    }
   };
 
   const updateAnalyticsChartType = async (type: 'Pie' | 'Donut') => {
+    // Optimistic update
     setAnalyticsChartType(type);
-    await AsyncStorage.setItem(analyticsChartTypeStorageKey, type);
+
+    if (user && user.uid) {
+      setDoc(doc(db, 'users', user.uid, 'settings', 'preferences'), {
+        analyticsChartType: type
+      }, { merge: true }).catch(console.error);
+    }
   };
 
   const updateChartStyle = async (style: 'Classic' | '3D' | 'Spaced' | 'Semi-Circle') => {
+    // Optimistic update
     setChartStyle(style);
-    await AsyncStorage.setItem(chartStyleStorageKey, style);
+
+    if (user && user.uid) {
+      setDoc(doc(db, 'users', user.uid, 'settings', 'preferences'), {
+        chartStyle: style
+      }, { merge: true }).catch(console.error);
+    }
   };
 
   const updateDownloadPath = async (uri: string | null) => {
+    // Optimistic update
     setDownloadPathUri(uri);
-    if (uri) {
-      await AsyncStorage.setItem(downloadPathStorageKey, uri);
-    } else {
-      await AsyncStorage.removeItem(downloadPathStorageKey);
+    
+    if (user && user.uid) {
+      setDoc(doc(db, 'users', user.uid, 'settings', 'preferences'), {
+        downloadPathUri: uri
+      }, { merge: true }).catch(console.error);
     }
   };
 
-  const updateBackupPath = async (uri: string | null) => {
-    setBackupPathUri(uri);
-    if (uri) {
-      await AsyncStorage.setItem(backupPathStorageKey, uri);
-    } else {
-      await AsyncStorage.removeItem(backupPathStorageKey);
-    }
-  };
-
-  const getCurrentMonthTotal = () => {
+  const getCurrentMonthTotal = useCallback(() => {
     const now = new Date();
     const currentMonth = now.getMonth();
     const currentYear = now.getFullYear();
@@ -502,9 +530,9 @@ export const ExpenseProvider: React.FC<{ children: React.ReactNode }> = ({ child
         return parseISOMonth(expense.date) === currentMonth && parseISOYear(expense.date) === currentYear;
       })
       .reduce((total, expense) => total + expense.amount, 0);
-  };
+  }, [expenses]);
 
-  const getPreviousMonthTotal = () => {
+  const getPreviousMonthTotal = useCallback(() => {
     const now = new Date();
     const prevMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
     const prevMonth = prevMonthDate.getMonth();
@@ -515,28 +543,13 @@ export const ExpenseProvider: React.FC<{ children: React.ReactNode }> = ({ child
         return parseISOMonth(expense.date) === prevMonth && parseISOYear(expense.date) === prevYear;
       })
       .reduce((total, expense) => total + expense.amount, 0);
-  };
+  }, [expenses]);
 
   const migrateUserEmail = async (oldEmail: string, newEmail: string) => {
-    const keys = [
-      EXPENSES_KEY, CATEGORIES_KEY, PAYMENT_MODES_KEY, CURRENCY_KEY,
-      BUDGET_KEY, SHOW_MONTHLY_BUDGET_KEY, SHOW_YEARLY_BUDGET_KEY, SHOW_YEAR_CARD_KEY,
-      ANALYTICS_CHART_TYPE_KEY, CHART_STYLE_KEY, DOWNLOAD_PATH_KEY, BACKUP_PATH_KEY
-    ];
-
-    for (const key of keys) {
-      const oldKey = `${key}_${oldEmail}`;
-      const newKey = `${key}_${newEmail}`;
-      const data = await AsyncStorage.getItem(oldKey);
-      if (data !== null) {
-        await AsyncStorage.setItem(newKey, data);
-        await AsyncStorage.removeItem(oldKey);
-      }
-    }
+    // No longer applicable with Firebase
   };
 
-  return (
-    <ExpenseContext.Provider value={{ 
+  const contextValue = useMemo(() => ({
       expenses, categories, paymentModes, currency, monthlyBudget, yearlyBudget, 
       showMonthlyBudget, showYearlyBudget, showYearCard, analyticsChartType, chartStyle,
       monthlyIncomes,
@@ -549,9 +562,16 @@ export const ExpenseProvider: React.FC<{ children: React.ReactNode }> = ({ child
       getCurrentMonthTotal, getPreviousMonthTotal, 
       refreshExpenseData: loadData, isLoading,
       downloadPathUri, updateDownloadPath,
-      backupPathUri, updateBackupPath,
       migrateUserEmail
-    }}>
+  }), [
+      expenses, categories, paymentModes, currency, monthlyBudget, yearlyBudget,
+      showMonthlyBudget, showYearlyBudget, showYearCard, analyticsChartType, chartStyle,
+      monthlyIncomes, isLoading, downloadPathUri,
+      getCurrentMonthTotal, getPreviousMonthTotal, loadData
+  ]);
+
+  return (
+    <ExpenseContext.Provider value={contextValue}>
       {children}
     </ExpenseContext.Provider>
   );

@@ -9,7 +9,14 @@ import RootNavigator from './src/navigation/RootNavigator';
 import { useFonts, Inter_400Regular, Inter_600SemiBold, Inter_700Bold } from '@expo-google-fonts/inter';
 import * as SplashScreen from 'expo-splash-screen';
 
+import { LogBox } from 'react-native';
+
 SplashScreen.preventAutoHideAsync();
+
+LogBox.ignoreLogs([
+  /Each child in a list should have a unique "key" prop/,
+  /Check the render method of `ScrollView`/
+]);
 
 export default function App() {
   const [fontsLoaded] = useFonts({

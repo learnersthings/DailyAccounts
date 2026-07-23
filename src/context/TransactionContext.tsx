@@ -1,5 +1,6 @@
-import React, { createContext, useState, useContext, useEffect, useMemo } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import React, { createContext, useState, useContext, useEffect, useMemo, useCallback } from 'react';
+import { doc, setDoc, deleteDoc, writeBatch, collection, onSnapshot } from 'firebase/firestore';
+import { db } from '../config/firebase';
 import { useAuthContext } from './AuthContext';
 
 export interface AccountTransaction {
@@ -68,59 +69,48 @@ export const TransactionProvider: React.FC<{ children: React.ReactNode }> = ({ c
   const [isLoading, setIsLoading] = useState(true);
   const { user } = useAuthContext();
 
-  const storageKey = user ? `${TRANSACTIONS_KEY}_${user.email}` : TRANSACTIONS_KEY;
-  const orderStorageKey = user ? `@app_account_order_${user.email}` : '@app_account_order';
-  const manualAccountsStorageKey = user ? `@app_manual_accounts_${user.email}` : '@app_manual_accounts';
-  const excludedStorageKey = user ? `@app_account_excluded_${user.email}` : '@app_account_excluded';
-  const showStatsStorageKey = user ? `@app_show_card_stats_${user.email}` : '@app_show_card_stats';
-
-  const loadData = async () => {
-    try {
-      setIsLoading(true);
-      const storedTransactions = await AsyncStorage.getItem(storageKey);
-      if (storedTransactions) {
-        setTransactions(JSON.parse(storedTransactions));
-      } else {
-        setTransactions([]);
-      }
-
-      const storedOrder = await AsyncStorage.getItem(orderStorageKey);
-      if (storedOrder) {
-        setAccountOrder(JSON.parse(storedOrder));
-      } else {
-        setAccountOrder([]);
-      }
-
-      const storedManualAccounts = await AsyncStorage.getItem(manualAccountsStorageKey);
-      if (storedManualAccounts) {
-        setManualAccounts(JSON.parse(storedManualAccounts));
-      } else {
-        setManualAccounts([]);
-      }
-
-      const storedExcluded = await AsyncStorage.getItem(excludedStorageKey);
-      if (storedExcluded) {
-        setExcludedFromTotal(JSON.parse(storedExcluded));
-      } else {
-        setExcludedFromTotal([]);
-      }
-
-      const storedShowStats = await AsyncStorage.getItem(showStatsStorageKey);
-      if (storedShowStats !== null) {
-        setShowCardStats(JSON.parse(storedShowStats));
-      } else {
-        setShowCardStats(true);
-      }
-    } catch (e) {
-      console.error('Failed to load transaction data', e);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   useEffect(() => {
+    let unsubs: (() => void)[] = [];
+
+    const loadData = () => {
+      if (user && user.uid) {
+        setIsLoading(true);
+
+        const transRef = collection(db, 'users', user.uid, 'transactions');
+        const unsubsTrans = onSnapshot(transRef, (snapshot) => {
+          const txs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as AccountTransaction));
+          txs.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+          setTransactions(txs);
+        });
+        unsubs.push(unsubsTrans);
+
+        const prefRef = doc(db, 'users', user.uid, 'settings', 'preferences');
+        const unsubsPref = onSnapshot(prefRef, (docSnap) => {
+          if (docSnap.exists()) {
+            const data = docSnap.data();
+            if (data.accountOrder !== undefined) setAccountOrder(data.accountOrder);
+            if (data.manualAccounts !== undefined) setManualAccounts(data.manualAccounts);
+            if (data.excludedFromTotal !== undefined) setExcludedFromTotal(data.excludedFromTotal);
+            if (data.showCardStats !== undefined) setShowCardStats(data.showCardStats);
+          }
+          setIsLoading(false);
+        });
+        unsubs.push(unsubsPref);
+      } else {
+        // Not logged in
+        setTransactions([]);
+        setIsLoading(false);
+      }
+    };
+
     loadData();
-  }, [storageKey]);
+
+    return () => {
+      unsubs.forEach(unsub => unsub());
+    };
+  }, [user]);
+
+  const loadData = async () => {};
 
   const addTransaction = async (amount: number, description: string, date: Date, type: 'Debit' | 'Credit', account: string) => {
     const newTx: AccountTransaction = {
@@ -132,28 +122,49 @@ export const TransactionProvider: React.FC<{ children: React.ReactNode }> = ({ c
       account,
     };
     const newTxs = [newTx, ...transactions].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    // Optimistic update
     setTransactions(newTxs);
-    await AsyncStorage.setItem(storageKey, JSON.stringify(newTxs));
+
+    if (user && user.uid) {
+      setDoc(doc(db, 'users', user.uid, 'transactions', newTx.id), newTx).catch(console.error);
+    }
   };
 
   const updateTransaction = async (id: string, amount: number, description: string, date: Date, type: 'Debit' | 'Credit', account: string) => {
     const updated = transactions.map(tx => 
       tx.id === id ? { ...tx, amount, description, date: date.toISOString(), type, account } : tx
     ).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    // Optimistic update
     setTransactions(updated);
-    await AsyncStorage.setItem(storageKey, JSON.stringify(updated));
+
+    if (user && user.uid) {
+      setDoc(doc(db, 'users', user.uid, 'transactions', id), { amount, description, date: date.toISOString(), type, account }, { merge: true }).catch(console.error);
+    }
   };
 
   const deleteTransaction = async (id: string) => {
     const updated = transactions.filter(tx => tx.id !== id);
+    // Optimistic update
     setTransactions(updated);
-    await AsyncStorage.setItem(storageKey, JSON.stringify(updated));
+
+    if (user && user.uid) {
+      deleteDoc(doc(db, 'users', user.uid, 'transactions', id)).catch(console.error);
+    }
   };
 
   const bulkDeleteTransactions = async (ids: string[]) => {
     const updated = transactions.filter(tx => !ids.includes(tx.id));
+    // Optimistic update
     setTransactions(updated);
-    await AsyncStorage.setItem(storageKey, JSON.stringify(updated));
+
+    if (user && user.uid) {
+      const uid = user.uid;
+      const batch = writeBatch(db);
+      ids.forEach(id => {
+        batch.delete(doc(db, 'users', uid, 'transactions', id));
+      });
+      batch.commit().catch(console.error);
+    }
   };
 
   const bulkImportTransactions = async (newTransactions: AccountTransaction[]) => {
@@ -178,8 +189,16 @@ export const TransactionProvider: React.FC<{ children: React.ReactNode }> = ({ c
     }
     
     merged.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    
+    // Optimistic update
     setTransactions(merged);
-    await AsyncStorage.setItem(storageKey, JSON.stringify(merged));
+
+    if (user && user.uid) {
+      const uid = user.uid;
+      const batch = writeBatch(db);
+      merged.forEach(tx => batch.set(doc(db, 'users', uid, 'transactions', tx.id), tx));
+      batch.commit().catch(console.error);
+    }
   };
 
   const reorderTransactionsByDate = async (dateStr: string, reorderedDayTransactions: AccountTransaction[]) => {
@@ -200,8 +219,8 @@ export const TransactionProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
     const newTransactions = [...updatedReordered, ...otherTransactions];
     newTransactions.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    // Optimistic update
     setTransactions(newTransactions);
-    await AsyncStorage.setItem(storageKey, JSON.stringify(newTransactions));
   };
 
   const getAccountBalance = (account: string) => {
@@ -226,8 +245,14 @@ export const TransactionProvider: React.FC<{ children: React.ReactNode }> = ({ c
   };
 
   const updateAccountOrder = async (newOrder: string[]) => {
+    // Optimistic update
     setAccountOrder(newOrder);
-    await AsyncStorage.setItem(orderStorageKey, JSON.stringify(newOrder));
+
+    if (user && user.uid) {
+      setDoc(doc(db, 'users', user.uid, 'settings', 'preferences'), {
+        accountOrder: newOrder
+      }, { merge: true }).catch(console.error);
+    }
   };
 
   const addManualAccount = async (account: string) => {
@@ -235,26 +260,44 @@ export const TransactionProvider: React.FC<{ children: React.ReactNode }> = ({ c
       return; // Already exists
     }
     const newManualAccounts = [...manualAccounts, account];
+    // Optimistic update
     setManualAccounts(newManualAccounts);
-    await AsyncStorage.setItem(manualAccountsStorageKey, JSON.stringify(newManualAccounts));
+
+    if (user && user.uid) {
+      setDoc(doc(db, 'users', user.uid, 'settings', 'preferences'), {
+        manualAccounts: newManualAccounts
+      }, { merge: true }).catch(console.error);
+    }
   };
 
   const deleteAccount = async (account: string) => {
     const updated = transactions.filter(tx => tx.account !== account);
-    setTransactions(updated);
-    await AsyncStorage.setItem(storageKey, JSON.stringify(updated));
-    
     const newOrder = accountOrder.filter(a => a !== account);
-    setAccountOrder(newOrder);
-    await AsyncStorage.setItem(orderStorageKey, JSON.stringify(newOrder));
-
     const newManualAccounts = manualAccounts.filter(a => a !== account);
-    setManualAccounts(newManualAccounts);
-    await AsyncStorage.setItem(manualAccountsStorageKey, JSON.stringify(newManualAccounts));
-
     const newExcluded = excludedFromTotal.filter(a => a !== account);
+
+    // Optimistic update
+    setTransactions(updated);
+    setAccountOrder(newOrder);
+    setManualAccounts(newManualAccounts);
     setExcludedFromTotal(newExcluded);
-    await AsyncStorage.setItem(excludedStorageKey, JSON.stringify(newExcluded));
+
+    if (user && user.uid) {
+      const uid = user.uid;
+      // Also delete the transactions that belonged to this account from Firebase
+      const txsToDelete = transactions.filter(tx => tx.account === account);
+      if (txsToDelete.length > 0) {
+        const batch = writeBatch(db);
+        txsToDelete.forEach(tx => batch.delete(doc(db, 'users', uid, 'transactions', tx.id)));
+        batch.commit().catch(console.error);
+      }
+      
+      setDoc(doc(db, 'users', uid, 'settings', 'preferences'), {
+        accountOrder: newOrder,
+        manualAccounts: newManualAccounts,
+        excludedFromTotal: newExcluded
+      }, { merge: true }).catch(console.error);
+    }
   };
 
   const toggleAccountInTotal = async (account: string) => {
@@ -264,14 +307,26 @@ export const TransactionProvider: React.FC<{ children: React.ReactNode }> = ({ c
     } else {
       newExcluded.push(account);
     }
+    // Optimistic update
     setExcludedFromTotal(newExcluded);
-    await AsyncStorage.setItem(excludedStorageKey, JSON.stringify(newExcluded));
+
+    if (user && user.uid) {
+      setDoc(doc(db, 'users', user.uid, 'settings', 'preferences'), {
+        excludedFromTotal: newExcluded
+      }, { merge: true }).catch(console.error);
+    }
   };
 
   const toggleShowCardStats = async () => {
     const newVal = !showCardStats;
+    // Optimistic update
     setShowCardStats(newVal);
-    await AsyncStorage.setItem(showStatsStorageKey, JSON.stringify(newVal));
+
+    if (user && user.uid) {
+      setDoc(doc(db, 'users', user.uid, 'settings', 'preferences'), {
+        showCardStats: newVal
+      }, { merge: true }).catch(console.error);
+    }
   };
 
   const accounts = useMemo(() => {
@@ -292,8 +347,11 @@ export const TransactionProvider: React.FC<{ children: React.ReactNode }> = ({ c
     return allAccounts;
   }, [transactions, accountOrder, manualAccounts]);
 
-  return (
-    <TransactionContext.Provider value={{
+  const refreshTransactionData = async () => {
+    await loadData();
+  };
+
+  const contextValue = useMemo(() => ({
       transactions,
       accounts,
       addTransaction,
@@ -311,9 +369,14 @@ export const TransactionProvider: React.FC<{ children: React.ReactNode }> = ({ c
       showCardStats,
       toggleAccountInTotal,
       toggleShowCardStats,
-      refreshTransactionData: loadData,
+      refreshTransactionData,
       isLoading
-    }}>
+  }), [
+      transactions, accounts, excludedFromTotal, showCardStats, isLoading, loadData
+  ]);
+
+  return (
+    <TransactionContext.Provider value={contextValue}>
       {children}
     </TransactionContext.Provider>
   );

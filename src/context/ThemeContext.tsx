@@ -1,6 +1,7 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { useColorScheme } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { doc, setDoc, onSnapshot } from 'firebase/firestore';
+import { db } from '../config/firebase';
 import { useAuthContext } from './AuthContext';
 
 interface ThemeContextType {
@@ -41,64 +42,73 @@ const ThemeContext = createContext<ThemeContextType>({
 
 export const useThemeContext = () => useContext(ThemeContext);
 
-const THEME_KEY = '@app_theme_is_dark';
-const ACCENT_KEY = '@app_theme_accent_color';
-
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const systemColorScheme = useColorScheme();
   const { user } = useAuthContext();
-  const themeKey = user ? `${THEME_KEY}_${user.email}` : THEME_KEY;
-  const accentKey = user ? `${ACCENT_KEY}_${user.email}` : ACCENT_KEY;
 
-  // Default to system theme or true (dark) if system is unavailable
   const [isDarkTheme, setIsDarkTheme] = useState(systemColorScheme === 'dark' || systemColorScheme == null);
   const [accentColor, setAccentColorState] = useState(ACCENT_COLORS[0]);
   const [isReady, setIsReady] = useState(false);
 
-  const loadTheme = async () => {
-    try {
-      const storedTheme = await AsyncStorage.getItem(themeKey);
-      if (storedTheme !== null) {
-        setIsDarkTheme(JSON.parse(storedTheme));
-      } else {
-        const defaultTheme = systemColorScheme === 'dark' || systemColorScheme == null;
-        setIsDarkTheme(defaultTheme);
-        await AsyncStorage.setItem(themeKey, JSON.stringify(defaultTheme));
-      }
-
-      const storedAccent = await AsyncStorage.getItem(accentKey);
-      if (storedAccent !== null) {
-        setAccentColorState(storedAccent);
-      } else {
-        setAccentColorState(ACCENT_COLORS[0]);
-        await AsyncStorage.setItem(accentKey, ACCENT_COLORS[0]);
-      }
-    } catch (e) {
-      console.error('Failed to load theme.', e);
-    } finally {
-      setIsReady(true);
-    }
-  };
-
   useEffect(() => {
-    loadTheme();
-  }, [themeKey, accentKey]);
+    let unsubscribe: () => void;
+
+    const initTheme = () => {
+      if (user && user.uid) {
+        setIsReady(false);
+        unsubscribe = onSnapshot(doc(db, 'users', user.uid, 'settings', 'preferences'), (docSnap) => {
+          if (docSnap.exists()) {
+            const data = docSnap.data();
+            if (data.isDarkTheme !== undefined) setIsDarkTheme(data.isDarkTheme);
+            if (data.accentColor !== undefined) setAccentColorState(data.accentColor);
+          }
+          setIsReady(true);
+        }, (error) => {
+          console.error("Theme snapshot error:", error);
+          setIsReady(true);
+        });
+      } else {
+        // Fallback if not logged in
+        setIsDarkTheme(systemColorScheme === 'dark' || systemColorScheme == null);
+        setAccentColorState(ACCENT_COLORS[0]);
+        setIsReady(true);
+      }
+    };
+
+    initTheme();
+
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
+  }, [user, systemColorScheme]);
 
   const toggleTheme = async () => {
     const newTheme = !isDarkTheme;
+    // Optimistic update
     setIsDarkTheme(newTheme);
-    await AsyncStorage.setItem(themeKey, JSON.stringify(newTheme));
+
+    if (user && user.uid) {
+      setDoc(doc(db, 'users', user.uid, 'settings', 'preferences'), {
+        isDarkTheme: newTheme
+      }, { merge: true }).catch(console.error);
+    }
   };
 
   const setAccentColor = async (color: string) => {
+    // Optimistic update
     setAccentColorState(color);
-    await AsyncStorage.setItem(accentKey, color);
+
+    if (user && user.uid) {
+      setDoc(doc(db, 'users', user.uid, 'settings', 'preferences'), {
+        accentColor: color
+      }, { merge: true }).catch(console.error);
+    }
   };
 
   if (!isReady) return null;
 
   return (
-    <ThemeContext.Provider value={{ isDarkTheme, accentColor, toggleTheme, setAccentColor, refreshTheme: loadTheme }}>
+    <ThemeContext.Provider value={{ isDarkTheme, accentColor, toggleTheme, setAccentColor, refreshTheme: async () => {} }}>
       {children}
     </ThemeContext.Provider>
   );

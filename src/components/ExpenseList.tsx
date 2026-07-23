@@ -18,7 +18,7 @@ import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system/legacy';
 import { generateDashboardPDFHTML } from '../utils/pdfGenerator';
 import Svg, { Circle, Text as SvgText } from 'react-native-svg';
-import { parseISOYear, parseISOMonth, getMonthYearString } from '../utils/dateUtils';
+import { parseISOYear, parseISOMonth, getMonthYearString, MONTH_NAMES } from '../utils/dateUtils';
 
 export type ListItem =
   | { type: 'header'; id: string; title: string; totalAmount?: number }
@@ -121,12 +121,14 @@ export default function ExpenseList({ ListHeaderComponent, hideTitle, isExpenses
 
   const total = getCurrentMonthTotal();
   const prevTotal = getPreviousMonthTotal();
-  const currentMonthName = new Date().toLocaleString('default', { month: 'long', year: 'numeric' });
+  const currentMonthName = `${MONTH_NAMES[new Date().getMonth()]} ${new Date().getFullYear()}`;
 
   const currentYear = new Date().getFullYear();
-  const currentYearTotal = expenses
-    .filter(exp => parseISOYear(exp.date) === currentYear)
-    .reduce((sum, exp) => sum + exp.amount, 0);
+  const currentYearTotal = useMemo(() => {
+    return expenses
+      .filter(exp => parseISOYear(exp.date) === currentYear)
+      .reduce((sum, exp) => sum + exp.amount, 0);
+  }, [expenses, currentYear]);
 
   // Calculate percentage diff
   let diffPercent = null;
@@ -422,7 +424,7 @@ export default function ExpenseList({ ListHeaderComponent, hideTitle, isExpenses
   }, [categories, paymentModes, colors, isDarkTheme, isSelectMode, selectedExpenseIds, currency, bulkDeleteExpenses]);
 
   const listHeader = (
-    <>
+    <View>
       {ListHeaderComponent}
 
       {!isExpensesScreen && (
@@ -454,7 +456,7 @@ export default function ExpenseList({ ListHeaderComponent, hideTitle, isExpenses
             )}
           </View>
           {isExpensesScreen && (
-            <>
+            <View style={{ flexDirection: 'row' }}>
               <TouchableOpacity
                 style={[styles.filterButton, { backgroundColor: colors.surface, borderColor: colors.border, marginRight: 10 }]}
                 onPress={handleDownloadPDF}
@@ -496,7 +498,7 @@ export default function ExpenseList({ ListHeaderComponent, hideTitle, isExpenses
                   color={isSelectMode ? colors.primary : colors.text}
                 />
               </TouchableOpacity>
-            </>
+            </View>
           )}
         </View>
       )}
@@ -529,11 +531,11 @@ export default function ExpenseList({ ListHeaderComponent, hideTitle, isExpenses
           </View>
         </View>
       )}
-    </>
+    </View>
   );
 
   const listFooter = (
-    <>
+    <View>
       {filteredExpenses.length > displayCount && (
         <TouchableOpacity
           style={[styles.loadMoreButton, { backgroundColor: isDarkTheme ? '#2a2a2a' : '#f0f0f0' }]}
@@ -543,7 +545,7 @@ export default function ExpenseList({ ListHeaderComponent, hideTitle, isExpenses
           <Ionicons name="chevron-down" size={16} color={colors.primary} />
         </TouchableOpacity>
       )}
-    </>
+    </View>
   );
 
   const listEmpty = (
