@@ -78,9 +78,30 @@ export const TransactionProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
         const transRef = collection(db, 'users', user.uid, 'transactions');
         const unsubsTrans = onSnapshot(transRef, (snapshot) => {
-          const txs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as AccountTransaction));
-          txs.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-          setTransactions(txs);
+          setTransactions(prev => {
+            let next = [...prev];
+            let hasChanges = false;
+            
+            snapshot.docChanges().forEach(change => {
+              hasChanges = true;
+              const data = { id: change.doc.id, ...change.doc.data() } as AccountTransaction;
+              if (change.type === 'added') {
+                if (!next.some(t => t.id === data.id)) next.push(data);
+              }
+              if (change.type === 'modified') {
+                const idx = next.findIndex(t => t.id === data.id);
+                if (idx !== -1) next[idx] = data;
+              }
+              if (change.type === 'removed') {
+                next = next.filter(t => t.id !== data.id);
+              }
+            });
+
+            if (!hasChanges) return prev;
+            next.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+            return next;
+          });
+          setIsLoading(false);
         });
         unsubs.push(unsubsTrans);
 

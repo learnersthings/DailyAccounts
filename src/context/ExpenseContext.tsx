@@ -157,9 +157,29 @@ export const ExpenseProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
         const expensesRef = collection(db, 'users', user.uid, 'expenses');
         const unsubsExp = onSnapshot(expensesRef, (snapshot) => {
-          const exps = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Expense));
-          exps.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-          setExpenses(exps);
+          setExpenses(prev => {
+            let next = [...prev];
+            let hasChanges = false;
+            
+            snapshot.docChanges().forEach(change => {
+              hasChanges = true;
+              const data = { id: change.doc.id, ...change.doc.data() } as Expense;
+              if (change.type === 'added') {
+                if (!next.some(e => e.id === data.id)) next.push(data);
+              }
+              if (change.type === 'modified') {
+                const idx = next.findIndex(e => e.id === data.id);
+                if (idx !== -1) next[idx] = data;
+              }
+              if (change.type === 'removed') {
+                next = next.filter(e => e.id !== data.id);
+              }
+            });
+
+            if (!hasChanges) return prev;
+            next.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+            return next;
+          });
         });
         unsubs.push(unsubsExp);
 
