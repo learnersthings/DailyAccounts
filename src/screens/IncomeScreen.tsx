@@ -8,6 +8,7 @@ import { useExpenseContext } from '../context/ExpenseContext';
 import { Ionicons } from '@expo/vector-icons';
 import { formatAmount } from '../utils/format';
 import PremiumCardBackground from '../components/PremiumCardBackground';
+import { parseISOYear, parseISOMonth } from '../utils/dateUtils';
 
 const MONTHS = [
   'January', 'February', 'March', 'April', 'May', 'June',
@@ -40,8 +41,7 @@ export default function IncomeScreen() {
 
       const expense = expenses
         .filter(e => {
-          const d = new Date(e.date);
-          return d.getFullYear() === selectedYear && d.getMonth() === index;
+          return parseISOYear(e.date) === selectedYear && parseISOMonth(e.date) === index;
         })
         .reduce((sum, e) => sum + e.amount, 0);
 
@@ -80,7 +80,7 @@ export default function IncomeScreen() {
       },
       { income: 0, expense: 0, balance: 0 }
     );
-    
+
     const now = new Date();
     let monthsToConsider = 12;
     if (selectedYear === now.getFullYear()) {
@@ -101,14 +101,14 @@ export default function IncomeScreen() {
       let expense = 0;
 
       expense = expenses
-        .filter(e => new Date(e.date).getFullYear() === year)
+        .filter(e => parseISOYear(e.date) === year)
         .reduce((sum, e) => sum + e.amount, 0);
 
       for (let i = 1; i <= 12; i++) {
         const key = `${year}-${String(i).padStart(2, '0')}`;
         income += (monthlyIncomes[key] || 0);
       }
-      
+
       const now = new Date();
       let monthsToConsider = 12;
       if (year === now.getFullYear()) {
@@ -134,9 +134,9 @@ export default function IncomeScreen() {
       acc.balance += curr.balance;
       return acc;
     }, { income: 0, expense: 0, balance: 0 });
-    
-    const yearlyAverage = totals.expense / Math.max(allYearsStats.length, 1);
-    
+
+    const yearlyAverage = totals.expense / Math.max(allYearsStats.length - 1, 1);
+
     return { ...totals, yearlyAverage };
   }, [allYearsStats, selectedYear]);
 

@@ -8,6 +8,7 @@ import { formatAmount } from '../utils/format';
 import Svg, { Circle } from 'react-native-svg';
 import ExpenseList from '../components/ExpenseList';
 import PremiumCardBackground from '../components/PremiumCardBackground';
+import { parseISOYear } from '../utils/dateUtils';
 
 export default function DashboardScreen() {
   const colors = useThemeColors();
@@ -19,7 +20,7 @@ export default function DashboardScreen() {
 
   const currentYear = new Date().getFullYear();
   const currentYearTotal = expenses
-    .filter(exp => new Date(exp.date).getFullYear() === currentYear)
+    .filter(exp => parseISOYear(exp.date) === currentYear)
     .reduce((sum, exp) => sum + exp.amount, 0);
 
   const daysInCurrentMonth = new Date().getDate();

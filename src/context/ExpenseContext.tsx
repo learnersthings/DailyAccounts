@@ -1,6 +1,7 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuthContext } from './AuthContext';
+import { parseISOYear, parseISOMonth } from '../utils/dateUtils';
 
 export interface Expense {
   id: string;
@@ -498,8 +499,7 @@ export const ExpenseProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
     return expenses
       .filter((expense) => {
-        const expDate = new Date(expense.date);
-        return expDate.getMonth() === currentMonth && expDate.getFullYear() === currentYear;
+        return parseISOMonth(expense.date) === currentMonth && parseISOYear(expense.date) === currentYear;
       })
       .reduce((total, expense) => total + expense.amount, 0);
   };
@@ -512,8 +512,7 @@ export const ExpenseProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
     return expenses
       .filter((expense) => {
-        const expDate = new Date(expense.date);
-        return expDate.getMonth() === prevMonth && expDate.getFullYear() === prevYear;
+        return parseISOMonth(expense.date) === prevMonth && parseISOYear(expense.date) === prevYear;
       })
       .reduce((total, expense) => total + expense.amount, 0);
   };

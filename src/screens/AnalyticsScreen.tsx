@@ -14,6 +14,7 @@ import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system/legacy';
 import { generateAnalyticsPDFHTML } from '../utils/pdfGenerator';
+import { parseISOYear, parseISOMonth } from '../utils/dateUtils';
 
 const screenWidth = Dimensions.get('window').width;
 
@@ -49,12 +50,12 @@ export default function AnalyticsScreen() {
 
   // Compute available filter options dynamically from expenses
   const availableYears = useMemo(() => {
-    const years = new Set(expenses.map(e => new Date(e.date).getFullYear()));
+    const years = new Set(expenses.map(e => parseISOYear(e.date)));
     return Array.from(years).sort((a, b) => b - a);
   }, [expenses]);
 
   const availableMonths = useMemo(() => {
-    const months = new Set(expenses.map(e => new Date(e.date).getMonth()));
+    const months = new Set(expenses.map(e => parseISOMonth(e.date)));
     return Array.from(months).sort((a, b) => a - b);
   }, [expenses]);
 
@@ -74,9 +75,8 @@ export default function AnalyticsScreen() {
     const currentYear = now.getFullYear();
 
     return expenses.filter(exp => {
-      const expDate = new Date(exp.date);
-      const expYear = expDate.getFullYear();
-      const expMonth = expDate.getMonth();
+      const expYear = parseISOYear(exp.date);
+      const expMonth = parseISOMonth(exp.date);
 
       if (activeFilter === 'This Month') {
         if (!(expMonth === currentMonth && expYear === currentYear)) return false;

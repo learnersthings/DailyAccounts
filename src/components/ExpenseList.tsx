@@ -18,6 +18,7 @@ import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system/legacy';
 import { generateDashboardPDFHTML } from '../utils/pdfGenerator';
 import Svg, { Circle, Text as SvgText } from 'react-native-svg';
+import { parseISOYear, parseISOMonth, getMonthYearString } from '../utils/dateUtils';
 
 export type ListItem =
   | { type: 'header'; id: string; title: string; totalAmount?: number }
@@ -53,12 +54,12 @@ export default function ExpenseList({ ListHeaderComponent, hideTitle, isExpenses
 
   // Compute available filter options dynamically from expenses
   const availableYears = useMemo(() => {
-    const years = new Set(expenses.map(e => new Date(e.date).getFullYear()));
+    const years = new Set(expenses.map(e => parseISOYear(e.date)));
     return Array.from(years).sort((a, b) => b - a);
   }, [expenses]);
 
   const availableMonths = useMemo(() => {
-    const months = new Set(expenses.map(e => new Date(e.date).getMonth()));
+    const months = new Set(expenses.map(e => parseISOMonth(e.date)));
     return Array.from(months).sort((a, b) => a - b);
   }, [expenses]);
 
@@ -93,13 +94,13 @@ export default function ExpenseList({ ListHeaderComponent, hideTitle, isExpenses
       }
 
       // Filter by Year
-      const expYear = new Date(exp.date).getFullYear();
+      const expYear = parseISOYear(exp.date);
       if (selectedYears.length > 0 && !selectedYears.includes(expYear)) {
         return false;
       }
 
       // Filter by Month
-      const expMonth = new Date(exp.date).getMonth();
+      const expMonth = parseISOMonth(exp.date);
       if (selectedMonths.length > 0 && !selectedMonths.includes(expMonth)) {
         return false;
       }
@@ -115,7 +116,7 @@ export default function ExpenseList({ ListHeaderComponent, hideTitle, isExpenses
       }
 
       return true;
-    }).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    }).sort((a, b) => a.date < b.date ? 1 : (a.date > b.date ? -1 : 0));
   }, [expenses, searchQuery, selectedYears, selectedMonths, selectedCategoryIds, selectedPaymentModeIds, categories, paymentModes]);
 
   const total = getCurrentMonthTotal();
@@ -124,7 +125,7 @@ export default function ExpenseList({ ListHeaderComponent, hideTitle, isExpenses
 
   const currentYear = new Date().getFullYear();
   const currentYearTotal = expenses
-    .filter(exp => new Date(exp.date).getFullYear() === currentYear)
+    .filter(exp => parseISOYear(exp.date) === currentYear)
     .reduce((sum, exp) => sum + exp.amount, 0);
 
   // Calculate percentage diff
@@ -229,12 +230,12 @@ export default function ExpenseList({ ListHeaderComponent, hideTitle, isExpenses
 
     const monthTotals: Record<string, number> = {};
     filteredExpenses.forEach(exp => {
-      const monthYear = new Date(exp.date).toLocaleString('default', { month: 'long', year: 'numeric' });
+      const monthYear = getMonthYearString(exp.date);
       monthTotals[monthYear] = (monthTotals[monthYear] || 0) + exp.amount;
     });
 
     visibleExpenses.forEach(exp => {
-      const monthYear = new Date(exp.date).toLocaleString('default', { month: 'long', year: 'numeric' });
+      const monthYear = getMonthYearString(exp.date);
       if (monthYear !== lastGroupTitle) {
         data.push({ type: 'header', id: `header-${monthYear}`, title: monthYear, totalAmount: monthTotals[monthYear] });
         lastGroupTitle = monthYear;
