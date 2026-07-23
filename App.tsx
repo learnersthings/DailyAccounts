@@ -8,15 +8,41 @@ import { TransactionProvider } from './src/context/TransactionContext';
 import RootNavigator from './src/navigation/RootNavigator';
 import { useFonts, Inter_400Regular, Inter_600SemiBold, Inter_700Bold } from '@expo-google-fonts/inter';
 import * as SplashScreen from 'expo-splash-screen';
-import * as BackgroundFetch from 'expo-background-fetch';
-import * as TaskManager from 'expo-task-manager';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as FileSystem from 'expo-file-system/legacy';
+import Constants, { ExecutionEnvironment } from 'expo-constants';
 import { Platform } from 'react-native';
+
+const isExpoGo = Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
+
+let BackgroundFetch: any = null;
+let TaskManager: any = null;
+let Notifications: any = null;
+
+if (!isExpoGo) {
+  try {
+    BackgroundFetch = require('expo-background-fetch');
+    TaskManager = require('expo-task-manager');
+    Notifications = require('expo-notifications');
+
+    Notifications.setNotificationHandler({
+      handleNotification: async () => ({
+        shouldShowAlert: true,
+        shouldPlaySound: true,
+        shouldSetBadge: false,
+        shouldShowBanner: true,
+        shouldShowList: true,
+      }),
+    });
+  } catch (e) {
+    console.log('Skipping background/notification setup in Expo Go', e);
+  }
+}
 
 const BACKGROUND_BACKUP_TASK = 'BACKGROUND_BACKUP_TASK';
 
-TaskManager.defineTask(BACKGROUND_BACKUP_TASK, async () => {
+if (!isExpoGo && TaskManager && BackgroundFetch) {
+  TaskManager.defineTask(BACKGROUND_BACKUP_TASK, async () => {
   try {
     const backupPathUri = await AsyncStorage.getItem('@app_backup_path');
     if (!backupPathUri || Platform.OS !== 'android') {
@@ -98,18 +124,40 @@ TaskManager.defineTask(BACKGROUND_BACKUP_TASK, async () => {
        await AsyncStorage.setItem(backupType, todayStr);
     }
 
+    if (Notifications) {
+      await Notifications.scheduleNotificationAsync({
+        content: {
+          title: "Backup Complete",
+          body: `Daily auto-backup (${backupType === '@last_backup_9am' ? 'Morning' : 'Evening'}) was successful.`,
+        },
+        trigger: null,
+      });
+    }
+
     return BackgroundFetch.BackgroundFetchResult.NewData;
-  } catch (err) {
-    return BackgroundFetch.BackgroundFetchResult.Failed;
+  } catch (err: any) {
+    if (Notifications) {
+      await Notifications.scheduleNotificationAsync({
+        content: {
+          title: "Backup Failed",
+          body: `Auto-backup encountered an error: ${err.message}`,
+        },
+        trigger: null,
+      });
+    }
+    return BackgroundFetch ? BackgroundFetch.BackgroundFetchResult.Failed : 2;
   }
 });
+}
 
 async function registerBackgroundFetchAsync() {
-  return BackgroundFetch.registerTaskAsync(BACKGROUND_BACKUP_TASK, {
-    minimumInterval: 15 * 60, // 15 minutes
-    stopOnTerminate: false,
-    startOnBoot: true,
-  });
+  if (!isExpoGo && BackgroundFetch) {
+    return BackgroundFetch.registerTaskAsync(BACKGROUND_BACKUP_TASK, {
+      minimumInterval: 15 * 60, // 15 minutes
+      stopOnTerminate: false,
+      startOnBoot: true,
+    });
+  }
 }SplashScreen.preventAutoHideAsync();
 
 export default function App() {
@@ -120,6 +168,9 @@ export default function App() {
   });
 
   React.useEffect(() => {
+    if (!isExpoGo && Notifications) {
+      Notifications.requestPermissionsAsync().catch(console.error);
+    }
     registerBackgroundFetchAsync().catch(console.error);
   }, []);
 
