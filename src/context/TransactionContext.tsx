@@ -31,7 +31,7 @@ interface TransactionContextType {
   toggleAccountInTotal: (account: string) => Promise<void>;
   toggleShowCardStats: () => Promise<void>;
   refreshTransactionData: () => Promise<void>;
-  restoreTransactionsBackup: (newTransactions: AccountTransaction[], newPreferences: any) => Promise<void>;
+  restoreTransactionsBackup: (newTransactions: AccountTransaction[], newPreferences: any, onProgress?: (progress: number) => void) => Promise<void>;
   accountOrder: string[];
   manualAccounts: string[];
   isLoading: boolean;
@@ -235,43 +235,62 @@ export const TransactionProvider: React.FC<{ children: React.ReactNode }> = ({ c
     }
   };
 
-  const restoreTransactionsBackup = async (newTransactions: AccountTransaction[], newPreferences: any) => {
-    // 1. Optimistic UI update
+  const restoreTransactionsBackup = async (newTransactions: AccountTransaction[], newPreferences: any, onProgress?: (progress: number) => void) => {
+    // 1. Optimistic updates
+    newTransactions.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     setTransactions(newTransactions);
-    if (newPreferences?.accountOrder !== undefined) setAccountOrder(newPreferences.accountOrder);
-    if (newPreferences?.manualAccounts !== undefined) setManualAccounts(newPreferences.manualAccounts);
-    if (newPreferences?.excludedFromTotal !== undefined) setExcludedFromTotal(newPreferences.excludedFromTotal);
+
+    if (newPreferences?.accountOrder) setAccountOrder(newPreferences.accountOrder);
+    if (newPreferences?.manualAccounts) setManualAccounts(newPreferences.manualAccounts);
+    if (newPreferences?.excludedFromTotal) setExcludedFromTotal(newPreferences.excludedFromTotal);
     if (newPreferences?.showCardStats !== undefined) setShowCardStats(newPreferences.showCardStats);
-    
+
+    // 2. Sync to Firebase
     if (user && user.uid) {
       const uid = user.uid;
-      
-      // 2. Batch Delete all existing transactions
+
+      // 1. Clear existing transactions in batches
       const currentIds = transactions.map(t => t.id);
+      
+      const totalBatches = 
+        Math.ceil(currentIds.length / 400) + 
+        Math.ceil(newTransactions.length / 400) + 1; // +1 for preferences
+        
+      let completedBatches = 0;
+      const reportProgress = () => {
+        completedBatches++;
+        if (onProgress) onProgress((completedBatches / totalBatches) * 100);
+      };
+
       for (let i = 0; i < currentIds.length; i += 400) {
         const batch = writeBatch(db);
         currentIds.slice(i, i + 400).forEach(id => {
           batch.delete(doc(db, 'users', uid, 'transactions', id));
         });
-        await batch.commit().catch(console.error);
+        await batch.commit();
+        reportProgress();
       }
 
       // 3. Batch Insert all new transactions
       for (let i = 0; i < newTransactions.length; i += 400) {
         const batch = writeBatch(db);
         newTransactions.slice(i, i + 400).forEach(tx => {
-          batch.set(doc(db, 'users', uid, 'transactions', tx.id), tx);
+          const docId = tx.id ? String(tx.id) : (Date.now().toString() + Math.floor(Math.random() * 10000).toString());
+          const validTx = { ...tx, id: docId };
+          batch.set(doc(db, 'users', uid, 'transactions', docId), validTx);
         });
-        await batch.commit().catch(console.error);
+        await batch.commit();
+        reportProgress();
       }
 
       // 4. Update preferences
-      setDoc(doc(db, 'users', uid, 'settings', 'preferences'), {
+      await setDoc(doc(db, 'users', uid, 'settings', 'preferences'), {
          accountOrder: newPreferences?.accountOrder || [],
          manualAccounts: newPreferences?.manualAccounts || [],
          excludedFromTotal: newPreferences?.excludedFromTotal || [],
          showCardStats: newPreferences?.showCardStats ?? true
-      }, { merge: true }).catch(console.error);
+      }, { merge: true });
+      reportProgress();
     }
   };
 

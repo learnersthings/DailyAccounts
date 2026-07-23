@@ -20,6 +20,7 @@ export default function SettingsScreen({ navigation }: any) {
   const [isImportModalVisible, setIsImportModalVisible] = useState(false);
   const [isImportTxModalVisible, setIsImportTxModalVisible] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [processingProgress, setProcessingProgress] = useState(0);
   const [isAccentExpanded, setIsAccentExpanded] = useState(false);
   const [isTotalBalanceExpanded, setIsTotalBalanceExpanded] = useState(false);
   const { currency, refreshExpenseData, downloadPathUri, updateDownloadPath, analyticsChartType, backupPathUri, updateBackupPath, expenses, categories, paymentModes, monthlyBudget, yearlyBudget, showMonthlyBudget, showYearlyBudget, showYearCard, chartStyle, monthlyIncomes, restoreBackup } = useExpenseContext();
@@ -61,6 +62,7 @@ export default function SettingsScreen({ navigation }: any) {
   const handleBackup = async () => {
     try {
       setIsProcessing(true);
+      setProcessingProgress(0);
       const backupData: Record<string, string> = {};
       
       backupData['@app_expenses'] = JSON.stringify(expenses);
@@ -143,14 +145,51 @@ export default function SettingsScreen({ navigation }: any) {
 
       const fileUri = result.assets[0].uri;
       const fileContent = await FileSystem.readAsStringAsync(fileUri);
+      setProcessingProgress(10);
       const parsedData = JSON.parse(fileContent);
 
       if (typeof parsedData !== 'object' || parsedData === null) {
         throw new Error('Invalid backup file format');
       }
 
-      const getParsedArray = (key: string) => {
-        try { return parsedData[key] ? JSON.parse(parsedData[key]) : []; } catch(e) { return []; }
+      const getParsedArray = (baseKey: string) => {
+        const matchingKey = Object.keys(parsedData).find(k => k === baseKey || k.startsWith(`${baseKey}_`));
+        const val = matchingKey ? parsedData[matchingKey] : undefined;
+        if (!val) return [];
+        if (typeof val === 'string') {
+          try { return JSON.parse(val); } catch(e) { return []; }
+        }
+        if (Array.isArray(val)) return val;
+        return [];
+      };
+      
+      const getParsedObject = (baseKey: string) => {
+        const matchingKey = Object.keys(parsedData).find(k => k === baseKey || k.startsWith(`${baseKey}_`));
+        const val = matchingKey ? parsedData[matchingKey] : undefined;
+        if (!val) return {};
+        if (typeof val === 'string') {
+          try { return JSON.parse(val); } catch(e) { return {}; }
+        }
+        if (typeof val === 'object' && !Array.isArray(val)) return val;
+        return {};
+      };
+      
+      const getParsedBoolean = (baseKey: string) => {
+        const matchingKey = Object.keys(parsedData).find(k => k === baseKey || k.startsWith(`${baseKey}_`));
+        const val = matchingKey ? parsedData[matchingKey] : undefined;
+        if (val === undefined || val === null) return undefined;
+        if (typeof val === 'boolean') return val;
+        if (typeof val === 'string') {
+          if (val.toLowerCase() === 'true') return true;
+          if (val.toLowerCase() === 'false') return false;
+          try { return Boolean(JSON.parse(val)); } catch (e) { return undefined; }
+        }
+        return undefined;
+      };
+      
+      const getParsedString = (baseKey: string) => {
+        const matchingKey = Object.keys(parsedData).find(k => k === baseKey || k.startsWith(`${baseKey}_`));
+        return matchingKey ? parsedData[matchingKey] : undefined;
       };
 
       const restoredExpenses = getParsedArray('@app_expenses');
@@ -158,29 +197,32 @@ export default function SettingsScreen({ navigation }: any) {
       const restoredPaymentModes = getParsedArray('@app_payment_modes');
       const restoredTransactions = getParsedArray('@app_bank_transactions');
       
-      const parsedBudgets = parsedData['@app_budgets'] ? JSON.parse(parsedData['@app_budgets']) : {};
+      const parsedBudgets = getParsedObject('@app_budgets');
       const newSettings = {
-         currency: parsedData['@app_currency'],
+         currency: getParsedString('@app_currency'),
          monthlyBudget: parsedBudgets.monthly,
          yearlyBudget: parsedBudgets.yearly,
-         showMonthlyBudget: parsedData['@app_show_monthly_budget'] ? JSON.parse(parsedData['@app_show_monthly_budget']) : undefined,
-         showYearlyBudget: parsedData['@app_show_yearly_budget'] ? JSON.parse(parsedData['@app_show_yearly_budget']) : undefined,
-         showYearCard: parsedData['@app_show_year_card'] ? JSON.parse(parsedData['@app_show_year_card']) : undefined,
-         analyticsChartType: parsedData['@app_analytics_chart_type'],
-         chartStyle: parsedData['@app_chart_style'],
-         monthlyIncomes: parsedData['@app_monthly_incomes'] ? JSON.parse(parsedData['@app_monthly_incomes']) : undefined,
+         showMonthlyBudget: getParsedBoolean('@app_show_monthly_budget'),
+         showYearlyBudget: getParsedBoolean('@app_show_yearly_budget'),
+         showYearCard: getParsedBoolean('@app_show_year_card'),
+         analyticsChartType: getParsedString('@app_analytics_chart_type'),
+         chartStyle: getParsedString('@app_chart_style'),
+         monthlyIncomes: getParsedObject('@app_monthly_incomes'),
       };
 
       const newPreferences = {
          accountOrder: getParsedArray('@app_account_order'),
          manualAccounts: getParsedArray('@app_manual_accounts'),
          excludedFromTotal: getParsedArray('@app_excluded_accounts'),
-         showCardStats: parsedData['@app_show_card_stats'] ? JSON.parse(parsedData['@app_show_card_stats']) : undefined,
+         showCardStats: getParsedBoolean('@app_show_card_stats'),
       };
+      
+      setProcessingProgress(30);
 
-      await restoreBackup(restoredExpenses, restoredCategories, restoredPaymentModes, newSettings);
-      await restoreTransactionsBackup(restoredTransactions, newPreferences);
+      await restoreBackup(restoredExpenses, restoredCategories, restoredPaymentModes, newSettings, (p) => setProcessingProgress(30 + p * 0.35));
+      await restoreTransactionsBackup(restoredTransactions, newPreferences, (p) => setProcessingProgress(65 + p * 0.35));
 
+      setProcessingProgress(100);
       Alert.alert('Success', 'Restore Successful! Your data has been loaded and synced to Firebase.');
     } catch (e: any) {
       Alert.alert('Error', 'Restore failed: ' + e.message);
@@ -530,7 +572,9 @@ export default function SettingsScreen({ navigation }: any) {
         <View style={styles.processingOverlay}>
           <View style={[styles.processingBox, { backgroundColor: colors.card }]}>
             <ActivityIndicator size="large" color={colors.primary} />
-            <AppText style={[styles.processingText, { color: colors.text }]}>Processing...</AppText>
+            <AppText style={[styles.processingText, { color: colors.text }]}>
+              {processingProgress > 0 ? `Processing... ${Math.round(processingProgress)}%` : 'Processing...'}
+            </AppText>
           </View>
         </View>
       </Modal>

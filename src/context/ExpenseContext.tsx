@@ -57,7 +57,7 @@ interface ExpenseContextType {
   deletePaymentMode: (id: string) => Promise<void>;
 
   bulkImport: (newExpenses: Expense[], newCategories: Category[], newPaymentModes: PaymentMode[]) => Promise<void>;
-  restoreBackup: (newExpenses: Expense[], newCategories: Category[], newPaymentModes: PaymentMode[], newSettings: any) => Promise<void>;
+  restoreBackup: (newExpenses: Expense[], newCategories: Category[], newPaymentModes: PaymentMode[], newSettings: any, onProgress?: (progress: number) => void) => Promise<void>;
 
   updateCurrency: (newCurrency: string) => Promise<void>;
   updateBudgets: (monthly: number, yearly: number) => Promise<void>;
@@ -471,10 +471,16 @@ export const ExpenseProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }
   };
 
-  const restoreBackup = async (newExpenses: Expense[], newCategories: Category[], newPaymentModes: PaymentMode[], newSettings: any) => {
+  const restoreBackup = async (newExpenses: Expense[], newCategories: Category[], newPaymentModes: PaymentMode[], newSettings: any, onProgress?: (progress: number) => void) => {
+    // 1. Optimistic updates
+    newExpenses.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    newCategories.sort((a, b) => a.name.localeCompare(b.name));
+    newPaymentModes.sort((a, b) => a.name.localeCompare(b.name));
+
     setExpenses(newExpenses);
     setCategories(newCategories);
     setPaymentModes(newPaymentModes);
+
     if (newSettings?.currency) setCurrency(newSettings.currency);
     if (newSettings?.monthlyBudget !== undefined) setMonthlyBudget(newSettings.monthlyBudget);
     if (newSettings?.yearlyBudget !== undefined) setYearlyBudget(newSettings.yearlyBudget);
@@ -484,50 +490,84 @@ export const ExpenseProvider: React.FC<{ children: React.ReactNode }> = ({ child
     if (newSettings?.analyticsChartType) setAnalyticsChartType(newSettings.analyticsChartType);
     if (newSettings?.chartStyle) setChartStyle(newSettings.chartStyle);
     if (newSettings?.monthlyIncomes) setMonthlyIncomes(newSettings.monthlyIncomes);
-    
+
+    // 2. Safely sync to Firebase
     if (user && user.uid) {
       const uid = user.uid;
-      
+
       const currentIds = expenses.map(e => e.id);
+      const currentCatIds = categories.map(c => c.id);
+      const currentPmIds = paymentModes.map(p => p.id);
+      
+      const totalBatches = 
+        Math.ceil(currentIds.length / 400) + 
+        Math.ceil(currentCatIds.length / 400) + 
+        Math.ceil(currentPmIds.length / 400) + 
+        Math.ceil(newExpenses.length / 400) + 
+        Math.ceil(newCategories.length / 400) + 
+        Math.ceil(newPaymentModes.length / 400) + 1; // +1 for settings
+      
+      let completedBatches = 0;
+      const reportProgress = () => {
+        completedBatches++;
+        if (onProgress) onProgress((completedBatches / totalBatches) * 100);
+      };
+
       for (let i = 0; i < currentIds.length; i += 400) {
         const batch = writeBatch(db);
         currentIds.slice(i, i + 400).forEach(id => batch.delete(doc(db, 'users', uid, 'expenses', id)));
-        await batch.commit().catch(console.error);
+        await batch.commit();
+        reportProgress();
       }
 
-      const currentCatIds = categories.map(c => c.id);
       for (let i = 0; i < currentCatIds.length; i += 400) {
         const batch = writeBatch(db);
         currentCatIds.slice(i, i + 400).forEach(id => batch.delete(doc(db, 'users', uid, 'categories', id)));
-        await batch.commit().catch(console.error);
+        await batch.commit();
+        reportProgress();
       }
       
-      const currentPmIds = paymentModes.map(p => p.id);
       for (let i = 0; i < currentPmIds.length; i += 400) {
         const batch = writeBatch(db);
         currentPmIds.slice(i, i + 400).forEach(id => batch.delete(doc(db, 'users', uid, 'paymentModes', id)));
-        await batch.commit().catch(console.error);
+        await batch.commit();
+        reportProgress();
       }
 
       for (let i = 0; i < newExpenses.length; i += 400) {
         const batch = writeBatch(db);
-        newExpenses.slice(i, i + 400).forEach(exp => batch.set(doc(db, 'users', uid, 'expenses', exp.id), exp));
-        await batch.commit().catch(console.error);
+        newExpenses.slice(i, i + 400).forEach(exp => {
+          const docId = exp.id ? String(exp.id) : (Date.now().toString() + Math.floor(Math.random() * 10000).toString());
+          const validExp = { ...exp, id: docId };
+          batch.set(doc(db, 'users', uid, 'expenses', docId), validExp);
+        });
+        await batch.commit();
+        reportProgress();
       }
 
       for (let i = 0; i < newCategories.length; i += 400) {
         const batch = writeBatch(db);
-        newCategories.slice(i, i + 400).forEach(cat => batch.set(doc(db, 'users', uid, 'categories', cat.id), cat));
-        await batch.commit().catch(console.error);
+        newCategories.slice(i, i + 400).forEach(cat => {
+          const docId = cat.id ? String(cat.id) : (Date.now().toString() + Math.floor(Math.random() * 10000).toString());
+          const validCat = { ...cat, id: docId };
+          batch.set(doc(db, 'users', uid, 'categories', docId), validCat);
+        });
+        await batch.commit();
+        reportProgress();
       }
       
       for (let i = 0; i < newPaymentModes.length; i += 400) {
         const batch = writeBatch(db);
-        newPaymentModes.slice(i, i + 400).forEach(mode => batch.set(doc(db, 'users', uid, 'paymentModes', mode.id), mode));
-        await batch.commit().catch(console.error);
+        newPaymentModes.slice(i, i + 400).forEach(mode => {
+          const docId = mode.id ? String(mode.id) : (Date.now().toString() + Math.floor(Math.random() * 10000).toString());
+          const validMode = { ...mode, id: docId };
+          batch.set(doc(db, 'users', uid, 'paymentModes', docId), validMode);
+        });
+        await batch.commit();
+        reportProgress();
       }
 
-      setDoc(doc(db, 'users', uid, 'settings', 'preferences'), {
+      await setDoc(doc(db, 'users', uid, 'settings', 'preferences'), {
          currency: newSettings?.currency || '$',
          monthlyBudget: newSettings?.monthlyBudget || 0,
          yearlyBudget: newSettings?.yearlyBudget || 0,
@@ -535,12 +575,10 @@ export const ExpenseProvider: React.FC<{ children: React.ReactNode }> = ({ child
          showYearlyBudget: newSettings?.showYearlyBudget ?? true,
          showYearCard: newSettings?.showYearCard ?? true,
          analyticsChartType: newSettings?.analyticsChartType || 'Pie',
-         chartStyle: newSettings?.chartStyle || 'Classic'
-      }, { merge: true }).catch(console.error);
-      
-      setDoc(doc(db, 'users', uid, 'settings', 'incomes'), {
+         chartStyle: newSettings?.chartStyle || 'Classic',
          monthlyIncomes: newSettings?.monthlyIncomes || {}
-      }, { merge: true }).catch(console.error);
+      }, { merge: true });
+      reportProgress();
     }
   };
 
