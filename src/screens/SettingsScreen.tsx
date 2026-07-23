@@ -13,6 +13,15 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import * as DocumentPicker from 'expo-document-picker';
+import Constants, { ExecutionEnvironment } from 'expo-constants';
+
+const isExpoGo = Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
+let Notifications: any = null;
+if (!isExpoGo) {
+  try {
+    Notifications = require('expo-notifications');
+  } catch (e) {}
+}
 
 export default function SettingsScreen({ navigation }: any) {
   const colors = useThemeColors();
@@ -103,6 +112,12 @@ export default function SettingsScreen({ navigation }: any) {
           }
         }
 
+        if (Notifications) {
+          await Notifications.scheduleNotificationAsync({
+            content: { title: "Backup Complete", body: "Manual backup saved successfully to your chosen folder." },
+            trigger: null,
+          });
+        }
         Alert.alert('Success', 'Backup saved successfully to your chosen folder.');
       } else {
         const timestamp = new Date().getTime();
@@ -117,6 +132,12 @@ export default function SettingsScreen({ navigation }: any) {
         }
       }
     } catch (e: any) {
+      if (Notifications) {
+        await Notifications.scheduleNotificationAsync({
+          content: { title: "Backup Failed", body: `Manual backup failed: ${e.message}` },
+          trigger: null,
+        });
+      }
       Alert.alert('Error', 'Backup failed: ' + e.message);
     } finally {
       setIsProcessing(false);
