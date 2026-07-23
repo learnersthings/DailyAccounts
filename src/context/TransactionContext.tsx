@@ -31,28 +31,34 @@ interface TransactionContextType {
   toggleAccountInTotal: (account: string) => Promise<void>;
   toggleShowCardStats: () => Promise<void>;
   refreshTransactionData: () => Promise<void>;
+  restoreTransactionsBackup: (newTransactions: AccountTransaction[], newPreferences: any) => Promise<void>;
+  accountOrder: string[];
+  manualAccounts: string[];
   isLoading: boolean;
 }
 
 const TransactionContext = createContext<TransactionContextType>({
   transactions: [],
   accounts: [],
-  addTransaction: async () => {},
-  updateTransaction: async () => {},
-  deleteTransaction: async () => {},
-  bulkDeleteTransactions: async () => {},
-  bulkImportTransactions: async () => {},
-  reorderTransactionsByDate: async () => {},
-  updateAccountOrder: async () => {},
-  addManualAccount: async () => {},
-  deleteAccount: async () => {},
+  addTransaction: async () => { },
+  updateTransaction: async () => { },
+  deleteTransaction: async () => { },
+  bulkDeleteTransactions: async () => { },
+  bulkImportTransactions: async () => { },
+  reorderTransactionsByDate: async () => { },
+  updateAccountOrder: async () => { },
+  addManualAccount: async () => { },
+  deleteAccount: async () => { },
   getAccountBalance: () => 0,
   getAccountStats: () => ({ balance: 0, totalCredit: 0, totalDebit: 0 }),
   excludedFromTotal: [],
   showCardStats: true,
-  toggleAccountInTotal: async () => {},
-  toggleShowCardStats: async () => {},
-  refreshTransactionData: async () => {},
+  toggleAccountInTotal: async () => { },
+  toggleShowCardStats: async () => { },
+  refreshTransactionData: async () => { },
+  restoreTransactionsBackup: async () => { },
+  accountOrder: [],
+  manualAccounts: [],
   isLoading: true,
 });
 
@@ -81,7 +87,7 @@ export const TransactionProvider: React.FC<{ children: React.ReactNode }> = ({ c
           setTransactions(prev => {
             let next = [...prev];
             let hasChanges = false;
-            
+
             snapshot.docChanges().forEach(change => {
               hasChanges = true;
               const data = { id: change.doc.id, ...change.doc.data() } as AccountTransaction;
@@ -131,7 +137,7 @@ export const TransactionProvider: React.FC<{ children: React.ReactNode }> = ({ c
     };
   }, [user]);
 
-  const loadData = async () => {};
+  const loadData = async () => { };
 
   const addTransaction = async (amount: number, description: string, date: Date, type: 'Debit' | 'Credit', account: string) => {
     const newTx: AccountTransaction = {
@@ -152,7 +158,7 @@ export const TransactionProvider: React.FC<{ children: React.ReactNode }> = ({ c
   };
 
   const updateTransaction = async (id: string, amount: number, description: string, date: Date, type: 'Debit' | 'Credit', account: string) => {
-    const updated = transactions.map(tx => 
+    const updated = transactions.map(tx =>
       tx.id === id ? { ...tx, amount, description, date: date.toISOString(), type, account } : tx
     ).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     // Optimistic update
@@ -191,47 +197,94 @@ export const TransactionProvider: React.FC<{ children: React.ReactNode }> = ({ c
   const bulkImportTransactions = async (newTransactions: AccountTransaction[]) => {
     const merged = [...transactions];
     const unmatchedExisting = [...transactions];
-    
+
     for (const newTx of newTransactions) {
       const newTxDateStr = new Date(newTx.date).toDateString();
-      const poolIdx = unmatchedExisting.findIndex(e => 
+      const poolIdx = unmatchedExisting.findIndex(e =>
         new Date(e.date).toDateString() === newTxDateStr &&
         e.amount === newTx.amount &&
         e.type === newTx.type &&
         e.account === newTx.account &&
         e.description.trim().toLowerCase() === newTx.description.trim().toLowerCase()
       );
-      
+
       if (poolIdx !== -1) {
         unmatchedExisting.splice(poolIdx, 1);
       } else {
         merged.push(newTx);
       }
     }
-    
+
     merged.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-    
+
     // Optimistic update
     setTransactions(merged);
 
     if (user && user.uid) {
       const uid = user.uid;
-      const batch = writeBatch(db);
-      merged.forEach(tx => batch.set(doc(db, 'users', uid, 'transactions', tx.id), tx));
-      batch.commit().catch(console.error);
+      
+      const chunkedWrites = [];
+      for (let i = 0; i < merged.length; i += 400) {
+        chunkedWrites.push(merged.slice(i, i + 400));
+      }
+      for (const chunk of chunkedWrites) {
+        const batch = writeBatch(db);
+        chunk.forEach(tx => batch.set(doc(db, 'users', uid, 'transactions', tx.id), tx));
+        await batch.commit().catch(console.error);
+      }
+    }
+  };
+
+  const restoreTransactionsBackup = async (newTransactions: AccountTransaction[], newPreferences: any) => {
+    // 1. Optimistic UI update
+    setTransactions(newTransactions);
+    if (newPreferences?.accountOrder !== undefined) setAccountOrder(newPreferences.accountOrder);
+    if (newPreferences?.manualAccounts !== undefined) setManualAccounts(newPreferences.manualAccounts);
+    if (newPreferences?.excludedFromTotal !== undefined) setExcludedFromTotal(newPreferences.excludedFromTotal);
+    if (newPreferences?.showCardStats !== undefined) setShowCardStats(newPreferences.showCardStats);
+    
+    if (user && user.uid) {
+      const uid = user.uid;
+      
+      // 2. Batch Delete all existing transactions
+      const currentIds = transactions.map(t => t.id);
+      for (let i = 0; i < currentIds.length; i += 400) {
+        const batch = writeBatch(db);
+        currentIds.slice(i, i + 400).forEach(id => {
+          batch.delete(doc(db, 'users', uid, 'transactions', id));
+        });
+        await batch.commit().catch(console.error);
+      }
+
+      // 3. Batch Insert all new transactions
+      for (let i = 0; i < newTransactions.length; i += 400) {
+        const batch = writeBatch(db);
+        newTransactions.slice(i, i + 400).forEach(tx => {
+          batch.set(doc(db, 'users', uid, 'transactions', tx.id), tx);
+        });
+        await batch.commit().catch(console.error);
+      }
+
+      // 4. Update preferences
+      setDoc(doc(db, 'users', uid, 'settings', 'preferences'), {
+         accountOrder: newPreferences?.accountOrder || [],
+         manualAccounts: newPreferences?.manualAccounts || [],
+         excludedFromTotal: newPreferences?.excludedFromTotal || [],
+         showCardStats: newPreferences?.showCardStats ?? true
+      }, { merge: true }).catch(console.error);
     }
   };
 
   const reorderTransactionsByDate = async (dateStr: string, reorderedDayTransactions: AccountTransaction[]) => {
     const otherTransactions = transactions.filter(t => new Date(t.date).toDateString() !== dateStr);
-    
+
     const baseDate = new Date(dateStr);
-    
+
     const updatedReordered = reorderedDayTransactions.map((tx, index) => {
       const newDate = new Date(baseDate);
       newDate.setHours(23, 59, 59, 0);
       newDate.setSeconds(newDate.getSeconds() - index);
-      
+
       return {
         ...tx,
         date: newDate.toISOString(),
@@ -312,7 +365,7 @@ export const TransactionProvider: React.FC<{ children: React.ReactNode }> = ({ c
         txsToDelete.forEach(tx => batch.delete(doc(db, 'users', uid, 'transactions', tx.id)));
         batch.commit().catch(console.error);
       }
-      
+
       setDoc(doc(db, 'users', uid, 'settings', 'preferences'), {
         accountOrder: newOrder,
         manualAccounts: newManualAccounts,
@@ -353,18 +406,18 @@ export const TransactionProvider: React.FC<{ children: React.ReactNode }> = ({ c
   const accounts = useMemo(() => {
     const usedAccounts = new Set([...transactions.map(t => t.account), ...manualAccounts]);
     const allAccounts = Array.from(usedAccounts);
-    
+
     // Sort based on accountOrder
     allAccounts.sort((a, b) => {
       const idxA = accountOrder.indexOf(a);
       const idxB = accountOrder.indexOf(b);
-      
+
       if (idxA !== -1 && idxB !== -1) return idxA - idxB;
       if (idxA !== -1) return -1;
       if (idxB !== -1) return 1;
       return a.localeCompare(b);
     });
-    
+
     return allAccounts;
   }, [transactions, accountOrder, manualAccounts]);
 
@@ -373,27 +426,30 @@ export const TransactionProvider: React.FC<{ children: React.ReactNode }> = ({ c
   };
 
   const contextValue = useMemo(() => ({
-      transactions,
-      accounts,
-      addTransaction,
-      updateTransaction,
-      deleteTransaction,
-      bulkDeleteTransactions,
-      bulkImportTransactions,
-      reorderTransactionsByDate,
-      updateAccountOrder,
-      addManualAccount,
-      deleteAccount,
-      getAccountBalance,
-      getAccountStats,
-      excludedFromTotal,
-      showCardStats,
-      toggleAccountInTotal,
-      toggleShowCardStats,
-      refreshTransactionData,
-      isLoading
+    transactions,
+    accounts,
+    addTransaction,
+    updateTransaction,
+    deleteTransaction,
+    bulkDeleteTransactions,
+    bulkImportTransactions,
+    reorderTransactionsByDate,
+    updateAccountOrder,
+    addManualAccount,
+    deleteAccount,
+    getAccountBalance,
+    getAccountStats,
+    excludedFromTotal,
+    showCardStats,
+    toggleAccountInTotal,
+    toggleShowCardStats,
+    refreshTransactionData,
+    restoreTransactionsBackup,
+    accountOrder,
+    manualAccounts,
+    isLoading
   }), [
-      transactions, accounts, excludedFromTotal, showCardStats, isLoading, loadData
+    transactions, accounts, excludedFromTotal, showCardStats, isLoading, loadData, accountOrder, manualAccounts
   ]);
 
   return (

@@ -57,6 +57,7 @@ interface ExpenseContextType {
   deletePaymentMode: (id: string) => Promise<void>;
 
   bulkImport: (newExpenses: Expense[], newCategories: Category[], newPaymentModes: PaymentMode[]) => Promise<void>;
+  restoreBackup: (newExpenses: Expense[], newCategories: Category[], newPaymentModes: PaymentMode[], newSettings: any) => Promise<void>;
 
   updateCurrency: (newCurrency: string) => Promise<void>;
   updateBudgets: (monthly: number, yearly: number) => Promise<void>;
@@ -71,6 +72,8 @@ interface ExpenseContextType {
   isLoading: boolean;
   downloadPathUri: string | null;
   updateDownloadPath: (uri: string | null) => Promise<void>;
+  backupPathUri: string | null;
+  updateBackupPath: (uri: string | null) => Promise<void>;
   migrateUserEmail: (oldEmail: string, newEmail: string) => Promise<void>;
 }
 
@@ -100,6 +103,7 @@ const ExpenseContext = createContext<ExpenseContextType>({
   updatePaymentMode: async () => {},
   deletePaymentMode: async () => {},
   bulkImport: async () => {},
+  restoreBackup: async () => {},
   updateCurrency: async () => {},
   updateBudgets: async () => {},
   toggleShowMonthlyBudget: async () => {},
@@ -113,6 +117,8 @@ const ExpenseContext = createContext<ExpenseContextType>({
   isLoading: true,
   downloadPathUri: null,
   updateDownloadPath: async () => {},
+  backupPathUri: null,
+  updateBackupPath: async () => {},
   migrateUserEmail: async () => {},
 });
 
@@ -144,6 +150,7 @@ export const ExpenseProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [analyticsChartType, setAnalyticsChartType] = useState<'Pie' | 'Donut'>('Pie');
   const [chartStyle, setChartStyle] = useState<'Classic' | '3D' | 'Spaced' | 'Semi-Circle'>('Classic');
   const [downloadPathUri, setDownloadPathUri] = useState<string | null>(null);
+  const [backupPathUri, setBackupPathUri] = useState<string | null>(null);
   const [monthlyIncomes, setMonthlyIncomes] = useState<Record<string, number>>({});
   const [isLoading, setIsLoading] = useState(true);
   const { user } = useAuthContext();
@@ -212,6 +219,7 @@ export const ExpenseProvider: React.FC<{ children: React.ReactNode }> = ({ child
             if (data.analyticsChartType !== undefined) setAnalyticsChartType(data.analyticsChartType);
             if (data.chartStyle !== undefined) setChartStyle(data.chartStyle);
             if (data.downloadPathUri !== undefined) setDownloadPathUri(data.downloadPathUri);
+            if (data.backupPathUri !== undefined) setBackupPathUri(data.backupPathUri);
             if (data.monthlyIncomes !== undefined) setMonthlyIncomes(data.monthlyIncomes);
           }
           setIsLoading(false);
@@ -442,11 +450,97 @@ export const ExpenseProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
     if (user && user.uid) {
       const uid = user.uid;
-      const batch = writeBatch(db);
-      mergedCategories.forEach(cat => batch.set(doc(db, 'users', uid, 'categories', cat.id), cat));
-      mergedPaymentModes.forEach(mode => batch.set(doc(db, 'users', uid, 'paymentModes', mode.id), mode));
-      mergedExpenses.forEach(exp => batch.set(doc(db, 'users', uid, 'expenses', exp.id), exp));
-      batch.commit().catch(console.error);
+      
+      for (let i = 0; i < mergedCategories.length; i += 400) {
+        const batch = writeBatch(db);
+        mergedCategories.slice(i, i + 400).forEach(cat => batch.set(doc(db, 'users', uid, 'categories', cat.id), cat));
+        await batch.commit().catch(console.error);
+      }
+      
+      for (let i = 0; i < mergedPaymentModes.length; i += 400) {
+        const batch = writeBatch(db);
+        mergedPaymentModes.slice(i, i + 400).forEach(mode => batch.set(doc(db, 'users', uid, 'paymentModes', mode.id), mode));
+        await batch.commit().catch(console.error);
+      }
+      
+      for (let i = 0; i < mergedExpenses.length; i += 400) {
+        const batch = writeBatch(db);
+        mergedExpenses.slice(i, i + 400).forEach(exp => batch.set(doc(db, 'users', uid, 'expenses', exp.id), exp));
+        await batch.commit().catch(console.error);
+      }
+    }
+  };
+
+  const restoreBackup = async (newExpenses: Expense[], newCategories: Category[], newPaymentModes: PaymentMode[], newSettings: any) => {
+    setExpenses(newExpenses);
+    setCategories(newCategories);
+    setPaymentModes(newPaymentModes);
+    if (newSettings?.currency) setCurrency(newSettings.currency);
+    if (newSettings?.monthlyBudget !== undefined) setMonthlyBudget(newSettings.monthlyBudget);
+    if (newSettings?.yearlyBudget !== undefined) setYearlyBudget(newSettings.yearlyBudget);
+    if (newSettings?.showMonthlyBudget !== undefined) setShowMonthlyBudget(newSettings.showMonthlyBudget);
+    if (newSettings?.showYearlyBudget !== undefined) setShowYearlyBudget(newSettings.showYearlyBudget);
+    if (newSettings?.showYearCard !== undefined) setShowYearCard(newSettings.showYearCard);
+    if (newSettings?.analyticsChartType) setAnalyticsChartType(newSettings.analyticsChartType);
+    if (newSettings?.chartStyle) setChartStyle(newSettings.chartStyle);
+    if (newSettings?.monthlyIncomes) setMonthlyIncomes(newSettings.monthlyIncomes);
+    
+    if (user && user.uid) {
+      const uid = user.uid;
+      
+      const currentIds = expenses.map(e => e.id);
+      for (let i = 0; i < currentIds.length; i += 400) {
+        const batch = writeBatch(db);
+        currentIds.slice(i, i + 400).forEach(id => batch.delete(doc(db, 'users', uid, 'expenses', id)));
+        await batch.commit().catch(console.error);
+      }
+
+      const currentCatIds = categories.map(c => c.id);
+      for (let i = 0; i < currentCatIds.length; i += 400) {
+        const batch = writeBatch(db);
+        currentCatIds.slice(i, i + 400).forEach(id => batch.delete(doc(db, 'users', uid, 'categories', id)));
+        await batch.commit().catch(console.error);
+      }
+      
+      const currentPmIds = paymentModes.map(p => p.id);
+      for (let i = 0; i < currentPmIds.length; i += 400) {
+        const batch = writeBatch(db);
+        currentPmIds.slice(i, i + 400).forEach(id => batch.delete(doc(db, 'users', uid, 'paymentModes', id)));
+        await batch.commit().catch(console.error);
+      }
+
+      for (let i = 0; i < newExpenses.length; i += 400) {
+        const batch = writeBatch(db);
+        newExpenses.slice(i, i + 400).forEach(exp => batch.set(doc(db, 'users', uid, 'expenses', exp.id), exp));
+        await batch.commit().catch(console.error);
+      }
+
+      for (let i = 0; i < newCategories.length; i += 400) {
+        const batch = writeBatch(db);
+        newCategories.slice(i, i + 400).forEach(cat => batch.set(doc(db, 'users', uid, 'categories', cat.id), cat));
+        await batch.commit().catch(console.error);
+      }
+      
+      for (let i = 0; i < newPaymentModes.length; i += 400) {
+        const batch = writeBatch(db);
+        newPaymentModes.slice(i, i + 400).forEach(mode => batch.set(doc(db, 'users', uid, 'paymentModes', mode.id), mode));
+        await batch.commit().catch(console.error);
+      }
+
+      setDoc(doc(db, 'users', uid, 'settings', 'preferences'), {
+         currency: newSettings?.currency || '$',
+         monthlyBudget: newSettings?.monthlyBudget || 0,
+         yearlyBudget: newSettings?.yearlyBudget || 0,
+         showMonthlyBudget: newSettings?.showMonthlyBudget ?? true,
+         showYearlyBudget: newSettings?.showYearlyBudget ?? true,
+         showYearCard: newSettings?.showYearCard ?? true,
+         analyticsChartType: newSettings?.analyticsChartType || 'Pie',
+         chartStyle: newSettings?.chartStyle || 'Classic'
+      }, { merge: true }).catch(console.error);
+      
+      setDoc(doc(db, 'users', uid, 'settings', 'incomes'), {
+         monthlyIncomes: newSettings?.monthlyIncomes || {}
+      }, { merge: true }).catch(console.error);
     }
   };
 
@@ -540,6 +634,16 @@ export const ExpenseProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }
   };
 
+  const updateBackupPath = async (uri: string | null) => {
+    setBackupPathUri(uri);
+    
+    if (user && user.uid) {
+      setDoc(doc(db, 'users', user.uid, 'settings', 'preferences'), {
+        backupPathUri: uri
+      }, { merge: true }).catch(console.error);
+    }
+  };
+
   const getCurrentMonthTotal = useCallback(() => {
     const now = new Date();
     const currentMonth = now.getMonth();
@@ -577,16 +681,17 @@ export const ExpenseProvider: React.FC<{ children: React.ReactNode }> = ({ child
       updateMonthlyIncome,
       addCategory, updateCategory, deleteCategory,
       addPaymentMode, updatePaymentMode, deletePaymentMode,
-      bulkImport,
+      bulkImport, restoreBackup,
       updateCurrency, updateBudgets, toggleShowMonthlyBudget, toggleShowYearlyBudget, toggleShowYearCard, updateAnalyticsChartType, updateChartStyle,
       getCurrentMonthTotal, getPreviousMonthTotal, 
       refreshExpenseData: loadData, isLoading,
       downloadPathUri, updateDownloadPath,
+      backupPathUri, updateBackupPath,
       migrateUserEmail
   }), [
       expenses, categories, paymentModes, currency, monthlyBudget, yearlyBudget,
       showMonthlyBudget, showYearlyBudget, showYearCard, analyticsChartType, chartStyle,
-      monthlyIncomes, isLoading, downloadPathUri,
+      monthlyIncomes, isLoading, downloadPathUri, backupPathUri,
       getCurrentMonthTotal, getPreviousMonthTotal, loadData
   ]);
 
