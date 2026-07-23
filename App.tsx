@@ -107,6 +107,45 @@ if (!isExpoGo && TaskManager && BackgroundFetch) {
       }
     }
 
+    if (now.getDate() === 1) {
+      const monthIdentifier = `${now.getMonth()}-${now.getFullYear()}`;
+      const lastMonthlySummary = await AsyncStorage.getItem('@last_monthly_summary');
+      
+      if (lastMonthlySummary !== monthIdentifier) {
+        const expensesStr = await AsyncStorage.getItem('@app_expenses');
+        if (expensesStr) {
+          try {
+            const expenses = JSON.parse(expensesStr);
+            const prevMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+            const prevMonth = prevMonthDate.getMonth();
+            const prevYear = prevMonthDate.getFullYear();
+            
+            const prevMonthExpenses = expenses.filter((e: any) => {
+              const d = new Date(e.date);
+              return d.getMonth() === prevMonth && d.getFullYear() === prevYear;
+            });
+            
+            const total = prevMonthExpenses.reduce((sum: number, e: any) => sum + (parseFloat(e.amount) || 0), 0);
+            const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+            const monthName = monthNames[prevMonthDate.getMonth()];
+            const userCurrency = await AsyncStorage.getItem('@app_currency') || '₹';
+            
+            if (Notifications) {
+              await Notifications.scheduleNotificationAsync({
+                content: {
+                  title: "Monthly Summary 📊",
+                  body: `Your total expense for ${monthName} was ${userCurrency}${total}.`,
+                },
+                trigger: null,
+              });
+            }
+            await AsyncStorage.setItem('@last_monthly_summary', monthIdentifier);
+            reminderSent = true;
+          } catch (e) {}
+        }
+      }
+    }
+
     if (!shouldBackup) {
       return reminderSent ? BackgroundFetch.BackgroundFetchResult.NewData : BackgroundFetch.BackgroundFetchResult.NoData;
     }
