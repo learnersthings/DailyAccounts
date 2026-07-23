@@ -79,8 +79,36 @@ if (!isExpoGo && TaskManager && BackgroundFetch) {
       }
     }
 
+    const lastReminder = await AsyncStorage.getItem('@last_expense_reminder');
+    let reminderSent = false;
+    if (hour >= 18) {
+      if (lastReminder !== todayStr) {
+        const expensesStr = await AsyncStorage.getItem('@app_expenses');
+        let hasTodayExpense = false;
+        if (expensesStr) {
+          try {
+            const expenses = JSON.parse(expensesStr);
+            hasTodayExpense = expenses.some((e: any) => new Date(e.date).toDateString() === todayStr);
+          } catch (e) {}
+        }
+        if (!hasTodayExpense) {
+          if (Notifications) {
+            await Notifications.scheduleNotificationAsync({
+              content: {
+                title: "Daily Reminder",
+                body: "You haven't logged any expenses today. Don't forget to track your spending!",
+              },
+              trigger: null,
+            });
+          }
+          await AsyncStorage.setItem('@last_expense_reminder', todayStr);
+          reminderSent = true;
+        }
+      }
+    }
+
     if (!shouldBackup) {
-      return BackgroundFetch.BackgroundFetchResult.NoData;
+      return reminderSent ? BackgroundFetch.BackgroundFetchResult.NewData : BackgroundFetch.BackgroundFetchResult.NoData;
     }
 
     const keys = await AsyncStorage.getAllKeys();
