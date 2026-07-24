@@ -199,7 +199,7 @@ if (!isExpoGo && TaskManager && BackgroundFetch) {
       return getTimestamp(a) - getTimestamp(b);
     });
 
-    const maxBackups = 14;
+    const maxBackups = 5;
     if (backupFiles.length > maxBackups) {
       const filesToDelete = backupFiles.slice(0, backupFiles.length - maxBackups);
       for (const fileToDelete of filesToDelete) {

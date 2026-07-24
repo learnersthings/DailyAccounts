@@ -175,8 +175,20 @@ export default function SettingsScreen({ navigation }: any) {
       await refreshExpenseData();
       await refreshTransactionData();
 
+      if (Notifications) {
+        await Notifications.scheduleNotificationAsync({
+          content: { title: "Restore Complete", body: "Your data has been successfully restored." },
+          trigger: null,
+        });
+      }
       alert('Restore Successful! Your data has been loaded instantly.');
     } catch (e: any) {
+      if (Notifications) {
+        await Notifications.scheduleNotificationAsync({
+          content: { title: "Restore Failed", body: `Failed to restore data: ${e.message}` },
+          trigger: null,
+        });
+      }
       alert('Restore failed: ' + e.message);
     } finally {
       setIsProcessing(false);
