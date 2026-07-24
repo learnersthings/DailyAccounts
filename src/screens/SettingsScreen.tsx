@@ -30,6 +30,7 @@ export default function SettingsScreen({ navigation }: any) {
   const [isImportModalVisible, setIsImportModalVisible] = useState(false);
   const [isImportTxModalVisible, setIsImportTxModalVisible] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [restoreProgress, setRestoreProgress] = useState<number | null>(null);
   const [isAccentExpanded, setIsAccentExpanded] = useState(false);
   const [isTotalBalanceExpanded, setIsTotalBalanceExpanded] = useState(false);
   const { currency, refreshExpenseData, downloadPathUri, updateDownloadPath, backupPathUri, updateBackupPath, analyticsChartType } = useExpenseContext();
@@ -167,7 +168,15 @@ export default function SettingsScreen({ navigation }: any) {
 
       // Clear existing and set new
       await AsyncStorage.clear();
-      await AsyncStorage.multiSet(kvPairs);
+      
+      setRestoreProgress(0);
+      let completed = 0;
+      for (const pair of kvPairs) {
+        await AsyncStorage.setItem(pair[0], pair[1]);
+        completed++;
+        setRestoreProgress(Math.round((completed / kvPairs.length) * 100));
+        await new Promise(r => setTimeout(r, 0)); // Allow UI to render progress
+      }
 
       // Reload all contexts
       await refreshAuth();
@@ -192,6 +201,7 @@ export default function SettingsScreen({ navigation }: any) {
       alert('Restore failed: ' + e.message);
     } finally {
       setIsProcessing(false);
+      setRestoreProgress(null);
     }
   };
 
@@ -537,7 +547,9 @@ export default function SettingsScreen({ navigation }: any) {
         <View style={styles.processingOverlay}>
           <View style={[styles.processingBox, { backgroundColor: colors.card }]}>
             <ActivityIndicator size="large" color={colors.primary} />
-            <AppText style={[styles.processingText, { color: colors.text }]}>Processing...</AppText>
+            <AppText style={[styles.processingText, { color: colors.text }]}>
+              {restoreProgress !== null ? `Restoring... ${restoreProgress}%` : 'Processing...'}
+            </AppText>
           </View>
         </View>
       </Modal>
