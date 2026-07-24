@@ -44,13 +44,32 @@ const BACKGROUND_BACKUP_TASK = 'BACKGROUND_BACKUP_TASK';
 if (!isExpoGo && TaskManager && BackgroundFetch) {
   TaskManager.defineTask(BACKGROUND_BACKUP_TASK, async () => {
   try {
-    const backupPathUri = await AsyncStorage.getItem('@app_backup_path');
+    const userCredentialsStr = await AsyncStorage.getItem('@app_user_credentials');
+    let userEmail = '';
+    if (userCredentialsStr) {
+      try {
+        const user = JSON.parse(userCredentialsStr);
+        if (user && user.email) {
+          userEmail = user.email;
+        }
+      } catch (e) {}
+    }
+
+    const backupPathKey = userEmail ? `@app_backup_path_${userEmail}` : '@app_backup_path';
+    const backupPathUri = await AsyncStorage.getItem(backupPathKey);
+    
     if (!backupPathUri || Platform.OS !== 'android') {
       return BackgroundFetch.BackgroundFetchResult.NoData;
     }
 
-    const last9AM = await AsyncStorage.getItem('@last_backup_9am');
-    const last9PM = await AsyncStorage.getItem('@last_backup_9pm');
+    const last9amKey = userEmail ? `@last_backup_9am_${userEmail}` : '@last_backup_9am';
+    const last9pmKey = userEmail ? `@last_backup_9pm_${userEmail}` : '@last_backup_9pm';
+    const lastReminderKey = userEmail ? `@last_expense_reminder_${userEmail}` : '@last_expense_reminder';
+    const lastSummaryKey = userEmail ? `@last_monthly_summary_${userEmail}` : '@last_monthly_summary';
+    const expensesKey = userEmail ? `@app_expenses_${userEmail}` : '@app_expenses';
+
+    const last9AM = await AsyncStorage.getItem(last9amKey);
+    const last9PM = await AsyncStorage.getItem(last9pmKey);
 
     const now = new Date();
     const todayStr = now.toDateString();
@@ -58,16 +77,19 @@ if (!isExpoGo && TaskManager && BackgroundFetch) {
 
     let shouldBackup = false;
     let backupType = '';
+    let backupTypeKey = '';
 
     if (hour >= 9 && hour < 21) {
       if (last9AM !== todayStr) {
         shouldBackup = true;
-        backupType = '@last_backup_9am';
+        backupType = 'Morning';
+        backupTypeKey = last9amKey;
       }
     } else if (hour >= 21) {
       if (last9PM !== todayStr) {
         shouldBackup = true;
-        backupType = '@last_backup_9pm';
+        backupType = 'Evening';
+        backupTypeKey = last9pmKey;
       }
     } else if (hour < 9) {
       const yesterday = new Date(now);
@@ -75,15 +97,16 @@ if (!isExpoGo && TaskManager && BackgroundFetch) {
       const yesterdayStr = yesterday.toDateString();
       if (last9PM !== yesterdayStr) {
         shouldBackup = true;
-        backupType = '@last_backup_9pm';
+        backupType = 'Evening';
+        backupTypeKey = last9pmKey;
       }
     }
 
-    const lastReminder = await AsyncStorage.getItem('@last_expense_reminder');
+    const lastReminder = await AsyncStorage.getItem(lastReminderKey);
     let reminderSent = false;
     if (hour >= 18) {
       if (lastReminder !== todayStr) {
-        const expensesStr = await AsyncStorage.getItem('@app_expenses');
+        const expensesStr = await AsyncStorage.getItem(expensesKey);
         let hasTodayExpense = false;
         if (expensesStr) {
           try {
@@ -101,7 +124,7 @@ if (!isExpoGo && TaskManager && BackgroundFetch) {
               trigger: null,
             });
           }
-          await AsyncStorage.setItem('@last_expense_reminder', todayStr);
+          await AsyncStorage.setItem(lastReminderKey, todayStr);
           reminderSent = true;
         }
       }
@@ -109,10 +132,10 @@ if (!isExpoGo && TaskManager && BackgroundFetch) {
 
     if (now.getDate() === 1) {
       const monthIdentifier = `${now.getMonth()}-${now.getFullYear()}`;
-      const lastMonthlySummary = await AsyncStorage.getItem('@last_monthly_summary');
+      const lastMonthlySummary = await AsyncStorage.getItem(lastSummaryKey);
       
       if (lastMonthlySummary !== monthIdentifier) {
-        const expensesStr = await AsyncStorage.getItem('@app_expenses');
+        const expensesStr = await AsyncStorage.getItem(expensesKey);
         if (expensesStr) {
           try {
             const expenses = JSON.parse(expensesStr);
@@ -128,7 +151,8 @@ if (!isExpoGo && TaskManager && BackgroundFetch) {
             const total = prevMonthExpenses.reduce((sum: number, e: any) => sum + (parseFloat(e.amount) || 0), 0);
             const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
             const monthName = monthNames[prevMonthDate.getMonth()];
-            const userCurrency = await AsyncStorage.getItem('@app_currency') || '₹';
+            const currencyKey = userEmail ? `@app_currency_${userEmail}` : '@app_currency';
+            const userCurrency = await AsyncStorage.getItem(currencyKey) || '₹';
             
             if (Notifications) {
               await Notifications.scheduleNotificationAsync({
@@ -139,7 +163,7 @@ if (!isExpoGo && TaskManager && BackgroundFetch) {
                 trigger: null,
               });
             }
-            await AsyncStorage.setItem('@last_monthly_summary', monthIdentifier);
+            await AsyncStorage.setItem(lastSummaryKey, monthIdentifier);
             reminderSent = true;
           } catch (e) {}
         }
@@ -183,19 +207,19 @@ if (!isExpoGo && TaskManager && BackgroundFetch) {
       }
     }
 
-    if (backupType === '@last_backup_9pm' && hour < 9) {
+    if (backupType === 'Evening' && hour < 9) {
        const yesterday = new Date(now);
        yesterday.setDate(yesterday.getDate() - 1);
-       await AsyncStorage.setItem(backupType, yesterday.toDateString());
+       await AsyncStorage.setItem(backupTypeKey, yesterday.toDateString());
     } else {
-       await AsyncStorage.setItem(backupType, todayStr);
+       await AsyncStorage.setItem(backupTypeKey, todayStr);
     }
 
     if (Notifications) {
       await Notifications.scheduleNotificationAsync({
         content: {
           title: "Backup Complete",
-          body: `Daily auto-backup (${backupType === '@last_backup_9am' ? 'Morning' : 'Evening'}) was successful.`,
+          body: `Daily auto-backup (${backupType}) was successful.`,
         },
         trigger: null,
       });
