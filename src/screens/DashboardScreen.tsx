@@ -80,6 +80,26 @@ export default function DashboardScreen() {
 
   const yearlyMonthlyAverage = currentYearTotal / monthsToConsider;
 
+  const monthlyTimeProgress = useMemo(() => {
+    const now = new Date();
+    const totalDays = new Date(selectedYear, selectedMonth + 1, 0).getDate();
+    if (selectedYear < now.getFullYear() || (selectedYear === now.getFullYear() && selectedMonth < now.getMonth())) {
+      return 1;
+    }
+    if (selectedYear > now.getFullYear() || (selectedYear === now.getFullYear() && selectedMonth > now.getMonth())) {
+      return 0;
+    }
+    return Math.max(0, now.getDate() - 1) / totalDays;
+  }, [selectedYear, selectedMonth]);
+
+  const yearlyTimeProgress = useMemo(() => {
+    const now = new Date();
+    if (selectedYearOnly < now.getFullYear()) return 1;
+    if (selectedYearOnly > now.getFullYear()) return 0;
+
+    return now.getMonth() / 12;
+  }, [selectedYearOnly]);
+
   const renderCards = () => (
     <View>
       {/* Monthly Spending Card */}
@@ -90,15 +110,18 @@ export default function DashboardScreen() {
               <AppText style={{ fontSize: 14, color: '#FFF', opacity: 0.9, fontWeight: '600', textTransform: 'uppercase' }} numberOfLines={1} adjustsFontSizeToFit>{currentMonthName} Spending</AppText>
               <Ionicons name="chevron-down" size={14} color="#FFF" style={{ marginLeft: 4, opacity: 0.9 }} />
             </TouchableOpacity>
-            <AppText style={{ fontSize: 32, fontWeight: 'bold', color: monthlyBudget > 0 ? (total > monthlyBudget ? '#ff4444' : (total >= monthlyBudget * 0.8 ? '#ffcccc' : '#FFF')) : '#FFF', marginBottom: monthlyBudget > 0 && showMonthlyBudget ? 16 : 0 }} numberOfLines={1} adjustsFontSizeToFit>
+            <AppText style={{ fontSize: 32, fontWeight: 'bold', color: monthlyBudget > 0 ? (total > monthlyBudget ? '#ff4444' : (total >= monthlyBudget * 0.8 ? '#ffcccc' : '#FFF')) : '#FFF', marginBottom: monthlyBudget > 0 && showMonthlyBudget ? 12 : 0 }} numberOfLines={1} adjustsFontSizeToFit>
               {currency}{formatAmount(total)}
             </AppText>
             {monthlyBudget > 0 && showMonthlyBudget && (
-              <View style={{ height: 6, backgroundColor: 'rgba(255,255,255,0.3)', borderRadius: 3, width: '100%', overflow: 'hidden', position: 'relative', marginBottom: 8 }}>
-                <View style={{ height: '100%', backgroundColor: total >= monthlyBudget * 0.8 ? '#ffcccc' : '#FFF', width: `${Math.min((total / monthlyBudget) * 100, 100)}%` }} />
-                {total > monthlyBudget && (
-                  <View style={{ position: 'absolute', left: 0, top: 0, height: '100%', backgroundColor: '#ff4444', width: `${Math.min(((total - monthlyBudget) / monthlyBudget) * 100, 100)}%` }} />
-                )}
+              <View style={{ marginBottom: 12 }}>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
+                  <AppText style={{ fontSize: 10, color: '#FFF', opacity: 0.8, textTransform: 'uppercase', fontWeight: '600' }}>Time Elapsed</AppText>
+                  <AppText style={{ fontSize: 10, color: '#FFF', opacity: 0.8, fontWeight: '600' }}>{Math.round(monthlyTimeProgress * 100)}%</AppText>
+                </View>
+                <View style={{ height: 6, backgroundColor: 'rgba(255,255,255,0.3)', borderRadius: 3, width: '100%', overflow: 'hidden', position: 'relative' }}>
+                  <View style={{ height: '100%', backgroundColor: '#FFF', width: `${monthlyTimeProgress * 100}%` }} />
+                </View>
               </View>
             )}
             <AppText style={{ fontSize: 13, color: '#FFF', opacity: 0.8 }}>
@@ -149,15 +172,18 @@ export default function DashboardScreen() {
                 <AppText style={{ fontSize: 14, color: '#FFF', opacity: 0.9, fontWeight: '600', textTransform: 'uppercase' }} numberOfLines={1} adjustsFontSizeToFit>{selectedYearOnly} Total Spending</AppText>
                 <Ionicons name="chevron-down" size={14} color="#FFF" style={{ marginLeft: 4, opacity: 0.9 }} />
               </TouchableOpacity>
-              <AppText style={{ fontSize: 32, fontWeight: 'bold', color: yearlyBudget > 0 ? (currentYearTotal > yearlyBudget ? '#ff4444' : (currentYearTotal >= yearlyBudget * 0.8 ? '#ffcccc' : '#FFF')) : '#FFF', marginBottom: yearlyBudget > 0 && showYearlyBudget ? 16 : 0 }} numberOfLines={1} adjustsFontSizeToFit>
+              <AppText style={{ fontSize: 32, fontWeight: 'bold', color: yearlyBudget > 0 ? (currentYearTotal > yearlyBudget ? '#ff4444' : (currentYearTotal >= yearlyBudget * 0.8 ? '#ffcccc' : '#FFF')) : '#FFF', marginBottom: yearlyBudget > 0 && showYearlyBudget ? 12 : 0 }} numberOfLines={1} adjustsFontSizeToFit>
                 {currency}{formatAmount(currentYearTotal)}
               </AppText>
               {yearlyBudget > 0 && showYearlyBudget && (
-                <View style={{ height: 6, backgroundColor: 'rgba(255,255,255,0.3)', borderRadius: 3, width: '100%', overflow: 'hidden', position: 'relative', marginBottom: 8 }}>
-                  <View style={{ height: '100%', backgroundColor: currentYearTotal >= yearlyBudget * 0.8 ? '#ffcccc' : '#FFF', width: `${Math.min((currentYearTotal / yearlyBudget) * 100, 100)}%` }} />
-                  {currentYearTotal > yearlyBudget && (
-                    <View style={{ position: 'absolute', left: 0, top: 0, height: '100%', backgroundColor: '#ff4444', width: `${Math.min(((currentYearTotal - yearlyBudget) / yearlyBudget) * 100, 100)}%` }} />
-                  )}
+                <View style={{ marginBottom: 12 }}>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
+                    <AppText style={{ fontSize: 10, color: '#FFF', opacity: 0.8, textTransform: 'uppercase', fontWeight: '600' }}>Time Elapsed</AppText>
+                    <AppText style={{ fontSize: 10, color: '#FFF', opacity: 0.8, fontWeight: '600' }}>{Math.round(yearlyTimeProgress * 100)}%</AppText>
+                  </View>
+                  <View style={{ height: 6, backgroundColor: 'rgba(255,255,255,0.3)', borderRadius: 3, width: '100%', overflow: 'hidden', position: 'relative' }}>
+                    <View style={{ height: '100%', backgroundColor: '#FFF', width: `${yearlyTimeProgress * 100}%` }} />
+                  </View>
                 </View>
               )}
               <AppText style={{ fontSize: 13, color: '#FFF', opacity: 0.8 }}>
