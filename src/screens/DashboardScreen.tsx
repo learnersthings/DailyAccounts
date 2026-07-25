@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useState, useMemo } from 'react';
 import { useThemeColors } from '../hooks/useThemeColors';
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, TouchableOpacity } from 'react-native';
 import AppText from '../components/AppText';
 import { useThemeContext } from '../context/ThemeContext';
 import { useExpenseContext } from '../context/ExpenseContext';
@@ -8,27 +8,76 @@ import { formatAmount } from '../utils/format';
 import Svg, { Circle } from 'react-native-svg';
 import ExpenseList from '../components/ExpenseList';
 import PremiumCardBackground from '../components/PremiumCardBackground';
-import { parseISOYear } from '../utils/dateUtils';
+import { parseISOYear, parseISOMonth } from '../utils/dateUtils';
+import SingleFilterModal from '../components/SingleFilterModal';
+import { Ionicons } from '@expo/vector-icons';
 
 export default function DashboardScreen() {
   const colors = useThemeColors();
   const { isDarkTheme } = useThemeContext();
-  const { getCurrentMonthTotal, expenses, currency, monthlyBudget, yearlyBudget, showMonthlyBudget, showYearlyBudget, showYearCard } = useExpenseContext();
+  const { expenses, currency, monthlyBudget, yearlyBudget, showMonthlyBudget, showYearlyBudget, showYearCard } = useExpenseContext();
 
-  const total = getCurrentMonthTotal();
-  const currentMonthName = new Date().toLocaleString('default', { month: 'long', year: 'numeric' });
+  const currentMonthIndex = new Date().getMonth();
+  const currentYearVal = new Date().getFullYear();
 
-  const currentYear = new Date().getFullYear();
-  const currentYearTotal = expenses
-    .filter(exp => parseISOYear(exp.date) === currentYear)
-    .reduce((sum, exp) => sum + exp.amount, 0);
+  const [selectedMonth, setSelectedMonth] = useState<number>(currentMonthIndex);
+  const [selectedYear, setSelectedYear] = useState<number>(currentYearVal);
 
-  const daysInCurrentMonth = new Date().getDate();
-  const daysToConsiderMonthly = Math.max(daysInCurrentMonth - 1, 1);
+  const [selectedYearOnly, setSelectedYearOnly] = useState<number>(currentYearVal);
+
+  const [isMonthFilterVisible, setIsMonthFilterVisible] = useState(false);
+  const [isYearFilterVisible, setIsYearFilterVisible] = useState(false);
+
+  const availableYears = useMemo(() => {
+    const years = new Set(expenses.map(e => parseISOYear(e.date)));
+    if (!years.has(currentYearVal)) years.add(currentYearVal);
+    return Array.from(years).sort((a, b) => b - a);
+  }, [expenses, currentYearVal]);
+
+  const availableMonths = useMemo(() => {
+    const months = new Set(expenses.map(e => parseISOMonth(e.date)));
+    if (!months.has(currentMonthIndex)) months.add(currentMonthIndex);
+    return Array.from(months).sort((a, b) => a - b);
+  }, [expenses, currentMonthIndex]);
+
+  const total = useMemo(() => {
+    return expenses
+      .filter((expense) => {
+        return parseISOMonth(expense.date) === selectedMonth && parseISOYear(expense.date) === selectedYear;
+      })
+      .reduce((sum, expense) => sum + expense.amount, 0);
+  }, [expenses, selectedMonth, selectedYear]);
+
+  const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+  const currentMonthName = `${MONTHS[selectedMonth]} ${selectedYear}`;
+
+  const daysToConsiderMonthly = useMemo(() => {
+    const now = new Date();
+    if (selectedYear === now.getFullYear() && selectedMonth === now.getMonth()) {
+      return Math.max(now.getDate() - 1, 1);
+    } else {
+      return new Date(selectedYear, selectedMonth + 1, 0).getDate();
+    }
+  }, [selectedYear, selectedMonth]);
+
   const monthlyDailyAverage = total / daysToConsiderMonthly;
 
-  const currentMonthIndex = new Date().getMonth(); // 0 for Jan, 1 for Feb, etc.
-  const monthsToConsider = Math.max(currentMonthIndex, 1);
+  const currentYearTotal = useMemo(() => {
+    return expenses
+      .filter(exp => parseISOYear(exp.date) === selectedYearOnly)
+      .reduce((sum, exp) => sum + exp.amount, 0);
+  }, [expenses, selectedYearOnly]);
+
+  const monthsToConsider = useMemo(() => {
+    const now = new Date();
+    if (selectedYearOnly === now.getFullYear()) {
+      return Math.max(now.getMonth(), 1);
+    } else if (selectedYearOnly < now.getFullYear()) {
+      return 12;
+    }
+    return 1;
+  }, [selectedYearOnly]);
+
   const yearlyMonthlyAverage = currentYearTotal / monthsToConsider;
 
   const renderCards = () => (
@@ -37,7 +86,10 @@ export default function DashboardScreen() {
       <PremiumCardBackground color={colors.primary}>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
           <View style={{ flex: 1, paddingRight: 16 }}>
-            <AppText style={{ fontSize: 14, color: '#FFF', opacity: 0.9, marginBottom: 8, fontWeight: '600', textTransform: 'uppercase' }}>{currentMonthName} Spending</AppText>
+            <TouchableOpacity onPress={() => setIsMonthFilterVisible(true)} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+              <AppText style={{ fontSize: 14, color: '#FFF', opacity: 0.9, fontWeight: '600', textTransform: 'uppercase' }}>{currentMonthName} Spending</AppText>
+              <Ionicons name="chevron-down" size={14} color="#FFF" style={{ marginLeft: 4, opacity: 0.9 }} />
+            </TouchableOpacity>
             <AppText style={{ fontSize: 32, fontWeight: 'bold', color: monthlyBudget > 0 ? (total > monthlyBudget ? '#ff4444' : (total >= monthlyBudget * 0.8 ? '#ffcccc' : '#FFF')) : '#FFF', marginBottom: monthlyBudget > 0 && showMonthlyBudget ? 16 : 0 }} numberOfLines={1} adjustsFontSizeToFit>
               {currency}{formatAmount(total)}
             </AppText>
@@ -93,7 +145,10 @@ export default function DashboardScreen() {
         <PremiumCardBackground color={colors.primary}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
             <View style={{ flex: 1, paddingRight: 16 }}>
-              <AppText style={{ fontSize: 14, color: '#FFF', opacity: 0.9, marginBottom: 8, fontWeight: '600', textTransform: 'uppercase' }}>{currentYear} Total Spending</AppText>
+              <TouchableOpacity onPress={() => setIsYearFilterVisible(true)} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+                <AppText style={{ fontSize: 14, color: '#FFF', opacity: 0.9, fontWeight: '600', textTransform: 'uppercase' }}>{selectedYearOnly} Total Spending</AppText>
+                <Ionicons name="chevron-down" size={14} color="#FFF" style={{ marginLeft: 4, opacity: 0.9 }} />
+              </TouchableOpacity>
               <AppText style={{ fontSize: 32, fontWeight: 'bold', color: yearlyBudget > 0 ? (currentYearTotal > yearlyBudget ? '#ff4444' : (currentYearTotal >= yearlyBudget * 0.8 ? '#ffcccc' : '#FFF')) : '#FFF', marginBottom: yearlyBudget > 0 && showYearlyBudget ? 16 : 0 }} numberOfLines={1} adjustsFontSizeToFit>
                 {currency}{formatAmount(currentYearTotal)}
               </AppText>
@@ -144,6 +199,32 @@ export default function DashboardScreen() {
           </View>
         </PremiumCardBackground>
       )}
+
+      <SingleFilterModal
+        visible={isMonthFilterVisible}
+        onClose={() => setIsMonthFilterVisible(false)}
+        availableYears={availableYears}
+        availableMonths={availableMonths}
+        selectedYear={selectedYear}
+        setSelectedYear={setSelectedYear}
+        selectedMonth={selectedMonth}
+        setSelectedMonth={setSelectedMonth}
+        onClearAll={() => {
+          setSelectedMonth(currentMonthIndex);
+          setSelectedYear(currentYearVal);
+        }}
+      />
+
+      <SingleFilterModal
+        visible={isYearFilterVisible}
+        onClose={() => setIsYearFilterVisible(false)}
+        availableYears={availableYears}
+        selectedYear={selectedYearOnly}
+        setSelectedYear={setSelectedYearOnly}
+        onClearAll={() => {
+          setSelectedYearOnly(currentYearVal);
+        }}
+      />
     </View>
   );
 
