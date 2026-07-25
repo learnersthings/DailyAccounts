@@ -132,20 +132,20 @@ export default function DashboardScreen() {
           {monthlyBudget > 0 && showMonthlyBudget && (
             <View style={{ alignItems: 'center', justifyContent: 'center' }}>
               <Svg width={120} height={120}>
-                <Circle stroke="rgba(255,255,255,0.2)" cx={60} cy={60} r={50} strokeWidth={8} fill="none" />
+                <Circle stroke="rgba(255,255,255,0.2)" cx={60} cy={60} r={56} strokeWidth={8} fill="none" />
                 <Circle
                   stroke={total >= monthlyBudget * 0.8 ? '#ffcccc' : '#FFF'}
-                  cx={60} cy={60} r={50} strokeWidth={8}
-                  strokeDasharray={`${2 * Math.PI * 50} ${2 * Math.PI * 50}`}
-                  strokeDashoffset={2 * Math.PI * 50 - (Math.min((total / monthlyBudget) * 100, 100) / 100) * 2 * Math.PI * 50}
+                  cx={60} cy={60} r={56} strokeWidth={8}
+                  strokeDasharray={`${2 * Math.PI * 56} ${2 * Math.PI * 56}`}
+                  strokeDashoffset={2 * Math.PI * 56 - (Math.min((total / monthlyBudget) * 100, 100) / 100) * 2 * Math.PI * 56}
                   strokeLinecap="round" fill="none" transform="rotate(-90 60 60)"
                 />
                 {total > monthlyBudget && (
                   <Circle
                     stroke="#ff4444"
-                    cx={60} cy={60} r={50} strokeWidth={8}
-                    strokeDasharray={`${2 * Math.PI * 50} ${2 * Math.PI * 50}`}
-                    strokeDashoffset={2 * Math.PI * 50 - (Math.min(((total - monthlyBudget) / monthlyBudget) * 100, 100) / 100) * 2 * Math.PI * 50}
+                    cx={60} cy={60} r={56} strokeWidth={8}
+                    strokeDasharray={`${2 * Math.PI * 56} ${2 * Math.PI * 56}`}
+                    strokeDashoffset={2 * Math.PI * 56 - (Math.min(((total - monthlyBudget) / monthlyBudget) * 100, 100) / 100) * 2 * Math.PI * 56}
                     strokeLinecap="round" fill="none" transform="rotate(-90 60 60)"
                   />
                 )}
@@ -194,20 +194,20 @@ export default function DashboardScreen() {
             {yearlyBudget > 0 && showYearlyBudget && (
               <View style={{ alignItems: 'center', justifyContent: 'center' }}>
                 <Svg width={120} height={120}>
-                  <Circle stroke="rgba(255,255,255,0.2)" cx={60} cy={60} r={50} strokeWidth={8} fill="none" />
+                  <Circle stroke="rgba(255,255,255,0.2)" cx={60} cy={60} r={56} strokeWidth={8} fill="none" />
                   <Circle
                     stroke={currentYearTotal >= yearlyBudget * 0.8 ? '#ffcccc' : '#FFF'}
-                    cx={60} cy={60} r={50} strokeWidth={8}
-                    strokeDasharray={`${2 * Math.PI * 50} ${2 * Math.PI * 50}`}
-                    strokeDashoffset={2 * Math.PI * 50 - (Math.min((currentYearTotal / yearlyBudget) * 100, 100) / 100) * 2 * Math.PI * 50}
+                    cx={60} cy={60} r={56} strokeWidth={8}
+                    strokeDasharray={`${2 * Math.PI * 56} ${2 * Math.PI * 56}`}
+                    strokeDashoffset={2 * Math.PI * 56 - (Math.min((currentYearTotal / yearlyBudget) * 100, 100) / 100) * 2 * Math.PI * 56}
                     strokeLinecap="round" fill="none" transform="rotate(-90 60 60)"
                   />
                   {currentYearTotal > yearlyBudget && (
                     <Circle
                       stroke="#ff4444"
-                      cx={60} cy={60} r={50} strokeWidth={8}
-                      strokeDasharray={`${2 * Math.PI * 50} ${2 * Math.PI * 50}`}
-                      strokeDashoffset={2 * Math.PI * 50 - (Math.min(((currentYearTotal - yearlyBudget) / yearlyBudget) * 100, 100) / 100) * 2 * Math.PI * 50}
+                      cx={60} cy={60} r={56} strokeWidth={8}
+                      strokeDasharray={`${2 * Math.PI * 56} ${2 * Math.PI * 56}`}
+                      strokeDashoffset={2 * Math.PI * 56 - (Math.min(((currentYearTotal - yearlyBudget) / yearlyBudget) * 100, 100) / 100) * 2 * Math.PI * 56}
                       strokeLinecap="round" fill="none" transform="rotate(-90 60 60)"
                     />
                   )}
