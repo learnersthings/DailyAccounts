@@ -12,12 +12,13 @@ import SingleFilterModal from '../components/SingleFilterModal';
 import { Ionicons } from '@expo/vector-icons';
 
 const formatCompact = (num: number) => {
-  if (num >= 1000000) return (num / 1000000).toFixed(1).replace(/\.0$/, '') + 'M';
-  if (num >= 1000) return (num / 1000).toFixed(1).replace(/\.0$/, '') + 'k';
-  return Math.round(num).toString();
+  if (num >= 1000000) return (num / 1000000).toFixed(2) + 'M';
+  if (num >= 1000) return (num / 1000).toFixed(2) + 'k';
+  return Number(num).toFixed(2);
 };
 
-const MonthlySpendingCalendar = ({ expenses, selectedMonth, selectedYear, colors }: any) => {
+const MonthlySpendingCalendar = ({ expenses, selectedMonth, selectedYear, colors, onPrevMonth, onNextMonth }: any) => {
+  const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
   const daysInMonth = new Date(selectedYear, selectedMonth + 1, 0).getDate();
   const firstDayOfMonth = new Date(selectedYear, selectedMonth, 1).getDay();
   
@@ -84,18 +85,31 @@ const MonthlySpendingCalendar = ({ expenses, selectedMonth, selectedYear, colors
 
   return (
     <View style={{ backgroundColor: colors.card, borderRadius: 16, padding: 12, marginTop: 8, elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1, shadowRadius: 4, marginBottom: 20 }}>
-      <AppText style={{ fontSize: 16, fontWeight: 'bold', color: colors.text, marginBottom: 16, marginLeft: 4 }}>
-        Daily Spending
-      </AppText>
-      <View style={{ flexDirection: 'row', marginBottom: 8 }}>
-        {daysOfWeek.map((d, i) => (
-          <AppText key={i} style={{ flex: 1, textAlign: 'center', fontSize: 12, color: colors.textMuted, fontWeight: '600' }}>
-            {d}
-          </AppText>
-        ))}
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, marginLeft: 4, marginRight: 4 }}>
+        <AppText style={{ fontSize: 16, fontWeight: 'bold', color: colors.text }}>
+          Daily Spending
+        </AppText>
+        <AppText style={{ fontSize: 14, color: colors.textMuted, fontWeight: '600' }}>
+          {MONTHS[selectedMonth]} {selectedYear}
+        </AppText>
       </View>
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
-        {gridCells}
+      <View style={{ position: 'relative' }}>
+        <TouchableOpacity style={{ position: 'absolute', top: -4, left: -4, padding: 4, zIndex: 10 }} onPress={onPrevMonth}>
+           <Ionicons name="chevron-back" size={16} color={colors.primary} />
+        </TouchableOpacity>
+        <TouchableOpacity style={{ position: 'absolute', top: -4, right: -4, padding: 4, zIndex: 10 }} onPress={onNextMonth}>
+           <Ionicons name="chevron-forward" size={16} color={colors.primary} />
+        </TouchableOpacity>
+        <View style={{ flexDirection: 'row', marginBottom: 8 }}>
+          {daysOfWeek.map((d, i) => (
+            <AppText key={i} style={{ flex: 1, textAlign: 'center', fontSize: 12, color: colors.textMuted, fontWeight: '600' }}>
+              {d}
+            </AppText>
+          ))}
+        </View>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
+          {gridCells}
+        </View>
       </View>
     </View>
   );
@@ -343,10 +357,35 @@ export default function DashboardScreen() {
     </View>
   );
 
+  const handlePrevMonth = () => {
+    if (selectedMonth === 0) {
+      setSelectedMonth(11);
+      setSelectedYear(selectedYear - 1);
+    } else {
+      setSelectedMonth(selectedMonth - 1);
+    }
+  };
+
+  const handleNextMonth = () => {
+    if (selectedMonth === 11) {
+      setSelectedMonth(0);
+      setSelectedYear(selectedYear + 1);
+    } else {
+      setSelectedMonth(selectedMonth + 1);
+    }
+  };
+
   return (
     <ScrollView contentContainerStyle={{ padding: 16 }}>
       {renderCards()}
-      <MonthlySpendingCalendar expenses={expenses} selectedMonth={selectedMonth} selectedYear={selectedYear} colors={colors} />
+      <MonthlySpendingCalendar 
+        expenses={expenses} 
+        selectedMonth={selectedMonth} 
+        selectedYear={selectedYear} 
+        colors={colors} 
+        onPrevMonth={handlePrevMonth}
+        onNextMonth={handleNextMonth}
+      />
     </ScrollView>
   );
 }
