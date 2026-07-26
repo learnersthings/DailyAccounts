@@ -11,6 +11,96 @@ import { parseISOYear, parseISOMonth } from '../utils/dateUtils';
 import SingleFilterModal from '../components/SingleFilterModal';
 import { Ionicons } from '@expo/vector-icons';
 
+const formatCompact = (num: number) => {
+  if (num >= 1000000) return (num / 1000000).toFixed(1).replace(/\.0$/, '') + 'M';
+  if (num >= 1000) return (num / 1000).toFixed(1).replace(/\.0$/, '') + 'k';
+  return Math.round(num).toString();
+};
+
+const MonthlySpendingCalendar = ({ expenses, selectedMonth, selectedYear, colors }: any) => {
+  const daysInMonth = new Date(selectedYear, selectedMonth + 1, 0).getDate();
+  const firstDayOfMonth = new Date(selectedYear, selectedMonth, 1).getDay();
+  
+  const today = new Date();
+  const isCurrentMonth = today.getMonth() === selectedMonth && today.getFullYear() === selectedYear;
+  const currentDay = today.getDate();
+
+  const dayTotals = useMemo(() => {
+    const totals: Record<number, number> = {};
+    expenses.forEach((e: any) => {
+      const d = new Date(e.date);
+      if (d.getMonth() === selectedMonth && d.getFullYear() === selectedYear) {
+        const day = d.getDate();
+        totals[day] = (totals[day] || 0) + e.amount;
+      }
+    });
+    return totals;
+  }, [expenses, selectedMonth, selectedYear]);
+
+  const daysOfWeek = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+
+  const gridCells = [];
+  
+  // Padding for first row
+  for (let i = 0; i < firstDayOfMonth; i++) {
+    gridCells.push(<View key={`pad-${i}`} style={{ width: '14.28%', aspectRatio: 1, padding: 2 }} />);
+  }
+  
+  // Days of the month
+  for (let day = 1; day <= daysInMonth; day++) {
+    const isToday = isCurrentMonth && day === currentDay;
+    const total = dayTotals[day] || 0;
+    
+    const cellDate = new Date(selectedYear, selectedMonth, day);
+    const todayDateOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const isFutureDay = cellDate > todayDateOnly;
+    
+    gridCells.push(
+      <View key={`day-${day}`} style={{ width: '14.28%', aspectRatio: 1, padding: 2 }}>
+        <View style={{
+          flex: 1,
+          backgroundColor: isToday ? colors.primary + '20' : 'transparent',
+          borderRadius: 6,
+          padding: 2,
+          borderWidth: 1,
+          borderColor: isToday ? colors.primary : colors.border,
+          alignItems: 'center',
+          justifyContent: 'center'
+        }}>
+          <AppText style={{ fontSize: 10, color: isToday ? colors.primary : colors.textMuted, position: 'absolute', top: 2, left: 4, fontWeight: isToday ? 'bold' : 'normal' }}>
+            {day}
+          </AppText>
+          {(!isFutureDay || total > 0) && (
+            <View style={{ marginTop: 8, alignItems: 'center', justifyContent: 'center', width: '100%' }}>
+              <AppText style={{ fontSize: 9, color: total > 0 ? colors.notification : colors.textMuted, fontWeight: total > 0 ? 'bold' : 'normal', textAlign: 'center' }} numberOfLines={1} adjustsFontSizeToFit>
+                {formatCompact(total)}
+              </AppText>
+            </View>
+          )}
+        </View>
+      </View>
+    );
+  }
+
+  return (
+    <View style={{ backgroundColor: colors.card, borderRadius: 16, padding: 12, marginTop: 8, elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1, shadowRadius: 4, marginBottom: 20 }}>
+      <AppText style={{ fontSize: 16, fontWeight: 'bold', color: colors.text, marginBottom: 16, marginLeft: 4 }}>
+        Daily Spending
+      </AppText>
+      <View style={{ flexDirection: 'row', marginBottom: 8 }}>
+        {daysOfWeek.map((d, i) => (
+          <AppText key={i} style={{ flex: 1, textAlign: 'center', fontSize: 12, color: colors.textMuted, fontWeight: '600' }}>
+            {d}
+          </AppText>
+        ))}
+      </View>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
+        {gridCells}
+      </View>
+    </View>
+  );
+};
+
 export default function DashboardScreen() {
   const colors = useThemeColors();
   const { isDarkTheme } = useThemeContext();
@@ -256,6 +346,7 @@ export default function DashboardScreen() {
   return (
     <ScrollView contentContainerStyle={{ padding: 16 }}>
       {renderCards()}
+      <MonthlySpendingCalendar expenses={expenses} selectedMonth={selectedMonth} selectedYear={selectedYear} colors={colors} />
     </ScrollView>
   );
 }
