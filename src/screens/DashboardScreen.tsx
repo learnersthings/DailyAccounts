@@ -1,12 +1,11 @@
 import React, { useState, useMemo } from 'react';
 import { useThemeColors } from '../hooks/useThemeColors';
-import { View, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import AppText from '../components/AppText';
 import { useThemeContext } from '../context/ThemeContext';
 import { useExpenseContext } from '../context/ExpenseContext';
 import { formatAmount } from '../utils/format';
 import Svg, { Circle } from 'react-native-svg';
-import ExpenseList from '../components/ExpenseList';
 import PremiumCardBackground from '../components/PremiumCardBackground';
 import { parseISOYear, parseISOMonth } from '../utils/dateUtils';
 import SingleFilterModal from '../components/SingleFilterModal';
@@ -254,7 +253,11 @@ export default function DashboardScreen() {
     </View>
   );
 
-  return <ExpenseList ListHeaderComponent={renderCards()} />;
+  return (
+    <ScrollView contentContainerStyle={{ padding: 16 }}>
+      {renderCards()}
+    </ScrollView>
+  );
 }
 
 const styles = StyleSheet.create({
