@@ -66,6 +66,7 @@ export const performBackgroundTasks = async () => {
     const last9pmKey = userEmail ? `@last_backup_9pm_${userEmail}` : '@last_backup_9pm';
     const lastReminderKey = userEmail ? `@last_expense_reminder_${userEmail}` : '@last_expense_reminder';
     const lastSummaryKey = userEmail ? `@last_monthly_summary_${userEmail}` : '@last_monthly_summary';
+    const lastPrevDaySummaryKey = userEmail ? `@last_prev_day_summary_${userEmail}` : '@last_prev_day_summary';
     const expensesKey = userEmail ? `@app_expenses_${userEmail}` : '@app_expenses';
 
     const last9AM = await AsyncStorage.getItem(last9amKey);
@@ -104,8 +105,44 @@ export const performBackgroundTasks = async () => {
       }
     }
 
-    const lastReminder = await AsyncStorage.getItem(lastReminderKey);
     let reminderSent = false;
+
+    const lastPrevDaySummary = await AsyncStorage.getItem(lastPrevDaySummaryKey);
+    if (hour >= 8) {
+      if (lastPrevDaySummary !== todayStr) {
+        const expensesStr = await AsyncStorage.getItem(expensesKey);
+        let yesterdayTotal = 0;
+        
+        const yesterdayDate = new Date(now);
+        yesterdayDate.setDate(yesterdayDate.getDate() - 1);
+        const yesterdayStr = yesterdayDate.toDateString();
+        
+        if (expensesStr) {
+          try {
+            const expenses = JSON.parse(expensesStr);
+            const yesterdayExpenses = expenses.filter((e: any) => new Date(e.date).toDateString() === yesterdayStr);
+            yesterdayTotal = yesterdayExpenses.reduce((sum: number, e: any) => sum + (parseFloat(e.amount) || 0), 0);
+          } catch (e) { }
+        }
+        
+        const currencyKey = userEmail ? `@app_currency_${userEmail}` : '@app_currency';
+        const userCurrency = await AsyncStorage.getItem(currencyKey) || '₹';
+        
+        if (Notifications) {
+          await Notifications.scheduleNotificationAsync({
+            content: {
+              title: "Yesterday's Summary 📊",
+              body: `Your total expense for yesterday was ${userCurrency}${yesterdayTotal}.`,
+            },
+            trigger: null,
+          });
+        }
+        await AsyncStorage.setItem(lastPrevDaySummaryKey, todayStr);
+        reminderSent = true;
+      }
+    }
+
+    const lastReminder = await AsyncStorage.getItem(lastReminderKey);
     if (hour >= 18) {
       if (lastReminder !== todayStr) {
         const expensesStr = await AsyncStorage.getItem(expensesKey);
