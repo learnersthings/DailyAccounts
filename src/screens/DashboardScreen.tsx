@@ -21,7 +21,7 @@ const MonthlySpendingCalendar = ({ expenses, selectedMonth, selectedYear, colors
   const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
   const daysInMonth = new Date(selectedYear, selectedMonth + 1, 0).getDate();
   const firstDayOfMonth = new Date(selectedYear, selectedMonth, 1).getDay();
-  
+
   const today = new Date();
   const isCurrentMonth = today.getMonth() === selectedMonth && today.getFullYear() === selectedYear;
   const currentDay = today.getDate();
@@ -41,39 +41,39 @@ const MonthlySpendingCalendar = ({ expenses, selectedMonth, selectedYear, colors
   const daysOfWeek = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 
   const gridCells = [];
-  
+
   // Padding for first row
   for (let i = 0; i < firstDayOfMonth; i++) {
     gridCells.push(<View key={`pad-${i}`} style={{ width: '14.28%', aspectRatio: 1, padding: 2 }} />);
   }
-  
+
   // Days of the month
   for (let day = 1; day <= daysInMonth; day++) {
     const isToday = isCurrentMonth && day === currentDay;
     const total = dayTotals[day] || 0;
-    
+
     const cellDate = new Date(selectedYear, selectedMonth, day);
     const todayDateOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate());
     const isFutureDay = cellDate > todayDateOnly;
-    
+
     gridCells.push(
       <View key={`day-${day}`} style={{ width: '14.28%', aspectRatio: 1, padding: 2 }}>
         <View style={{
           flex: 1,
-          backgroundColor: isToday ? colors.primary + '20' : 'transparent',
+          backgroundColor: isToday ? 'rgba(255,255,255,0.2)' : 'transparent',
           borderRadius: 6,
           padding: 2,
           borderWidth: 1,
-          borderColor: isToday ? colors.primary : colors.border,
+          borderColor: isToday ? '#FFF' : 'rgba(255,255,255,0.2)',
           alignItems: 'center',
           justifyContent: 'center'
         }}>
-          <AppText style={{ fontSize: 10, color: isToday ? colors.primary : colors.textMuted, position: 'absolute', top: 2, left: 4, fontWeight: isToday ? 'bold' : 'normal' }}>
+          <AppText style={{ fontSize: 10, color: isToday ? '#FFF' : 'rgba(255,255,255,0.8)', position: 'absolute', top: 2, left: 4, fontWeight: isToday ? 'bold' : 'normal' }}>
             {day}
           </AppText>
           {(!isFutureDay || total > 0) && (
             <View style={{ marginTop: 8, alignItems: 'center', justifyContent: 'center', width: '100%' }}>
-              <AppText style={{ fontSize: 9, color: total > 0 ? colors.notification : colors.textMuted, fontWeight: total > 0 ? 'bold' : 'normal', textAlign: 'center' }} numberOfLines={1} adjustsFontSizeToFit>
+              <AppText style={{ fontSize: 9, color: total > 0 ? colors.notification : '#FFF', fontWeight: total > 0 ? 'bold' : 'normal', textAlign: 'center' }} numberOfLines={1} adjustsFontSizeToFit>
                 {formatCompact(total)}
               </AppText>
             </View>
@@ -84,25 +84,25 @@ const MonthlySpendingCalendar = ({ expenses, selectedMonth, selectedYear, colors
   }
 
   return (
-    <View style={{ backgroundColor: colors.card, borderRadius: 16, padding: 12, marginTop: 8, elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1, shadowRadius: 4, marginBottom: 20 }}>
+    <PremiumCardBackground color={colors.primary}>
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, marginLeft: 4, marginRight: 4 }}>
-        <AppText style={{ fontSize: 16, fontWeight: 'bold', color: colors.text }}>
+        <AppText style={{ fontSize: 16, fontWeight: 'bold', color: '#FFF' }}>
           Daily Spending
         </AppText>
-        <AppText style={{ fontSize: 14, color: colors.textMuted, fontWeight: '600' }}>
+        <AppText style={{ fontSize: 14, color: 'rgba(255,255,255,0.8)', fontWeight: '600' }}>
           {MONTHS[selectedMonth]} {selectedYear}
         </AppText>
       </View>
       <View style={{ position: 'relative' }}>
         <TouchableOpacity style={{ position: 'absolute', top: -4, left: -4, padding: 4, zIndex: 10 }} onPress={onPrevMonth}>
-           <Ionicons name="chevron-back" size={16} color={colors.primary} />
+          <Ionicons name="chevron-back" size={16} color="#FFF" />
         </TouchableOpacity>
         <TouchableOpacity style={{ position: 'absolute', top: -4, right: -4, padding: 4, zIndex: 10 }} onPress={onNextMonth}>
-           <Ionicons name="chevron-forward" size={16} color={colors.primary} />
+          <Ionicons name="chevron-forward" size={16} color="#FFF" />
         </TouchableOpacity>
         <View style={{ flexDirection: 'row', marginBottom: 8 }}>
           {daysOfWeek.map((d, i) => (
-            <AppText key={i} style={{ flex: 1, textAlign: 'center', fontSize: 12, color: colors.textMuted, fontWeight: '600' }}>
+            <AppText key={i} style={{ flex: 1, textAlign: 'center', fontSize: 12, color: 'rgba(255,255,255,0.8)', fontWeight: '600' }}>
               {d}
             </AppText>
           ))}
@@ -111,7 +111,7 @@ const MonthlySpendingCalendar = ({ expenses, selectedMonth, selectedYear, colors
           {gridCells}
         </View>
       </View>
-    </View>
+    </PremiumCardBackground>
   );
 };
 
@@ -378,11 +378,11 @@ export default function DashboardScreen() {
   return (
     <ScrollView contentContainerStyle={{ padding: 16 }}>
       {renderCards()}
-      <MonthlySpendingCalendar 
-        expenses={expenses} 
-        selectedMonth={selectedMonth} 
-        selectedYear={selectedYear} 
-        colors={colors} 
+      <MonthlySpendingCalendar
+        expenses={expenses}
+        selectedMonth={selectedMonth}
+        selectedYear={selectedYear}
+        colors={colors}
         onPrevMonth={handlePrevMonth}
         onNextMonth={handleNextMonth}
       />
