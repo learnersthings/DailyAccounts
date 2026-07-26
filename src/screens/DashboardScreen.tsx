@@ -1,16 +1,82 @@
 import React, { useState, useMemo } from 'react';
 import { useThemeColors } from '../hooks/useThemeColors';
-import { View, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, ScrollView, Dimensions } from 'react-native';
 import AppText from '../components/AppText';
 import { useThemeContext } from '../context/ThemeContext';
 import { useExpenseContext } from '../context/ExpenseContext';
 import { formatAmount } from '../utils/format';
 import Svg, { Circle } from 'react-native-svg';
-import ExpenseList from '../components/ExpenseList';
+import { BarChart } from 'react-native-gifted-charts';
 import PremiumCardBackground from '../components/PremiumCardBackground';
 import { parseISOYear, parseISOMonth } from '../utils/dateUtils';
 import SingleFilterModal from '../components/SingleFilterModal';
 import { Ionicons } from '@expo/vector-icons';
+
+const WeeklySpendingChart = ({ expenses, currency, colors }: any) => {
+  const chartData = useMemo(() => {
+    const data = [];
+    const now = new Date();
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(now);
+      d.setDate(d.getDate() - i);
+      const dateStr = d.toDateString();
+      
+      const dayTotal = expenses
+        .filter((e: any) => new Date(e.date).toDateString() === dateStr)
+        .reduce((sum: number, e: any) => sum + e.amount, 0);
+        
+      const dayLabel = d.toLocaleDateString('en-US', { weekday: 'short' });
+      const formatCompact = (num: number) => {
+        if (num >= 1000000) return (num / 1000000).toFixed(1).replace(/\.0$/, '') + 'M';
+        if (num >= 1000) return (num / 1000).toFixed(1).replace(/\.0$/, '') + 'k';
+        return Math.round(num).toString();
+      };
+
+      data.push({
+        value: dayTotal,
+        label: dayLabel,
+        frontColor: colors.primary,
+        topLabelComponent: () => (
+          <View style={{ width: 40, alignItems: 'center' }}>
+            <AppText style={{ fontSize: 9, color: colors.textMuted, marginBottom: 4 }} numberOfLines={1} adjustsFontSizeToFit>
+              {dayTotal > 0 ? formatCompact(dayTotal) : ''}
+            </AppText>
+          </View>
+        )
+      });
+    }
+    return data;
+  }, [expenses, colors]);
+
+  const maxVal = Math.max(...chartData.map(d => d.value));
+  
+  return (
+    <View style={{ backgroundColor: colors.card, borderRadius: 16, padding: 16, marginTop: 8, elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1, shadowRadius: 4, marginBottom: 20 }}>
+      <AppText style={{ fontSize: 16, fontWeight: 'bold', color: colors.text, marginBottom: 24 }}>
+        Last 7 Days
+      </AppText>
+      <View style={{ alignItems: 'center', paddingRight: 10 }}>
+        <BarChart
+          data={chartData}
+          width={Dimensions.get('window').width - 90}
+          height={150}
+          barWidth={22}
+          spacing={16}
+          roundedTop
+          roundedBottom
+          hideRules
+          xAxisThickness={0}
+          yAxisThickness={0}
+          yAxisTextStyle={{ color: colors.textMuted, fontSize: 10 }}
+          xAxisLabelTextStyle={{ color: colors.textMuted, fontSize: 11, textAlign: 'center' }}
+          noOfSections={3}
+          maxValue={maxVal > 0 ? maxVal * 1.2 : 100}
+          isAnimated
+        />
+      </View>
+    </View>
+  );
+};
 
 export default function DashboardScreen() {
   const colors = useThemeColors();
@@ -254,7 +320,12 @@ export default function DashboardScreen() {
     </View>
   );
 
-  return <ExpenseList ListHeaderComponent={renderCards()} />;
+  return (
+    <ScrollView contentContainerStyle={{ padding: 16 }}>
+      {renderCards()}
+      <WeeklySpendingChart expenses={expenses} currency={currency} colors={colors} />
+    </ScrollView>
+  );
 }
 
 const styles = StyleSheet.create({
