@@ -11,7 +11,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as FileSystem from 'expo-file-system/legacy';
 import Constants, { ExecutionEnvironment } from 'expo-constants';
-import { Platform } from 'react-native';
+import { Platform, AppState } from 'react-native';
 
 const isExpoGo = Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
 
@@ -41,8 +41,7 @@ if (!isExpoGo) {
 
 const BACKGROUND_BACKUP_TASK = 'BACKGROUND_BACKUP_TASK';
 
-if (!isExpoGo && TaskManager && BackgroundFetch) {
-  TaskManager.defineTask(BACKGROUND_BACKUP_TASK, async () => {
+export const performBackgroundTasks = async () => {
   try {
     const userCredentialsStr = await AsyncStorage.getItem('@app_user_credentials');
     let userEmail = '';
@@ -52,14 +51,15 @@ if (!isExpoGo && TaskManager && BackgroundFetch) {
         if (user && user.email) {
           userEmail = user.email;
         }
-      } catch (e) {}
+      } catch (e) { }
     }
 
     const backupPathKey = userEmail ? `@app_backup_path_${userEmail}` : '@app_backup_path';
     const backupPathUri = await AsyncStorage.getItem(backupPathKey);
-    
+
+    let backupSkipped = false;
     if (!backupPathUri || Platform.OS !== 'android') {
-      return BackgroundFetch.BackgroundFetchResult.NoData;
+      backupSkipped = true;
     }
 
     const last9amKey = userEmail ? `@last_backup_9am_${userEmail}` : '@last_backup_9am';
@@ -79,26 +79,28 @@ if (!isExpoGo && TaskManager && BackgroundFetch) {
     let backupType = '';
     let backupTypeKey = '';
 
-    if (hour >= 9 && hour < 21) {
-      if (last9AM !== todayStr) {
-        shouldBackup = true;
-        backupType = 'Morning';
-        backupTypeKey = last9amKey;
-      }
-    } else if (hour >= 21) {
-      if (last9PM !== todayStr) {
-        shouldBackup = true;
-        backupType = 'Evening';
-        backupTypeKey = last9pmKey;
-      }
-    } else if (hour < 9) {
-      const yesterday = new Date(now);
-      yesterday.setDate(yesterday.getDate() - 1);
-      const yesterdayStr = yesterday.toDateString();
-      if (last9PM !== yesterdayStr) {
-        shouldBackup = true;
-        backupType = 'Evening';
-        backupTypeKey = last9pmKey;
+    if (!backupSkipped) {
+      if (hour >= 9 && hour < 12) {
+        if (last9AM !== todayStr) {
+          shouldBackup = true;
+          backupType = 'Morning';
+          backupTypeKey = last9amKey;
+        }
+      } else if (hour >= 20) {
+        if (last9PM !== todayStr) {
+          shouldBackup = true;
+          backupType = 'Evening';
+          backupTypeKey = last9pmKey;
+        }
+      } else if (hour < 9) {
+        const yesterday = new Date(now);
+        yesterday.setDate(yesterday.getDate() - 1);
+        const yesterdayStr = yesterday.toDateString();
+        if (last9PM !== yesterdayStr) {
+          shouldBackup = true;
+          backupType = 'Evening';
+          backupTypeKey = last9pmKey;
+        }
       }
     }
 
@@ -112,7 +114,7 @@ if (!isExpoGo && TaskManager && BackgroundFetch) {
           try {
             const expenses = JSON.parse(expensesStr);
             hasTodayExpense = expenses.some((e: any) => new Date(e.date).toDateString() === todayStr);
-          } catch (e) {}
+          } catch (e) { }
         }
         if (!hasTodayExpense) {
           if (Notifications) {
@@ -133,7 +135,7 @@ if (!isExpoGo && TaskManager && BackgroundFetch) {
     if (now.getDate() === 1) {
       const monthIdentifier = `${now.getMonth()}-${now.getFullYear()}`;
       const lastMonthlySummary = await AsyncStorage.getItem(lastSummaryKey);
-      
+
       if (lastMonthlySummary !== monthIdentifier) {
         const expensesStr = await AsyncStorage.getItem(expensesKey);
         if (expensesStr) {
@@ -142,18 +144,18 @@ if (!isExpoGo && TaskManager && BackgroundFetch) {
             const prevMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
             const prevMonth = prevMonthDate.getMonth();
             const prevYear = prevMonthDate.getFullYear();
-            
+
             const prevMonthExpenses = expenses.filter((e: any) => {
               const d = new Date(e.date);
               return d.getMonth() === prevMonth && d.getFullYear() === prevYear;
             });
-            
+
             const total = prevMonthExpenses.reduce((sum: number, e: any) => sum + (parseFloat(e.amount) || 0), 0);
             const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
             const monthName = monthNames[prevMonthDate.getMonth()];
             const currencyKey = userEmail ? `@app_currency_${userEmail}` : '@app_currency';
             const userCurrency = await AsyncStorage.getItem(currencyKey) || '₹';
-            
+
             if (Notifications) {
               await Notifications.scheduleNotificationAsync({
                 content: {
@@ -165,13 +167,13 @@ if (!isExpoGo && TaskManager && BackgroundFetch) {
             }
             await AsyncStorage.setItem(lastSummaryKey, monthIdentifier);
             reminderSent = true;
-          } catch (e) {}
+          } catch (e) { }
         }
       }
     }
 
     if (!shouldBackup) {
-      return reminderSent ? BackgroundFetch.BackgroundFetchResult.NewData : BackgroundFetch.BackgroundFetchResult.NoData;
+      return reminderSent && BackgroundFetch ? BackgroundFetch.BackgroundFetchResult.NewData : (BackgroundFetch ? BackgroundFetch.BackgroundFetchResult.NoData : 1);
     }
 
     const keys = await AsyncStorage.getAllKeys();
@@ -182,10 +184,10 @@ if (!isExpoGo && TaskManager && BackgroundFetch) {
     const timestamp = new Date().getTime();
     const filename = `DailyAccountsBackup_${timestamp}.json`;
 
-    const fileUri = await FileSystem.StorageAccessFramework.createFileAsync(backupPathUri, filename, 'application/json');
+    const fileUri = await FileSystem.StorageAccessFramework.createFileAsync(backupPathUri!, filename, 'application/json');
     await FileSystem.writeAsStringAsync(fileUri, backupString, { encoding: FileSystem.EncodingType.UTF8 });
 
-    const allFiles = await FileSystem.StorageAccessFramework.readDirectoryAsync(backupPathUri);
+    const allFiles = await FileSystem.StorageAccessFramework.readDirectoryAsync(backupPathUri!);
     const backupFiles = allFiles.filter((uri: string) => {
       const decoded = decodeURIComponent(uri);
       return decoded.includes('DailyAccountsBackup_') && decoded.endsWith('.json');
@@ -208,11 +210,11 @@ if (!isExpoGo && TaskManager && BackgroundFetch) {
     }
 
     if (backupType === 'Evening' && hour < 9) {
-       const yesterday = new Date(now);
-       yesterday.setDate(yesterday.getDate() - 1);
-       await AsyncStorage.setItem(backupTypeKey, yesterday.toDateString());
+      const yesterday = new Date(now);
+      yesterday.setDate(yesterday.getDate() - 1);
+      await AsyncStorage.setItem(backupTypeKey, yesterday.toDateString());
     } else {
-       await AsyncStorage.setItem(backupTypeKey, todayStr);
+      await AsyncStorage.setItem(backupTypeKey, todayStr);
     }
 
     if (Notifications) {
@@ -225,7 +227,7 @@ if (!isExpoGo && TaskManager && BackgroundFetch) {
       });
     }
 
-    return BackgroundFetch.BackgroundFetchResult.NewData;
+    return BackgroundFetch ? BackgroundFetch.BackgroundFetchResult.NewData : 1;
   } catch (err: any) {
     if (Notifications) {
       await Notifications.scheduleNotificationAsync({
@@ -238,7 +240,12 @@ if (!isExpoGo && TaskManager && BackgroundFetch) {
     }
     return BackgroundFetch ? BackgroundFetch.BackgroundFetchResult.Failed : 2;
   }
-});
+};
+
+if (!isExpoGo && TaskManager && BackgroundFetch) {
+  TaskManager.defineTask(BACKGROUND_BACKUP_TASK, async () => {
+    return await performBackgroundTasks();
+  });
 }
 
 async function registerBackgroundFetchAsync() {
@@ -249,7 +256,7 @@ async function registerBackgroundFetchAsync() {
       startOnBoot: true,
     });
   }
-}SplashScreen.preventAutoHideAsync();
+} SplashScreen.preventAutoHideAsync();
 
 export default function App() {
   const [fontsLoaded] = useFonts({
@@ -263,6 +270,16 @@ export default function App() {
       Notifications.requestPermissionsAsync().catch(console.error);
     }
     registerBackgroundFetchAsync().catch(console.error);
+
+    const subscription = AppState.addEventListener('change', nextAppState => {
+      if (nextAppState === 'active') {
+        performBackgroundTasks().catch(console.error);
+      }
+    });
+
+    return () => {
+      subscription.remove();
+    };
   }, []);
 
   if (!fontsLoaded) {
