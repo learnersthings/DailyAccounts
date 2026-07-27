@@ -38,31 +38,31 @@
         "@howincodes/expo-dynamic-app-icon",
         {
           "red": {
-            "image": "./assets/icon-red.png",
-            "adaptiveIcon": {
+            "ios": "./assets/icon-red.png",
+            "android": {
               "foregroundImage": "./assets/adaptive-icon-red.png",
-              "backgroundColor": "#000000"
+              "backgroundColor": "#1E1E1E"
             }
           },
           "green": {
-            "image": "./assets/icon-green.png",
-            "adaptiveIcon": {
+            "ios": "./assets/icon-green.png",
+            "android": {
               "foregroundImage": "./assets/adaptive-icon-green.png",
-              "backgroundColor": "#000000"
+              "backgroundColor": "#1E1E1E"
             }
           },
           "purple": {
-            "image": "./assets/icon-purple.png",
-            "adaptiveIcon": {
+            "ios": "./assets/icon-purple.png",
+            "android": {
               "foregroundImage": "./assets/adaptive-icon-purple.png",
-              "backgroundColor": "#000000"
+              "backgroundColor": "#1E1E1E"
             }
           },
           "orange": {
-            "image": "./assets/icon-orange.png",
-            "adaptiveIcon": {
+            "ios": "./assets/icon-orange.png",
+            "android": {
               "foregroundImage": "./assets/adaptive-icon-orange.png",
-              "backgroundColor": "#000000"
+              "backgroundColor": "#1E1E1E"
             }
           }
         }
