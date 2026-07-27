@@ -16,10 +16,12 @@ def generate_variants():
     icon_path = os.path.join(assets_dir, 'icon.png')
     adaptive_icon_path = os.path.join(assets_dir, 'adaptive-icon.png')
 
+    # Adjusted hue shifts to preserve the "double color" gradient 
+    # while completely eliminating the pink shading in the Red variant.
     variants = {
-        'red': 0.35,
-        'green': 0.70,
-        'purple': 0.15,
+        'red': 0.50,
+        'green': 0.80,
+        'purple': 0.10,
         'orange': 0.45
     }
 
