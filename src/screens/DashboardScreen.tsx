@@ -19,6 +19,7 @@ const formatCompact = (num: number) => {
 };
 
 const MonthlySpendingCalendar = ({ expenses, selectedMonth, selectedYear, colors, onPrevMonth, onNextMonth, onDayPress }: any) => {
+  const [isCalendarHidden, setIsCalendarHidden] = useState(true);
   const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
   const daysInMonth = new Date(selectedYear, selectedMonth + 1, 0).getDate();
   const firstDayOfMonth = new Date(selectedYear, selectedMonth, 1).getDay();
@@ -79,7 +80,7 @@ const MonthlySpendingCalendar = ({ expenses, selectedMonth, selectedYear, colors
           {(!isFutureDay || total > 0) && (
             <View style={{ marginTop: 8, alignItems: 'center', justifyContent: 'center', width: '100%' }}>
               <AppText style={{ fontSize: 9, color: total > 0 ? colors.notification : '#FFF', fontWeight: total > 0 ? 'bold' : 'normal', textAlign: 'center' }} numberOfLines={1} adjustsFontSizeToFit>
-                {formatCompact(total)}
+                {isCalendarHidden ? '•••' : formatCompact(total)}
               </AppText>
             </View>
           )}
@@ -94,9 +95,14 @@ const MonthlySpendingCalendar = ({ expenses, selectedMonth, selectedYear, colors
         <AppText style={{ fontSize: 16, fontWeight: 'bold', color: '#FFF' }}>
           Daily Spending
         </AppText>
-        <AppText style={{ fontSize: 14, color: 'rgba(255,255,255,0.8)', fontWeight: '600' }}>
-          {MONTHS[selectedMonth]} {selectedYear}
-        </AppText>
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <AppText style={{ fontSize: 14, color: 'rgba(255,255,255,0.8)', fontWeight: '600', marginRight: 8 }}>
+            {MONTHS[selectedMonth]} {selectedYear}
+          </AppText>
+          <TouchableOpacity onPress={() => setIsCalendarHidden(!isCalendarHidden)} hitSlop={{top: 10, bottom: 10, left: 10, right: 10}}>
+            <Ionicons name={isCalendarHidden ? 'eye-off-outline' : 'eye-outline'} size={18} color="rgba(255,255,255,0.7)" />
+          </TouchableOpacity>
+        </View>
       </View>
       <View style={{ position: 'relative' }}>
         <TouchableOpacity style={{ position: 'absolute', top: -4, left: -4, padding: 4, zIndex: 10 }} onPress={onPrevMonth}>
@@ -136,6 +142,9 @@ export default function DashboardScreen() {
 
   const [selectedDayDate, setSelectedDayDate] = useState<string | null>(null);
   const [isDayModalVisible, setIsDayModalVisible] = useState(false);
+
+  const [isMonthlyHidden, setIsMonthlyHidden] = useState(true);
+  const [isYearlyHidden, setIsYearlyHidden] = useState(true);
 
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [toastOpacity] = useState(new Animated.Value(0));
@@ -225,14 +234,19 @@ export default function DashboardScreen() {
     <View>
       {/* Monthly Spending Card */}
       <PremiumCardBackground color={colors.primary}>
+        <TouchableOpacity style={{ position: 'absolute', top: 20, right: 20, zIndex: 10 }} onPress={() => setIsMonthlyHidden(!isMonthlyHidden)} hitSlop={{top: 10, bottom: 10, left: 10, right: 10}}>
+          <Ionicons name={isMonthlyHidden ? 'eye-off-outline' : 'eye-outline'} size={20} color="rgba(255,255,255,0.7)" />
+        </TouchableOpacity>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
           <View style={{ flex: 1, paddingRight: 16 }}>
-            <TouchableOpacity onPress={() => setIsMonthFilterVisible(true)} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
-              <AppText style={{ fontSize: 14, color: '#FFF', opacity: 0.9, fontWeight: '600', textTransform: 'uppercase' }} numberOfLines={1} adjustsFontSizeToFit>{currentMonthName} Spending</AppText>
-              <Ionicons name="chevron-down" size={14} color="#FFF" style={{ marginLeft: 4, opacity: 0.9 }} />
-            </TouchableOpacity>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+              <TouchableOpacity onPress={() => setIsMonthFilterVisible(true)} style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <AppText style={{ fontSize: 14, color: '#FFF', opacity: 0.9, fontWeight: '600', textTransform: 'uppercase' }} numberOfLines={1} adjustsFontSizeToFit>{currentMonthName} Spending</AppText>
+                <Ionicons name="chevron-down" size={14} color="#FFF" style={{ marginLeft: 4, opacity: 0.9 }} />
+              </TouchableOpacity>
+            </View>
             <AppText style={{ fontSize: 32, fontWeight: 'bold', color: monthlyBudget > 0 ? (total > monthlyBudget ? '#ff4444' : (total >= monthlyBudget * 0.8 ? '#ffcccc' : '#FFF')) : '#FFF', marginBottom: monthlyBudget > 0 && showMonthlyBudget ? 12 : 0 }} numberOfLines={1} adjustsFontSizeToFit>
-              {currency}{formatAmount(total)}
+              {isMonthlyHidden ? '••••••' : `${currency}${formatAmount(total)}`}
             </AppText>
             {monthlyBudget > 0 && showMonthlyBudget && (
               <View style={{ marginBottom: 12 }}>
@@ -246,7 +260,7 @@ export default function DashboardScreen() {
               </View>
             )}
             <AppText style={{ fontSize: 13, color: '#FFF', opacity: 0.8 }}>
-              Daily Avg: {currency}{formatAmount(monthlyDailyAverage)}
+              Daily Avg: {isMonthlyHidden ? '••••' : `${currency}${formatAmount(monthlyDailyAverage)}`}
             </AppText>
           </View>
 
@@ -273,10 +287,10 @@ export default function DashboardScreen() {
               </Svg>
               <View style={{ position: 'absolute', alignItems: 'center', justifyContent: 'center' }}>
                 <AppText style={{ fontSize: 15, fontWeight: 'bold', color: total > monthlyBudget ? '#ff4444' : (total >= monthlyBudget * 0.8 ? '#ffcccc' : '#FFF') }}>
-                  {`${String(((total / monthlyBudget) * 100).toFixed(2)).padStart(5, '0')}%`}
+                  {isMonthlyHidden ? '••%' : `${String(((total / monthlyBudget) * 100).toFixed(2)).padStart(5, '0')}%`}
                 </AppText>
                 <AppText style={{ fontSize: 10, color: '#FFF', opacity: 0.8, marginTop: 2 }}>
-                  of {currency}{formatAmount(monthlyBudget)}
+                  of {isMonthlyHidden ? '••••' : `${currency}${formatAmount(monthlyBudget)}`}
                 </AppText>
               </View>
             </View>
@@ -287,14 +301,19 @@ export default function DashboardScreen() {
       {/* Yearly Spending Card */}
       {showYearCard && (
         <PremiumCardBackground color={colors.primary}>
+          <TouchableOpacity style={{ position: 'absolute', top: 20, right: 20, zIndex: 10 }} onPress={() => setIsYearlyHidden(!isYearlyHidden)} hitSlop={{top: 10, bottom: 10, left: 10, right: 10}}>
+            <Ionicons name={isYearlyHidden ? 'eye-off-outline' : 'eye-outline'} size={20} color="rgba(255,255,255,0.7)" />
+          </TouchableOpacity>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
             <View style={{ flex: 1, paddingRight: 16 }}>
-              <TouchableOpacity onPress={() => setIsYearFilterVisible(true)} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
-                <AppText style={{ fontSize: 14, color: '#FFF', opacity: 0.9, fontWeight: '600', textTransform: 'uppercase' }} numberOfLines={1} adjustsFontSizeToFit>{selectedYear} Total Spending</AppText>
-                <Ionicons name="chevron-down" size={14} color="#FFF" style={{ marginLeft: 4, opacity: 0.9 }} />
-              </TouchableOpacity>
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+                <TouchableOpacity onPress={() => setIsYearFilterVisible(true)} style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <AppText style={{ fontSize: 14, color: '#FFF', opacity: 0.9, fontWeight: '600', textTransform: 'uppercase' }} numberOfLines={1} adjustsFontSizeToFit>{selectedYear} Total Spending</AppText>
+                  <Ionicons name="chevron-down" size={14} color="#FFF" style={{ marginLeft: 4, opacity: 0.9 }} />
+                </TouchableOpacity>
+              </View>
               <AppText style={{ fontSize: 32, fontWeight: 'bold', color: yearlyBudget > 0 ? (currentYearTotal > yearlyBudget ? '#ff4444' : (currentYearTotal >= yearlyBudget * 0.8 ? '#ffcccc' : '#FFF')) : '#FFF', marginBottom: yearlyBudget > 0 && showYearlyBudget ? 12 : 0 }} numberOfLines={1} adjustsFontSizeToFit>
-                {currency}{formatAmount(currentYearTotal)}
+                {isYearlyHidden ? '••••••' : `${currency}${formatAmount(currentYearTotal)}`}
               </AppText>
               {yearlyBudget > 0 && showYearlyBudget && (
                 <View style={{ marginBottom: 12 }}>
@@ -308,7 +327,7 @@ export default function DashboardScreen() {
                 </View>
               )}
               <AppText style={{ fontSize: 13, color: '#FFF', opacity: 0.8 }}>
-                Monthly Avg: {currency}{formatAmount(yearlyMonthlyAverage)}
+                Monthly Avg: {isYearlyHidden ? '••••' : `${currency}${formatAmount(yearlyMonthlyAverage)}`}
               </AppText>
             </View>
 
@@ -335,10 +354,10 @@ export default function DashboardScreen() {
                 </Svg>
                 <View style={{ position: 'absolute', alignItems: 'center', justifyContent: 'center' }}>
                   <AppText style={{ fontSize: 15, fontWeight: 'bold', color: currentYearTotal > yearlyBudget ? '#ff4444' : (currentYearTotal >= yearlyBudget * 0.8 ? '#ffcccc' : '#FFF') }}>
-                    {`${String(((currentYearTotal / yearlyBudget) * 100).toFixed(2)).padStart(5, '0')}%`}
+                    {isYearlyHidden ? '••%' : `${String(((currentYearTotal / yearlyBudget) * 100).toFixed(2)).padStart(5, '0')}%`}
                   </AppText>
                   <AppText style={{ fontSize: 10, color: '#FFF', opacity: 0.8, marginTop: 2 }}>
-                    of {currency}{formatAmount(yearlyBudget)}
+                    of {isYearlyHidden ? '••••' : `${currency}${formatAmount(yearlyBudget)}`}
                   </AppText>
                 </View>
               </View>

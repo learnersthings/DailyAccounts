@@ -19,6 +19,13 @@ export default function HomeScreen({ navigation }: any) {
   const { accounts, getAccountStats, updateAccountOrder, deleteAccount, excludedFromTotal, showCardStats } = useTransactionContext();
   const { currency } = useExpenseContext();
 
+  const [isTotalBalanceHidden, setIsTotalBalanceHidden] = useState(true);
+  const [hiddenAccounts, setHiddenAccounts] = useState<Record<string, boolean>>({});
+
+  const toggleAccountHidden = (acc: string) => {
+    setHiddenAccounts(prev => ({ ...prev, [acc]: prev[acc] === false ? true : false }));
+  };
+
   const currentHour = new Date().getHours();
   let greeting = '';
   if (currentHour >= 5 && currentHour < 12) {
@@ -78,12 +85,15 @@ export default function HomeScreen({ navigation }: any) {
         >
           <PremiumCardBackground color={colors.primary}>
             <View style={styles.cardHeader}>
-              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
                 <Ionicons name="card" size={24} color="#fff" style={{ marginRight: 8 }} />
                 <AppText style={[styles.cardTitle, { color: '#fff' }]}>{acc}</AppText>
               </View>
 
-              <View style={{ position: 'relative' }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <TouchableOpacity onPress={() => toggleAccountHidden(acc)} style={{ padding: 4, marginRight: 8 }} hitSlop={{top: 10, bottom: 10, left: 10, right: 10}}>
+                  <Ionicons name={hiddenAccounts[acc] !== false ? 'eye-off-outline' : 'eye-outline'} size={20} color="rgba(255,255,255,0.7)" />
+                </TouchableOpacity>
                 <TouchableOpacity
                   onPress={() => setActiveDropdown(activeDropdown === acc ? null : acc)}
                   style={{ padding: 4 }}
@@ -120,7 +130,7 @@ export default function HomeScreen({ navigation }: any) {
             <View style={styles.cardBody}>
               <AppText style={[styles.balanceLabel, { color: 'rgba(255,255,255,0.8)' }]}>Available Balance</AppText>
               <AppText style={[styles.balanceAmount, { color: '#fff' }]}>
-                {currency}{formatAmount(stats.balance)}
+                {hiddenAccounts[acc] !== false ? '••••••' : `${currency}${formatAmount(stats.balance)}`}
               </AppText>
 
               {showCardStats && (
@@ -130,14 +140,14 @@ export default function HomeScreen({ navigation }: any) {
                       <Ionicons name="arrow-down-circle" size={16} color="#4CAF50" style={{ marginRight: 4 }} />
                       <AppText style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)' }}>CREDIT</AppText>
                     </View>
-                    <AppText style={{ fontSize: 16, fontWeight: 'bold', color: '#4CAF50' }}>{currency}{formatAmount(stats.totalCredit)}</AppText>
+                    <AppText style={{ fontSize: 16, fontWeight: 'bold', color: '#4CAF50' }}>{hiddenAccounts[acc] !== false ? '••••' : `${currency}${formatAmount(stats.totalCredit)}`}</AppText>
                   </View>
                   <View style={{ flex: 1 }}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
                       <Ionicons name="arrow-up-circle" size={16} color="#F44336" style={{ marginRight: 4 }} />
                       <AppText style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)' }}>DEBIT</AppText>
                     </View>
-                    <AppText style={{ fontSize: 16, fontWeight: 'bold', color: '#F44336' }}>{currency}{formatAmount(stats.totalDebit)}</AppText>
+                    <AppText style={{ fontSize: 16, fontWeight: 'bold', color: '#F44336' }}>{hiddenAccounts[acc] !== false ? '••••' : `${currency}${formatAmount(stats.totalDebit)}`}</AppText>
                   </View>
                 </View>
               )}
@@ -152,15 +162,18 @@ export default function HomeScreen({ navigation }: any) {
     <View style={{ marginBottom: 20 }}>
       <PremiumCardBackground color={colors.primary} style={{ marginBottom: 20 }}>
         <View style={styles.cardHeader}>
-          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
             <Ionicons name="wallet" size={24} color="#fff" style={{ marginRight: 8 }} />
             <AppText style={[styles.cardTitle, { color: '#fff' }]}>Total Balance</AppText>
           </View>
+          <TouchableOpacity onPress={() => setIsTotalBalanceHidden(!isTotalBalanceHidden)} hitSlop={{top: 10, bottom: 10, left: 10, right: 10}}>
+            <Ionicons name={isTotalBalanceHidden ? 'eye-off-outline' : 'eye-outline'} size={20} color="rgba(255,255,255,0.7)" />
+          </TouchableOpacity>
         </View>
         <View style={styles.cardBody}>
           <AppText style={[styles.balanceLabel, { color: 'rgba(255,255,255,0.8)' }]}>Overall Available Balance</AppText>
           <AppText style={[styles.balanceAmount, { color: '#fff', fontSize: 32 }]}>
-            {currency}{formatAmount(totalBalance)}
+            {isTotalBalanceHidden ? '••••••' : `${currency}${formatAmount(totalBalance)}`}
           </AppText>
 
           {showCardStats && (
@@ -170,14 +183,14 @@ export default function HomeScreen({ navigation }: any) {
                   <Ionicons name="arrow-down-circle" size={16} color="#4CAF50" style={{ marginRight: 4 }} />
                   <AppText style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)' }}>TOTAL CREDIT</AppText>
                 </View>
-                <AppText style={{ fontSize: 16, fontWeight: 'bold', color: '#4CAF50' }}>{currency}{formatAmount(totalCredit)}</AppText>
+                <AppText style={{ fontSize: 16, fontWeight: 'bold', color: '#4CAF50' }}>{isTotalBalanceHidden ? '••••' : `${currency}${formatAmount(totalCredit)}`}</AppText>
               </View>
               <View style={{ flex: 1 }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
                   <Ionicons name="arrow-up-circle" size={16} color="#F44336" style={{ marginRight: 4 }} />
                   <AppText style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)' }}>TOTAL DEBIT</AppText>
                 </View>
-                <AppText style={{ fontSize: 16, fontWeight: 'bold', color: '#F44336' }}>{currency}{formatAmount(totalDebit)}</AppText>
+                <AppText style={{ fontSize: 16, fontWeight: 'bold', color: '#F44336' }}>{isTotalBalanceHidden ? '••••' : `${currency}${formatAmount(totalDebit)}`}</AppText>
               </View>
             </View>
           )}
