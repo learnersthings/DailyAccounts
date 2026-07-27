@@ -58,8 +58,8 @@ const MonthlySpendingCalendar = ({ expenses, selectedMonth, selectedYear, colors
     const isFutureDay = cellDate > todayDateOnly;
 
     gridCells.push(
-      <TouchableOpacity 
-        key={`day-${day}`} 
+      <TouchableOpacity
+        key={`day-${day}`}
         style={{ width: '14.28%', aspectRatio: 1, padding: 2 }}
         onPress={() => onDayPress && onDayPress(day, total)}
       >
@@ -138,7 +138,7 @@ export default function DashboardScreen() {
 
   const [selectedDayDate, setSelectedDayDate] = useState<string | null>(null);
   const [isDayModalVisible, setIsDayModalVisible] = useState(false);
-  
+
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [toastOpacity] = useState(new Animated.Value(0));
 
@@ -401,7 +401,7 @@ export default function DashboardScreen() {
       setSelectedDayDate(dateStr);
       setIsDayModalVisible(true);
     } else {
-      showToast('Transaction not found on that day');
+      showToast('No transaction found.');
     }
   };
 
@@ -419,7 +419,7 @@ export default function DashboardScreen() {
           onDayPress={handleDayPress}
         />
       </ScrollView>
-      
+
       {toastMessage && (
         <Animated.View style={{
           position: 'absolute',
