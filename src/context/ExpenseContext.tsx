@@ -2,6 +2,7 @@ import React, { createContext, useState, useContext, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuthContext } from './AuthContext';
 import { parseISOYear, parseISOMonth } from '../utils/dateUtils';
+import { scheduleAllNotifications } from '../utils/notificationScheduler';
 
 export interface Expense {
   id: string;
@@ -277,6 +278,12 @@ export const ExpenseProvider: React.FC<{ children: React.ReactNode }> = ({ child
   useEffect(() => {
     loadData();
   }, [storageKey, categoriesStorageKey, paymentModesStorageKey, currencyStorageKey, budgetStorageKey, showMonthlyBudgetStorageKey, showYearlyBudgetStorageKey, showYearCardStorageKey, analyticsChartTypeStorageKey, chartStyleStorageKey, downloadPathStorageKey, backupPathStorageKey]);
+
+  useEffect(() => {
+    if (!isLoading) {
+      scheduleAllNotifications(expenses, currency);
+    }
+  }, [expenses, currency, isLoading]);
 
   const addExpense = async (amount: number, description: string, date: Date, categoryId?: string, paymentModeId?: string) => {
     const newExpense: Expense = {
