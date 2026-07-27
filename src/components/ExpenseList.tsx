@@ -38,9 +38,10 @@ interface ExpenseListProps {
   hideTitle?: boolean;
   isExpensesScreen?: boolean;
   dateFilter?: string;
+  forceHiddenState?: boolean;
 }
 
-export default function ExpenseList({ ListHeaderComponent, hideTitle, isExpensesScreen, dateFilter }: ExpenseListProps) {
+export default function ExpenseList({ ListHeaderComponent, hideTitle, isExpensesScreen, dateFilter, forceHiddenState }: ExpenseListProps) {
   const colors = useThemeColors();
   const navigation = useNavigation<any>();
   const { isDarkTheme } = useThemeContext();
@@ -55,6 +56,7 @@ export default function ExpenseList({ ListHeaderComponent, hideTitle, isExpenses
   const [flatDataState, setFlatDataState] = useState<ListItem[]>([]);
 
   const [isListHidden, setIsListHidden] = useState(true);
+  const displayHidden = forceHiddenState !== undefined ? forceHiddenState : isListHidden;
 
   const [isMenuVisible, setIsMenuVisible] = useState(false);
   const [isReorderMode, setIsReorderMode] = useState(false);
@@ -356,7 +358,7 @@ export default function ExpenseList({ ListHeaderComponent, hideTitle, isExpenses
           <AppText style={[styles.monthHeader, { color: colors.text }]}>{item.title}</AppText>
           {item.totalAmount !== undefined && (
             <AppText style={[styles.monthHeaderTotal, { color: '#ff4444' }]}>
-              {isListHidden ? '••••' : `-${currency}${formatAmount(item.totalAmount)}`}
+              {displayHidden ? '••••' : `-${currency}${formatAmount(item.totalAmount)}`}
             </AppText>
           )}
         </View>
@@ -472,13 +474,13 @@ export default function ExpenseList({ ListHeaderComponent, hideTitle, isExpenses
               </View>
             </View>
             <AppText style={[styles.expenseAmount, { color: '#ff4444' }]}>
-              {isListHidden ? '••••••' : `-${currency}${formatAmount(exp.amount)}`}
+              {displayHidden ? '••••••' : `-${currency}${formatAmount(exp.amount)}`}
             </AppText>
           </TouchableOpacity>
         </Swipeable>
       </ScaleDecorator>
     );
-  }, [categories, paymentModes, colors, isDarkTheme, isSelectMode, isReorderMode, multiExpenseDates, isListHidden, selectedExpenseIds, currency, bulkDeleteExpenses]);
+  }, [categories, paymentModes, colors, isDarkTheme, isSelectMode, isReorderMode, multiExpenseDates, displayHidden, selectedExpenseIds, currency, bulkDeleteExpenses]);
 
   const listHeader = (
     <>

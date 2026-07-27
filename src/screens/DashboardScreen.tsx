@@ -18,8 +18,7 @@ const formatCompact = (num: number) => {
   return Number(num).toFixed(2);
 };
 
-const MonthlySpendingCalendar = ({ expenses, selectedMonth, selectedYear, colors, onPrevMonth, onNextMonth, onDayPress }: any) => {
-  const [isCalendarHidden, setIsCalendarHidden] = useState(true);
+const MonthlySpendingCalendar = ({ expenses, selectedMonth, selectedYear, colors, onPrevMonth, onNextMonth, onDayPress, isCalendarHidden, setIsCalendarHidden }: any) => {
   const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
   const daysInMonth = new Date(selectedYear, selectedMonth + 1, 0).getDate();
   const firstDayOfMonth = new Date(selectedYear, selectedMonth, 1).getDay();
@@ -145,6 +144,7 @@ export default function DashboardScreen() {
 
   const [isMonthlyHidden, setIsMonthlyHidden] = useState(true);
   const [isYearlyHidden, setIsYearlyHidden] = useState(true);
+  const [isCalendarHidden, setIsCalendarHidden] = useState(true);
 
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [toastOpacity] = useState(new Animated.Value(0));
@@ -434,6 +434,8 @@ export default function DashboardScreen() {
           onPrevMonth={handlePrevMonth}
           onNextMonth={handleNextMonth}
           onDayPress={handleDayPress}
+          isCalendarHidden={isCalendarHidden}
+          setIsCalendarHidden={setIsCalendarHidden}
         />
       </ScrollView>
 
@@ -457,6 +459,7 @@ export default function DashboardScreen() {
         visible={isDayModalVisible}
         onClose={() => setIsDayModalVisible(false)}
         selectedDate={selectedDayDate}
+        isHidden={isCalendarHidden}
       />
     </View>
   );

@@ -10,9 +10,10 @@ interface DayExpensesModalProps {
   visible: boolean;
   onClose: () => void;
   selectedDate: string | null;
+  isHidden?: boolean;
 }
 
-export default function DayExpensesModal({ visible, onClose, selectedDate }: DayExpensesModalProps) {
+export default function DayExpensesModal({ visible, onClose, selectedDate, isHidden }: DayExpensesModalProps) {
   const colors = useThemeColors();
   const { isDarkTheme } = useThemeContext();
 
@@ -30,7 +31,7 @@ export default function DayExpensesModal({ visible, onClose, selectedDate }: Day
         </View>
 
         <View style={{ flex: 1 }}>
-          {selectedDate ? <ExpenseList hideTitle={true} isExpensesScreen={true} dateFilter={selectedDate} /> : null}
+          {selectedDate ? <ExpenseList hideTitle={true} isExpensesScreen={true} dateFilter={selectedDate} forceHiddenState={isHidden} /> : null}
         </View>
       </SafeAreaView>
     </Modal>
