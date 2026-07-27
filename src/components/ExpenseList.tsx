@@ -54,6 +54,8 @@ export default function ExpenseList({ ListHeaderComponent, hideTitle, isExpenses
   const draggedItemDateRef = useRef<string | null>(null);
   const [flatDataState, setFlatDataState] = useState<ListItem[]>([]);
 
+  const [isListHidden, setIsListHidden] = useState(true);
+
   // Search and Filter States
   const [searchQuery, setSearchQuery] = useState('');
   const [isFilterModalVisible, setIsFilterModalVisible] = useState(false);
@@ -338,7 +340,7 @@ export default function ExpenseList({ ListHeaderComponent, hideTitle, isExpenses
           <AppText style={[styles.monthHeader, { color: colors.text }]}>{item.title}</AppText>
           {item.totalAmount !== undefined && (
             <AppText style={[styles.monthHeaderTotal, { color: '#ff4444' }]}>
-              -{currency}{formatAmount(item.totalAmount)}
+              {isListHidden ? '••••' : `-${currency}${formatAmount(item.totalAmount)}`}
             </AppText>
           )}
         </View>
@@ -445,7 +447,9 @@ export default function ExpenseList({ ListHeaderComponent, hideTitle, isExpenses
                 </View>
               </View>
             </View>
-            <AppText style={[styles.expenseAmount, { color: '#ff4444' }]}>-{currency}{formatAmount(exp.amount)}</AppText>
+            <AppText style={[styles.expenseAmount, { color: '#ff4444' }]}>
+              {isListHidden ? '••••••' : `-${currency}${formatAmount(exp.amount)}`}
+            </AppText>
           </TouchableOpacity>
         </Swipeable>
       </ScaleDecorator>
@@ -509,6 +513,16 @@ export default function ExpenseList({ ListHeaderComponent, hideTitle, isExpenses
                 {(selectedYears.length > 0 || selectedMonths.length > 0 || selectedCategoryIds.length > 0 || selectedPaymentModeIds.length > 0) && (
                   <View style={[styles.filterBadge, { backgroundColor: colors.primary }]} />
                 )}
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.filterButton, { backgroundColor: colors.surface, borderColor: colors.border, marginLeft: 10 }]}
+                onPress={() => setIsListHidden(!isListHidden)}
+              >
+                <Ionicons
+                  name={isListHidden ? "eye-off-outline" : "eye-outline"}
+                  size={22}
+                  color={colors.text}
+                />
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.filterButton, { backgroundColor: colors.surface, borderColor: colors.border, marginLeft: 10 }]}
