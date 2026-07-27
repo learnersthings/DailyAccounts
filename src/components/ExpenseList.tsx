@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useRef, useCallback } from 'react';
 import { useThemeColors } from '../hooks/useThemeColors';
-import { View, StyleSheet, TouchableOpacity, Alert, TextInput, Platform, ActivityIndicator, Animated } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, Alert, TextInput, Platform, ActivityIndicator, Animated, Modal, TouchableWithoutFeedback } from 'react-native';
 import Swipeable from 'react-native-gesture-handler/Swipeable';
 import DraggableFlatList, { ScaleDecorator, RenderItemParams } from 'react-native-draggable-flatlist';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -55,6 +55,22 @@ export default function ExpenseList({ ListHeaderComponent, hideTitle, isExpenses
   const [flatDataState, setFlatDataState] = useState<ListItem[]>([]);
 
   const [isListHidden, setIsListHidden] = useState(true);
+
+  const [isMenuVisible, setIsMenuVisible] = useState(false);
+  const [isReorderMode, setIsReorderMode] = useState(false);
+
+  const multiExpenseDates = useMemo(() => {
+    const counts: Record<string, number> = {};
+    expenses.forEach(exp => {
+      const d = new Date(exp.date).toDateString();
+      counts[d] = (counts[d] || 0) + 1;
+    });
+    const multiDates = new Set<string>();
+    Object.keys(counts).forEach(k => {
+      if (counts[k] > 1) multiDates.add(k);
+    });
+    return multiDates;
+  }, [expenses]);
 
   // Search and Filter States
   const [searchQuery, setSearchQuery] = useState('');
@@ -403,22 +419,30 @@ export default function ExpenseList({ ListHeaderComponent, hideTitle, isExpenses
     return (
       <ScaleDecorator>
         <Swipeable
-          renderRightActions={isSelectMode ? undefined : renderRightActions}
-          renderLeftActions={isSelectMode ? undefined : renderLeftActions}
-          enabled={!isSelectMode}
+          renderRightActions={(isSelectMode || isReorderMode) ? undefined : renderRightActions}
+          renderLeftActions={(isSelectMode || isReorderMode) ? undefined : renderLeftActions}
+          enabled={!(isSelectMode || isReorderMode)}
         >
           <TouchableOpacity
             style={[styles.expenseRow, { backgroundColor: isActive ? colors.surface : colors.card, elevation: isActive ? 10 : 0 }]}
             onPress={() => handleRowPress(exp)}
             onLongPress={() => {
-              if (isSelectMode) return;
-              draggedItemDateRef.current = new Date(exp.date).toDateString();
-              drag();
+              if (isSelectMode || isReorderMode) return;
+              setIsSelectMode(true);
+              setSelectedExpenseIds([exp.id]);
             }}
             disabled={isActive}
             activeOpacity={0.8}
           >
             <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+              {isReorderMode && multiExpenseDates.has(new Date(exp.date).toDateString()) && (
+                <TouchableOpacity onPressIn={() => {
+                  draggedItemDateRef.current = new Date(exp.date).toDateString();
+                  drag();
+                }} style={{ marginRight: 12 }}>
+                  <Ionicons name="reorder-two" size={24} color={colors.textMuted} />
+                </TouchableOpacity>
+              )}
               {isSelectMode && (
                 <View style={[styles.checkbox, { borderColor: colors.primary, backgroundColor: selectedExpenseIds.includes(exp.id) ? colors.primary : 'transparent' }]}>
                   {selectedExpenseIds.includes(exp.id) && <Ionicons name="checkmark" size={16} color="#fff" />}
@@ -454,7 +478,7 @@ export default function ExpenseList({ ListHeaderComponent, hideTitle, isExpenses
         </Swipeable>
       </ScaleDecorator>
     );
-  }, [categories, paymentModes, colors, isDarkTheme, isSelectMode, selectedExpenseIds, currency, bulkDeleteExpenses]);
+  }, [categories, paymentModes, colors, isDarkTheme, isSelectMode, isReorderMode, multiExpenseDates, isListHidden, selectedExpenseIds, currency, bulkDeleteExpenses]);
 
   const listHeader = (
     <>
@@ -526,19 +550,12 @@ export default function ExpenseList({ ListHeaderComponent, hideTitle, isExpenses
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.filterButton, { backgroundColor: colors.surface, borderColor: colors.border, marginLeft: 10 }]}
-                onPress={() => {
-                  if (isSelectMode) {
-                    setIsSelectMode(false);
-                    setSelectedExpenseIds([]);
-                  } else {
-                    setIsSelectMode(true);
-                  }
-                }}
+                onPress={() => setIsMenuVisible(true)}
               >
                 <Ionicons
-                  name={isSelectMode ? "checkmark-circle" : "checkmark-circle-outline"}
+                  name="ellipsis-vertical"
                   size={22}
-                  color={isSelectMode ? colors.primary : colors.text}
+                  color={colors.text}
                 />
               </TouchableOpacity>
             </>
@@ -572,6 +589,15 @@ export default function ExpenseList({ ListHeaderComponent, hideTitle, isExpenses
               <AppText style={{ color: '#ff4444', fontWeight: '600' }}>Delete ({selectedExpenseIds.length})</AppText>
             </TouchableOpacity>
           </View>
+        </View>
+      )}
+
+      {/* ACTION BAR FOR REORDER */}
+      {isReorderMode && (
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 16, paddingHorizontal: 4 }}>
+          <TouchableOpacity onPress={() => setIsReorderMode(false)} style={{ backgroundColor: colors.primary, paddingHorizontal: 24, paddingVertical: 10, borderRadius: 20 }}>
+            <AppText style={{ color: '#FFF', fontWeight: 'bold' }}>Done Reordering</AppText>
+          </TouchableOpacity>
         </View>
       )}
     </>
@@ -648,6 +674,30 @@ export default function ExpenseList({ ListHeaderComponent, hideTitle, isExpenses
         setSelectedPaymentModeIds={setSelectedPaymentModeIds}
       />
 
+      <Modal
+        visible={isMenuVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setIsMenuVisible(false)}
+      >
+        <TouchableWithoutFeedback onPress={() => setIsMenuVisible(false)}>
+          <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.1)' }}>
+            <TouchableWithoutFeedback>
+              <View style={{ position: 'absolute', top: Platform.OS === 'ios' ? 140 : 100, right: 20, backgroundColor: colors.surface, borderRadius: 8, elevation: 5, padding: 8, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.25, shadowRadius: 3.84, minWidth: 150 }}>
+                <TouchableOpacity style={{ padding: 12, flexDirection: 'row', alignItems: 'center' }} onPress={() => { setIsSelectMode(true); setIsMenuVisible(false); }}>
+                  <Ionicons name="checkmark-circle-outline" size={20} color={colors.text} style={{ marginRight: 8 }} />
+                  <AppText style={{ color: colors.text, fontSize: 16 }}>Select</AppText>
+                </TouchableOpacity>
+                <View style={{ height: 1, backgroundColor: colors.border }} />
+                <TouchableOpacity style={{ padding: 12, flexDirection: 'row', alignItems: 'center' }} onPress={() => { setIsReorderMode(true); setIsMenuVisible(false); }}>
+                  <Ionicons name="reorder-two-outline" size={20} color={colors.text} style={{ marginRight: 8 }} />
+                  <AppText style={{ color: colors.text, fontSize: 16 }}>Reorder</AppText>
+                </TouchableOpacity>
+              </View>
+            </TouchableWithoutFeedback>
+          </View>
+        </TouchableWithoutFeedback>
+      </Modal>
     </View>
   );
 }
