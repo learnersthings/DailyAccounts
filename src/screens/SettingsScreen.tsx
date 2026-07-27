@@ -14,12 +14,15 @@ import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import * as DocumentPicker from 'expo-document-picker';
 import Constants, { ExecutionEnvironment } from 'expo-constants';
-
 const isExpoGo = Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
 let Notifications: any = null;
+let DynamicAppIcon: any = null;
 if (!isExpoGo) {
   try {
     Notifications = require('expo-notifications');
+  } catch (e) {}
+  try {
+    DynamicAppIcon = require('@howincodes/expo-dynamic-app-icon');
   } catch (e) {}
 }
 
@@ -33,8 +36,39 @@ export default function SettingsScreen({ navigation }: any) {
   const [restoreProgress, setRestoreProgress] = useState<number | null>(null);
   const [isAccentExpanded, setIsAccentExpanded] = useState(false);
   const [isTotalBalanceExpanded, setIsTotalBalanceExpanded] = useState(false);
+  const [isAppIconExpanded, setIsAppIconExpanded] = useState(false);
+  const [currentAppIcon, setCurrentAppIcon] = useState<string>('DEFAULT');
   const { currency, refreshExpenseData, downloadPathUri, updateDownloadPath, backupPathUri, updateBackupPath, analyticsChartType } = useExpenseContext();
   const { accounts, excludedFromTotal, toggleAccountInTotal, refreshTransactionData, showCardStats, toggleShowCardStats } = useTransactionContext();
+
+  React.useEffect(() => {
+    if (!isExpoGo && DynamicAppIcon) {
+      DynamicAppIcon.getAppIcon().then((icon: any) => setCurrentAppIcon(icon || 'DEFAULT')).catch(() => {});
+    }
+  }, []);
+
+  const handleAppIconChange = async (iconId: string) => {
+    if (isExpoGo || !DynamicAppIcon) {
+      Alert.alert('Unsupported', 'Dynamic App Icons are not supported in Expo Go. Please use a development build.');
+      return;
+    }
+    try {
+      const newIcon = await DynamicAppIcon.setAppIcon(iconId === 'DEFAULT' ? null : (iconId as any));
+      if (newIcon !== false) {
+        setCurrentAppIcon(newIcon as string);
+      }
+    } catch (e: any) {
+      Alert.alert('Error', 'Failed to change app icon: ' + e.message);
+    }
+  };
+
+  const APP_ICONS = [
+    { id: 'DEFAULT', color: '#1E1E1E', name: 'Default' },
+    { id: 'red', color: '#ff4444', name: 'Red' },
+    { id: 'green', color: '#00C851', name: 'Green' },
+    { id: 'purple', color: '#AA66CC', name: 'Purple' },
+    { id: 'orange', color: '#FF8800', name: 'Orange' },
+  ];
 
   const handleSetDownloadPath = async () => {
     if (Platform.OS !== 'android') {
@@ -273,6 +307,49 @@ export default function SettingsScreen({ navigation }: any) {
                   ]}
                 >
                   {accentColor === color && (
+                    <Ionicons name="checkmark" size={16} color="#FFF" style={{ textShadowColor: 'rgba(0,0,0,0.3)', textShadowRadius: 2, textShadowOffset: { width: 0, height: 1 } }} />
+                  )}
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
+        </View>
+
+        <View style={styles.divider} />
+
+        <View style={{ padding: 16 }}>
+          <TouchableOpacity
+            style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: isAppIconExpanded ? 16 : 0 }}
+            onPress={() => setIsAppIconExpanded(!isAppIconExpanded)}
+            activeOpacity={0.7}
+          >
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <Ionicons name="apps-outline" size={22} color={colors.primary} style={styles.icon} />
+              <AppText style={[styles.text, { color: colors.text }]}>App Icon</AppText>
+            </View>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              {!isAppIconExpanded && (
+                <AppText style={{ color: colors.textMuted, fontSize: 14, marginRight: 8 }}>
+                  {APP_ICONS.find(i => i.id === currentAppIcon)?.name || 'Default'}
+                </AppText>
+              )}
+              <Ionicons name={isAppIconExpanded ? "chevron-up" : "chevron-down"} size={20} color={colors.text} />
+            </View>
+          </TouchableOpacity>
+
+          {isAppIconExpanded && (
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
+              {APP_ICONS.map((icon) => (
+                <TouchableOpacity
+                  key={icon.id}
+                  onPress={() => handleAppIconChange(icon.id)}
+                  style={[
+                    styles.colorSwatch,
+                    { backgroundColor: icon.color, marginRight: 0 },
+                    currentAppIcon === icon.id && { borderWidth: 3, borderColor: colors.text }
+                  ]}
+                >
+                  {currentAppIcon === icon.id && (
                     <Ionicons name="checkmark" size={16} color="#FFF" style={{ textShadowColor: 'rgba(0,0,0,0.3)', textShadowRadius: 2, textShadowOffset: { width: 0, height: 1 } }} />
                   )}
                 </TouchableOpacity>

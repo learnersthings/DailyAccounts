@@ -33,7 +33,56 @@
     },
     "plugins": [
       "expo-font",
-      "@react-native-community/datetimepicker"
+      "@react-native-community/datetimepicker",
+      [
+        "@howincodes/expo-dynamic-app-icon",
+        {
+          "ios": {
+            "red": {
+              "image": "./assets/icon-red.png"
+            },
+            "green": {
+              "image": "./assets/icon-green.png"
+            },
+            "purple": {
+              "image": "./assets/icon-purple.png"
+            },
+            "orange": {
+              "image": "./assets/icon-orange.png"
+            }
+          },
+          "android": {
+            "red": {
+              "image": "./assets/icon-red.png",
+              "adaptiveIcon": {
+                "foregroundImage": "./assets/adaptive-icon-red.png",
+                "backgroundColor": "#000000"
+              }
+            },
+            "green": {
+              "image": "./assets/icon-green.png",
+              "adaptiveIcon": {
+                "foregroundImage": "./assets/adaptive-icon-green.png",
+                "backgroundColor": "#000000"
+              }
+            },
+            "purple": {
+              "image": "./assets/icon-purple.png",
+              "adaptiveIcon": {
+                "foregroundImage": "./assets/adaptive-icon-purple.png",
+                "backgroundColor": "#000000"
+              }
+            },
+            "orange": {
+              "image": "./assets/icon-orange.png",
+              "adaptiveIcon": {
+                "foregroundImage": "./assets/adaptive-icon-orange.png",
+                "backgroundColor": "#000000"
+              }
+            }
+          }
+        }
+      ]
     ]
   }
 }
