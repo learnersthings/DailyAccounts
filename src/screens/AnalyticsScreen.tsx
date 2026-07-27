@@ -56,6 +56,7 @@ export default function AnalyticsScreen() {
   const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>([]);
   const [selectedPaymentModeIds, setSelectedPaymentModeIds] = useState<string[]>([]);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [isAmountsHidden, setIsAmountsHidden] = useState(true);
 
   // Compute available filter options dynamically from expenses
   const availableYears = useMemo(() => {
@@ -331,15 +332,22 @@ export default function AnalyticsScreen() {
         <View style={[styles.card, { backgroundColor: colors.card, shadowColor: colors.shadow }]}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
             <AppText style={styles.cardLabel}>Total Spent ({activeFilter === 'Custom' ? 'Filtered' : activeFilter})</AppText>
-            <TouchableOpacity onPress={handleDownloadPDF} style={{ padding: 4 }} disabled={isDownloading}>
-              {isDownloading ? (
-                <ActivityIndicator size="small" color={colors.primary} />
-              ) : (
-                <Ionicons name="download-outline" size={24} color={colors.primary} />
-              )}
-            </TouchableOpacity>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <TouchableOpacity onPress={() => setIsAmountsHidden(!isAmountsHidden)} style={{ padding: 4, marginRight: 12 }}>
+                <Ionicons name={isAmountsHidden ? 'eye-off-outline' : 'eye-outline'} size={24} color={colors.primary} />
+              </TouchableOpacity>
+              <TouchableOpacity onPress={handleDownloadPDF} style={{ padding: 4 }} disabled={isDownloading}>
+                {isDownloading ? (
+                  <ActivityIndicator size="small" color={colors.primary} />
+                ) : (
+                  <Ionicons name="download-outline" size={24} color={colors.primary} />
+                )}
+              </TouchableOpacity>
+            </View>
           </View>
-          <AppText style={[styles.totalSpent, { color: colors.text }]}>{currency}{formatAmount(totalSpent)}</AppText>
+          <AppText style={[styles.totalSpent, { color: colors.text }]}>
+            {isAmountsHidden ? '••••••' : `${currency}${formatAmount(totalSpent)}`}
+          </AppText>
         </View>
 
         {filteredExpenses.length === 0 ? (
@@ -364,7 +372,9 @@ export default function AnalyticsScreen() {
                       <AppText style={{ color: colors.text, fontSize: 12 }}>{cat.name} ({cat.text})</AppText>
                     </View>
                     <View style={{ alignItems: 'flex-end' }}>
-                      <AppText style={{ color: colors.text, fontWeight: 'bold', fontSize: 12 }}>{currency}{formatAmount(cat.amount)}</AppText>
+                      <AppText style={{ color: colors.text, fontWeight: 'bold', fontSize: 12 }}>
+                        {isAmountsHidden ? '••••' : `${currency}${formatAmount(cat.amount)}`}
+                      </AppText>
                     </View>
                   </View>
                 ))}
@@ -385,7 +395,9 @@ export default function AnalyticsScreen() {
                       <AppText style={{ color: colors.text, fontSize: 12 }}>{mode.name} ({mode.text})</AppText>
                     </View>
                     <View style={{ alignItems: 'flex-end' }}>
-                      <AppText style={{ color: colors.text, fontWeight: 'bold', fontSize: 12 }}>{currency}{formatAmount(mode.amount)}</AppText>
+                      <AppText style={{ color: colors.text, fontWeight: 'bold', fontSize: 12 }}>
+                        {isAmountsHidden ? '••••' : `${currency}${formatAmount(mode.amount)}`}
+                      </AppText>
                     </View>
                   </View>
                 ))}
