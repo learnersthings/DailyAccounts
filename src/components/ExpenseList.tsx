@@ -467,7 +467,7 @@ export default function ExpenseList({ ListHeaderComponent, hideTitle, isExpenses
         </View>
       )}
 
-      {!dateFilter && expenses.length > 0 && (
+      {(!dateFilter && expenses.length > 0) ? (
         <View style={styles.searchFilterContainer}>
           <View style={[styles.searchBar, { backgroundColor: colors.surface, borderColor: colors.border }]}>
             <Ionicons name="search" size={20} color={colors.textMuted} style={styles.searchIcon} />
@@ -530,7 +530,7 @@ export default function ExpenseList({ ListHeaderComponent, hideTitle, isExpenses
             </>
           )}
         </View>
-      )}
+      ) : null}
 
       {/* ACTION BAR FOR SELECTION */}
       {isSelectMode && expenses.length > 0 && (
@@ -602,14 +602,14 @@ export default function ExpenseList({ ListHeaderComponent, hideTitle, isExpenses
       />
 
       {/* Floating Action Button */}
-      {!dateFilter && (
+      {!dateFilter ? (
         <TouchableOpacity
           style={[styles.fab, { backgroundColor: colors.primary, shadowColor: colors.primary }]}
           onPress={handleOpenAddModal}
         >
           <Ionicons name="add" size={32} color="#fff" />
         </TouchableOpacity>
-      )}
+      ) : null}
 
       <AddExpenseModal
         visible={isModalVisible}
