@@ -131,8 +131,6 @@ export default function DashboardScreen() {
   const [selectedMonth, setSelectedMonth] = useState<number>(currentMonthIndex);
   const [selectedYear, setSelectedYear] = useState<number>(currentYearVal);
 
-  const [selectedYearOnly, setSelectedYearOnly] = useState<number>(currentYearVal);
-
   const [isMonthFilterVisible, setIsMonthFilterVisible] = useState(false);
   const [isYearFilterVisible, setIsYearFilterVisible] = useState(false);
 
@@ -187,19 +185,19 @@ export default function DashboardScreen() {
 
   const currentYearTotal = useMemo(() => {
     return expenses
-      .filter(exp => parseISOYear(exp.date) === selectedYearOnly)
+      .filter(exp => parseISOYear(exp.date) === selectedYear)
       .reduce((sum, exp) => sum + exp.amount, 0);
-  }, [expenses, selectedYearOnly]);
+  }, [expenses, selectedYear]);
 
   const monthsToConsider = useMemo(() => {
     const now = new Date();
-    if (selectedYearOnly === now.getFullYear()) {
+    if (selectedYear === now.getFullYear()) {
       return Math.max(now.getMonth(), 1);
-    } else if (selectedYearOnly < now.getFullYear()) {
+    } else if (selectedYear < now.getFullYear()) {
       return 12;
     }
     return 1;
-  }, [selectedYearOnly]);
+  }, [selectedYear]);
 
   const yearlyMonthlyAverage = currentYearTotal / monthsToConsider;
 
@@ -217,11 +215,11 @@ export default function DashboardScreen() {
 
   const yearlyTimeProgress = useMemo(() => {
     const now = new Date();
-    if (selectedYearOnly < now.getFullYear()) return 1;
-    if (selectedYearOnly > now.getFullYear()) return 0;
+    if (selectedYear < now.getFullYear()) return 1;
+    if (selectedYear > now.getFullYear()) return 0;
 
     return now.getMonth() / 12;
-  }, [selectedYearOnly]);
+  }, [selectedYear]);
 
   const renderCards = () => (
     <View>
@@ -292,7 +290,7 @@ export default function DashboardScreen() {
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
             <View style={{ flex: 1, paddingRight: 16 }}>
               <TouchableOpacity onPress={() => setIsYearFilterVisible(true)} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
-                <AppText style={{ fontSize: 14, color: '#FFF', opacity: 0.9, fontWeight: '600', textTransform: 'uppercase' }} numberOfLines={1} adjustsFontSizeToFit>{selectedYearOnly} Total Spending</AppText>
+                <AppText style={{ fontSize: 14, color: '#FFF', opacity: 0.9, fontWeight: '600', textTransform: 'uppercase' }} numberOfLines={1} adjustsFontSizeToFit>{selectedYear} Total Spending</AppText>
                 <Ionicons name="chevron-down" size={14} color="#FFF" style={{ marginLeft: 4, opacity: 0.9 }} />
               </TouchableOpacity>
               <AppText style={{ fontSize: 32, fontWeight: 'bold', color: yearlyBudget > 0 ? (currentYearTotal > yearlyBudget ? '#ff4444' : (currentYearTotal >= yearlyBudget * 0.8 ? '#ffcccc' : '#FFF')) : '#FFF', marginBottom: yearlyBudget > 0 && showYearlyBudget ? 12 : 0 }} numberOfLines={1} adjustsFontSizeToFit>
@@ -368,10 +366,10 @@ export default function DashboardScreen() {
         visible={isYearFilterVisible}
         onClose={() => setIsYearFilterVisible(false)}
         availableYears={availableYears}
-        selectedYear={selectedYearOnly}
-        setSelectedYear={setSelectedYearOnly}
+        selectedYear={selectedYear}
+        setSelectedYear={setSelectedYear}
         onClearAll={() => {
-          setSelectedYearOnly(currentYearVal);
+          setSelectedYear(currentYearVal);
         }}
       />
     </View>
