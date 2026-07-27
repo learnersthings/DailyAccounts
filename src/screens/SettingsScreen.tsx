@@ -53,9 +53,10 @@ export default function SettingsScreen({ navigation }: any) {
       return;
     }
     try {
-      const newIcon = await DynamicAppIcon.setAppIcon(iconId === 'DEFAULT' ? null : (iconId as any));
+      const newIcon = await DynamicAppIcon.setAppIcon(iconId === 'DEFAULT' ? null : (iconId as any), false);
       if (newIcon !== false) {
         setCurrentAppIcon(newIcon as string);
+        Alert.alert('App Icon Changed', 'Your new app icon has been applied!');
       }
     } catch (e: any) {
       Alert.alert('Error', 'Failed to change app icon: ' + e.message);
