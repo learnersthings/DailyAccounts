@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useThemeColors } from '../hooks/useThemeColors';
-import { View, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, ScrollView, Animated } from 'react-native';
 import AppText from '../components/AppText';
 import { useThemeContext } from '../context/ThemeContext';
 import { useExpenseContext } from '../context/ExpenseContext';
@@ -9,6 +9,7 @@ import Svg, { Circle } from 'react-native-svg';
 import PremiumCardBackground from '../components/PremiumCardBackground';
 import { parseISOYear, parseISOMonth } from '../utils/dateUtils';
 import SingleFilterModal from '../components/SingleFilterModal';
+import DayExpensesModal from '../components/DayExpensesModal';
 import { Ionicons } from '@expo/vector-icons';
 
 const formatCompact = (num: number) => {
@@ -17,7 +18,7 @@ const formatCompact = (num: number) => {
   return Number(num).toFixed(2);
 };
 
-const MonthlySpendingCalendar = ({ expenses, selectedMonth, selectedYear, colors, onPrevMonth, onNextMonth }: any) => {
+const MonthlySpendingCalendar = ({ expenses, selectedMonth, selectedYear, colors, onPrevMonth, onNextMonth, onDayPress }: any) => {
   const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
   const daysInMonth = new Date(selectedYear, selectedMonth + 1, 0).getDate();
   const firstDayOfMonth = new Date(selectedYear, selectedMonth, 1).getDay();
@@ -57,7 +58,11 @@ const MonthlySpendingCalendar = ({ expenses, selectedMonth, selectedYear, colors
     const isFutureDay = cellDate > todayDateOnly;
 
     gridCells.push(
-      <View key={`day-${day}`} style={{ width: '14.28%', aspectRatio: 1, padding: 2 }}>
+      <TouchableOpacity 
+        key={`day-${day}`} 
+        style={{ width: '14.28%', aspectRatio: 1, padding: 2 }}
+        onPress={() => onDayPress && onDayPress(day, total)}
+      >
         <View style={{
           flex: 1,
           backgroundColor: isToday ? 'rgba(255,255,255,0.2)' : 'transparent',
@@ -79,7 +84,7 @@ const MonthlySpendingCalendar = ({ expenses, selectedMonth, selectedYear, colors
             </View>
           )}
         </View>
-      </View>
+      </TouchableOpacity>
     );
   }
 
@@ -130,6 +135,21 @@ export default function DashboardScreen() {
 
   const [isMonthFilterVisible, setIsMonthFilterVisible] = useState(false);
   const [isYearFilterVisible, setIsYearFilterVisible] = useState(false);
+
+  const [selectedDayDate, setSelectedDayDate] = useState<string | null>(null);
+  const [isDayModalVisible, setIsDayModalVisible] = useState(false);
+  
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [toastOpacity] = useState(new Animated.Value(0));
+
+  const showToast = (message: string) => {
+    setToastMessage(message);
+    Animated.sequence([
+      Animated.timing(toastOpacity, { toValue: 1, duration: 300, useNativeDriver: true }),
+      Animated.delay(2000),
+      Animated.timing(toastOpacity, { toValue: 0, duration: 300, useNativeDriver: true }),
+    ]).start(() => setToastMessage(null));
+  };
 
   const availableYears = useMemo(() => {
     const years = new Set(expenses.map(e => parseISOYear(e.date)));
@@ -375,18 +395,53 @@ export default function DashboardScreen() {
     }
   };
 
+  const handleDayPress = (day: number, total: number) => {
+    if (total > 0) {
+      const dateStr = `${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+      setSelectedDayDate(dateStr);
+      setIsDayModalVisible(true);
+    } else {
+      showToast('Transaction not found on that day');
+    }
+  };
+
   return (
-    <ScrollView contentContainerStyle={{ padding: 16 }}>
-      {renderCards()}
-      <MonthlySpendingCalendar
-        expenses={expenses}
-        selectedMonth={selectedMonth}
-        selectedYear={selectedYear}
-        colors={colors}
-        onPrevMonth={handlePrevMonth}
-        onNextMonth={handleNextMonth}
+    <View style={{ flex: 1 }}>
+      <ScrollView contentContainerStyle={{ padding: 16 }}>
+        {renderCards()}
+        <MonthlySpendingCalendar
+          expenses={expenses}
+          selectedMonth={selectedMonth}
+          selectedYear={selectedYear}
+          colors={colors}
+          onPrevMonth={handlePrevMonth}
+          onNextMonth={handleNextMonth}
+          onDayPress={handleDayPress}
+        />
+      </ScrollView>
+      
+      {toastMessage && (
+        <Animated.View style={{
+          position: 'absolute',
+          bottom: 50,
+          alignSelf: 'center',
+          backgroundColor: 'rgba(0,0,0,0.7)',
+          paddingHorizontal: 16,
+          paddingVertical: 10,
+          borderRadius: 20,
+          opacity: toastOpacity,
+          zIndex: 9999,
+        }}>
+          <AppText style={{ color: 'white', fontSize: 14 }}>{toastMessage}</AppText>
+        </Animated.View>
+      )}
+
+      <DayExpensesModal
+        visible={isDayModalVisible}
+        onClose={() => setIsDayModalVisible(false)}
+        selectedDate={selectedDayDate}
       />
-    </ScrollView>
+    </View>
   );
 }
 

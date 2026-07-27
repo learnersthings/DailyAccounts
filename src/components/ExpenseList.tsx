@@ -37,9 +37,10 @@ interface ExpenseListProps {
   ListHeaderComponent?: React.ReactNode;
   hideTitle?: boolean;
   isExpensesScreen?: boolean;
+  dateFilter?: string;
 }
 
-export default function ExpenseList({ ListHeaderComponent, hideTitle, isExpensesScreen }: ExpenseListProps) {
+export default function ExpenseList({ ListHeaderComponent, hideTitle, isExpensesScreen, dateFilter }: ExpenseListProps) {
   const colors = useThemeColors();
   const navigation = useNavigation<any>();
   const { isDarkTheme } = useThemeContext();
@@ -102,6 +103,15 @@ export default function ExpenseList({ ListHeaderComponent, hideTitle, isExpenses
         }
       }
 
+      // Filter by precise date if dateFilter is provided
+      if (dateFilter) {
+        const d = new Date(exp.date);
+        const localDateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        if (localDateStr !== dateFilter) {
+          return false;
+        }
+      }
+
       // Filter by Year
       const expYear = parseISOYear(exp.date);
       if (selectedYears.length > 0 && !selectedYears.includes(expYear)) {
@@ -126,7 +136,7 @@ export default function ExpenseList({ ListHeaderComponent, hideTitle, isExpenses
 
       return true;
     }).sort((a, b) => a.date < b.date ? 1 : (a.date > b.date ? -1 : 0));
-  }, [expenses, searchQuery, selectedYears, selectedMonths, selectedCategoryIds, selectedPaymentModeIds, categories, paymentModes]);
+  }, [expenses, searchQuery, selectedYears, selectedMonths, selectedCategoryIds, selectedPaymentModeIds, categories, paymentModes, dateFilter]);
 
   const total = getCurrentMonthTotal();
   const prevTotal = getPreviousMonthTotal();
@@ -257,7 +267,7 @@ export default function ExpenseList({ ListHeaderComponent, hideTitle, isExpenses
 
     visibleExpenses.forEach(exp => {
       const monthYear = getMonthYearString(exp.date);
-      if (monthYear !== lastGroupTitle) {
+      if (monthYear !== lastGroupTitle && !dateFilter) {
         data.push({ type: 'header', id: `header-${monthYear}`, title: monthYear, totalAmount: monthTotals[monthYear] });
         lastGroupTitle = monthYear;
       }
@@ -457,7 +467,7 @@ export default function ExpenseList({ ListHeaderComponent, hideTitle, isExpenses
         </View>
       )}
 
-      {expenses.length > 0 && (
+      {!dateFilter && expenses.length > 0 && (
         <View style={styles.searchFilterContainer}>
           <View style={[styles.searchBar, { backgroundColor: colors.surface, borderColor: colors.border }]}>
             <Ionicons name="search" size={20} color={colors.textMuted} style={styles.searchIcon} />
@@ -592,12 +602,14 @@ export default function ExpenseList({ ListHeaderComponent, hideTitle, isExpenses
       />
 
       {/* Floating Action Button */}
-      <TouchableOpacity
-        style={[styles.fab, { backgroundColor: colors.primary, shadowColor: colors.primary }]}
-        onPress={handleOpenAddModal}
-      >
-        <Ionicons name="add" size={32} color="#fff" />
-      </TouchableOpacity>
+      {!dateFilter && (
+        <TouchableOpacity
+          style={[styles.fab, { backgroundColor: colors.primary, shadowColor: colors.primary }]}
+          onPress={handleOpenAddModal}
+        >
+          <Ionicons name="add" size={32} color="#fff" />
+        </TouchableOpacity>
+      )}
 
       <AddExpenseModal
         visible={isModalVisible}
