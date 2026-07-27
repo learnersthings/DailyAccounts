@@ -28,7 +28,7 @@ if (!isExpoGo) {
 
 export default function SettingsScreen({ navigation }: any) {
   const colors = useThemeColors();
-  const { isDarkTheme, toggleTheme, refreshTheme, accentColor, setAccentColor } = useThemeContext();
+  const { isDarkTheme, toggleTheme, refreshTheme, accentColor, setAccentColor, appIcon, updateAppIcon } = useThemeContext();
   const { logout, refreshAuth, user } = useAuthContext();
   const [isImportModalVisible, setIsImportModalVisible] = useState(false);
   const [isImportTxModalVisible, setIsImportTxModalVisible] = useState(false);
@@ -37,15 +37,7 @@ export default function SettingsScreen({ navigation }: any) {
   const [isAccentExpanded, setIsAccentExpanded] = useState(false);
   const [isTotalBalanceExpanded, setIsTotalBalanceExpanded] = useState(false);
   const [isAppIconExpanded, setIsAppIconExpanded] = useState(false);
-  const [currentAppIcon, setCurrentAppIcon] = useState<string>('DEFAULT');
-  const { currency, refreshExpenseData, downloadPathUri, updateDownloadPath, backupPathUri, updateBackupPath, analyticsChartType } = useExpenseContext();
-  const { accounts, excludedFromTotal, toggleAccountInTotal, refreshTransactionData, showCardStats, toggleShowCardStats } = useTransactionContext();
 
-  React.useEffect(() => {
-    if (!isExpoGo && DynamicAppIcon) {
-      DynamicAppIcon.getAppIcon().then((icon: any) => setCurrentAppIcon(icon || 'DEFAULT')).catch(() => {});
-    }
-  }, []);
 
   const handleAppIconChange = async (iconId: string) => {
     if (isExpoGo || !DynamicAppIcon) {
@@ -55,7 +47,7 @@ export default function SettingsScreen({ navigation }: any) {
     try {
       const newIcon = await DynamicAppIcon.setAppIcon(iconId === 'DEFAULT' ? null : (iconId as any), false);
       if (newIcon !== false) {
-        setCurrentAppIcon(newIcon as string);
+        updateAppIcon(newIcon as string);
         Alert.alert('App Icon Changed', 'Your new app icon has been applied!');
       }
     } catch (e: any) {
@@ -240,6 +232,9 @@ export default function SettingsScreen({ navigation }: any) {
     }
   };
 
+  const { currency, refreshExpenseData, downloadPathUri, updateDownloadPath, backupPathUri, updateBackupPath, analyticsChartType } = useExpenseContext();
+  const { accounts, excludedFromTotal, toggleAccountInTotal, refreshTransactionData, showCardStats, toggleShowCardStats } = useTransactionContext();
+
   return (
     <ScrollView contentContainerStyle={[styles.container, { backgroundColor: colors.background }]}>
 
@@ -331,7 +326,7 @@ export default function SettingsScreen({ navigation }: any) {
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
               {!isAppIconExpanded && (
                 <AppText style={{ color: colors.textMuted, fontSize: 14, marginRight: 8 }}>
-                  {APP_ICONS.find(i => i.id === currentAppIcon)?.name || 'Default'}
+                  {APP_ICONS.find(i => i.id === appIcon)?.name || 'Default'}
                 </AppText>
               )}
               <Ionicons name={isAppIconExpanded ? "chevron-up" : "chevron-down"} size={20} color={colors.text} />
@@ -346,12 +341,12 @@ export default function SettingsScreen({ navigation }: any) {
                   onPress={() => handleAppIconChange(icon.id)}
                   style={[
                     styles.colorSwatch,
-                    { backgroundColor: icon.color, marginRight: 0 },
-                    currentAppIcon === icon.id && { borderWidth: 3, borderColor: colors.text }
+                    { backgroundColor: icon.color, marginRight: 0, alignItems: 'center', justifyContent: 'center' },
+                    appIcon === icon.id && { borderWidth: 3, borderColor: colors.text }
                   ]}
                 >
-                  {currentAppIcon === icon.id && (
-                    <Ionicons name="checkmark" size={16} color="#FFF" style={{ textShadowColor: 'rgba(0,0,0,0.3)', textShadowRadius: 2, textShadowOffset: { width: 0, height: 1 } }} />
+                  {appIcon === icon.id && (
+                    <Ionicons name="checkmark-circle" size={24} color="#fff" style={{ position: 'absolute' }} />
                   )}
                 </TouchableOpacity>
               ))}

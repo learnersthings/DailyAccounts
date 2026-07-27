@@ -14,11 +14,12 @@ import {
 } from 'react-native';
 import { useAuthContext } from '../context/AuthContext';
 import { useThemeContext } from '../context/ThemeContext';
+import { getAppIconImage } from '../utils/iconUtils';
 
 export default function SignupScreen({ navigation }: any) {
   const colors = useThemeColors();
   const { register } = useAuthContext();
-  const { isDarkTheme } = useThemeContext();
+  const { isDarkTheme, appIcon } = useThemeContext();
   
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
@@ -90,7 +91,7 @@ export default function SignupScreen({ navigation }: any) {
         
         <View style={styles.headerContainer}>
           <Image 
-            source={require('../../assets/icon.png')} 
+            source={getAppIconImage(appIcon)} 
             style={styles.logo} 
             resizeMode="contain" 
           />

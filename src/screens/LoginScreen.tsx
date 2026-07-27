@@ -14,11 +14,12 @@ import {
 } from 'react-native';
 import { useAuthContext } from '../context/AuthContext';
 import { useThemeContext } from '../context/ThemeContext';
+import { getAppIconImage } from '../utils/iconUtils';
 
 export default function LoginScreen({ navigation }: any) {
   const colors = useThemeColors();
   const { login } = useAuthContext();
-  const { isDarkTheme } = useThemeContext();
+  const { isDarkTheme, appIcon } = useThemeContext();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -67,7 +68,7 @@ export default function LoginScreen({ navigation }: any) {
 
         <View style={styles.headerContainer}>
           <Image
-            source={require('../../assets/icon.png')}
+            source={getAppIconImage(appIcon)}
             style={styles.logo}
             resizeMode="contain"
           />
