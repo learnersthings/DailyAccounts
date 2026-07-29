@@ -482,21 +482,8 @@ export default function ExpenseList({ ListHeaderComponent, hideTitle, isExpenses
     );
   }, [categories, paymentModes, colors, isDarkTheme, isSelectMode, isReorderMode, multiExpenseDates, displayHidden, selectedExpenseIds, currency, bulkDeleteExpenses]);
 
-  const listHeader = (
+  const actionBars = (
     <>
-      {ListHeaderComponent}
-
-      {!isExpensesScreen && (
-        <View style={styles.sectionHeader}>
-          {!hideTitle && <AppText style={[styles.sectionTitle, { color: colors.text }]}>Recent Activity</AppText>}
-          {expenses.length > 0 && (
-            <TouchableOpacity onPress={() => navigation.navigate('Expenses')}>
-              <AppText style={{ color: colors.primary, fontWeight: '600' }}>See All</AppText>
-            </TouchableOpacity>
-          )}
-        </View>
-      )}
-
       {(!dateFilter && expenses.length > 0) ? (
         <View style={styles.searchFilterContainer}>
           <View style={[styles.searchBar, { backgroundColor: colors.surface, borderColor: colors.border }]}>
@@ -594,6 +581,25 @@ export default function ExpenseList({ ListHeaderComponent, hideTitle, isExpenses
     </>
   );
 
+  const listHeader = (
+    <>
+      {ListHeaderComponent}
+
+      {!isExpensesScreen && (
+        <View style={styles.sectionHeader}>
+          {!hideTitle && <AppText style={[styles.sectionTitle, { color: colors.text }]}>Recent Activity</AppText>}
+          {expenses.length > 0 && (
+            <TouchableOpacity onPress={() => navigation.navigate('Expenses')}>
+              <AppText style={{ color: colors.primary, fontWeight: '600' }}>See All</AppText>
+            </TouchableOpacity>
+          )}
+        </View>
+      )}
+
+      {!isExpensesScreen && actionBars}
+    </>
+  );
+
   const listFooter = (
     <>
       {filteredExpenses.length > displayCount && (
@@ -620,6 +626,11 @@ export default function ExpenseList({ ListHeaderComponent, hideTitle, isExpenses
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
+      {isExpensesScreen && (
+        <View style={{ paddingHorizontal: 20, paddingTop: 20, zIndex: 10 }}>
+          {actionBars}
+        </View>
+      )}
       <DraggableFlatList
         data={flatDataState}
         onDragEnd={handleDragEnd}
@@ -628,7 +639,7 @@ export default function ExpenseList({ ListHeaderComponent, hideTitle, isExpenses
         ListHeaderComponent={listHeader}
         ListFooterComponent={listFooter}
         ListEmptyComponent={listEmpty}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, isExpensesScreen && { paddingTop: 0 }]}
         activationDistance={20}
       />
 
