@@ -5,7 +5,7 @@ import AppText from '../components/AppText';
 import { useThemeContext } from '../context/ThemeContext';
 import { useExpenseContext } from '../context/ExpenseContext';
 import { formatAmount } from '../utils/format';
-import Svg, { Circle } from 'react-native-svg';
+import Svg, { Circle, G, Line } from 'react-native-svg';
 import PremiumCardBackground from '../components/PremiumCardBackground';
 import { parseISOYear, parseISOMonth } from '../utils/dateUtils';
 import SingleFilterModal from '../components/SingleFilterModal';
@@ -16,6 +16,81 @@ const formatCompact = (num: number) => {
   if (num >= 1000000) return (num / 1000000).toFixed(2) + 'M';
   if (num >= 1000) return (num / 1000).toFixed(2) + 'k';
   return Number(num).toFixed(2);
+};
+
+const SpendingVelocityCard = ({ colors, timeElapsedRatio, budgetSpentRatio, monthlyBudget, currency }: any) => {
+  if (monthlyBudget <= 0) return null;
+
+  const isTooFast = budgetSpentRatio > timeElapsedRatio + 0.1;
+  const isSlightlyFast = budgetSpentRatio > timeElapsedRatio && !isTooFast;
+
+  const statusColor = isTooFast ? '#ff4444' : (isSlightlyFast ? '#ffeb3b' : '#00C851');
+  const statusMessage = isTooFast 
+    ? `Slow down! You've spent ${(budgetSpentRatio * 100).toFixed(0)}% of your budget, but only ${(timeElapsedRatio * 100).toFixed(0)}% of the month has passed.`
+    : isSlightlyFast 
+      ? `Careful. You are spending slightly faster than the month is progressing.`
+      : `Great job! Your spending is perfectly on track for the month.`;
+
+  const radius = 80;
+  const strokeWidth = 16;
+  const circumference = 2 * Math.PI * radius;
+  const semiCircumference = circumference / 2;
+  const clampedBudgetSpentRatio = Math.min(budgetSpentRatio, 1);
+  const filledLength = clampedBudgetSpentRatio * semiCircumference;
+  
+  const angleRad = Math.PI + timeElapsedRatio * Math.PI;
+  const markerX = 100 + (radius + strokeWidth/2 + 5) * Math.cos(angleRad);
+  const markerY = 100 + (radius + strokeWidth/2 + 5) * Math.sin(angleRad);
+  const innerMarkerX = 100 + (radius - strokeWidth/2 - 5) * Math.cos(angleRad);
+  const innerMarkerY = 100 + (radius - strokeWidth/2 - 5) * Math.sin(angleRad);
+
+  return (
+    <PremiumCardBackground color={colors.primary}>
+      <AppText style={{ fontSize: 16, fontWeight: 'bold', color: '#FFF', marginBottom: 16 }}>
+        Spending Velocity
+      </AppText>
+      <View style={{ alignItems: 'center' }}>
+        <Svg width={200} height={110}>
+          <G transform="rotate(180 100 100)">
+            <Circle
+              cx={100} cy={100} r={radius}
+              stroke="rgba(255,255,255,0.2)"
+              strokeWidth={strokeWidth}
+              strokeLinecap="round"
+              strokeDasharray={`${semiCircumference} ${circumference}`}
+              fill="none"
+            />
+            <Circle
+              cx={100} cy={100} r={radius}
+              stroke={statusColor}
+              strokeWidth={strokeWidth}
+              strokeLinecap="round"
+              strokeDasharray={`${filledLength} ${circumference}`}
+              fill="none"
+            />
+          </G>
+          
+          <Line
+            x1={innerMarkerX} y1={innerMarkerY}
+            x2={markerX} y2={markerY}
+            stroke="#FFF"
+            strokeWidth={3}
+            strokeLinecap="round"
+          />
+          
+          <AppText style={{ position: 'absolute', top: 70, left: 0, right: 0, textAlign: 'center', fontSize: 24, fontWeight: 'bold', color: statusColor }}>
+            {(budgetSpentRatio * 100).toFixed(2).padStart(5, '0')}%
+          </AppText>
+        </Svg>
+        
+        <View style={{ marginTop: 4, paddingHorizontal: 16 }}>
+          <AppText style={{ fontSize: 13, color: 'rgba(255,255,255,0.9)', textAlign: 'center' }}>
+            {statusMessage}
+          </AppText>
+        </View>
+      </View>
+    </PremiumCardBackground>
+  );
 };
 
 const MonthlySpendingCalendar = ({ expenses, selectedMonth, selectedYear, colors, onPrevMonth, onNextMonth, onDayPress, isCalendarHidden, setIsCalendarHidden }: any) => {
@@ -230,6 +305,8 @@ export default function DashboardScreen() {
     return now.getMonth() / 12;
   }, [selectedYear]);
 
+  const budgetSpentRatio = monthlyBudget > 0 ? total / monthlyBudget : 0;
+
   const renderCards = () => (
     <View>
       {/* Monthly Spending Card */}
@@ -252,7 +329,7 @@ export default function DashboardScreen() {
               <View style={{ marginBottom: 12 }}>
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
                   <AppText style={{ fontSize: 10, color: '#FFF', opacity: 0.8, textTransform: 'uppercase', fontWeight: '600' }}>Time Elapsed</AppText>
-                  <AppText style={{ fontSize: 10, color: '#FFF', opacity: 0.8, fontWeight: '600' }}>{Math.round(monthlyTimeProgress * 100)}%</AppText>
+                  <AppText style={{ fontSize: 10, color: '#FFF', opacity: 0.8, fontWeight: '600' }}>{(monthlyTimeProgress * 100).toFixed(2).padStart(5, '0')}%</AppText>
                 </View>
                 <View style={{ height: 6, backgroundColor: 'rgba(255,255,255,0.3)', borderRadius: 3, width: '100%', overflow: 'hidden', position: 'relative' }}>
                   <View style={{ height: '100%', backgroundColor: '#FFF', width: `${monthlyTimeProgress * 100}%` }} />
@@ -319,7 +396,7 @@ export default function DashboardScreen() {
                 <View style={{ marginBottom: 12 }}>
                   <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
                     <AppText style={{ fontSize: 10, color: '#FFF', opacity: 0.8, textTransform: 'uppercase', fontWeight: '600' }}>Time Elapsed</AppText>
-                    <AppText style={{ fontSize: 10, color: '#FFF', opacity: 0.8, fontWeight: '600' }}>{Math.round(yearlyTimeProgress * 100)}%</AppText>
+                    <AppText style={{ fontSize: 10, color: '#FFF', opacity: 0.8, fontWeight: '600' }}>{(yearlyTimeProgress * 100).toFixed(2).padStart(5, '0')}%</AppText>
                   </View>
                   <View style={{ height: 6, backgroundColor: 'rgba(255,255,255,0.3)', borderRadius: 3, width: '100%', overflow: 'hidden', position: 'relative' }}>
                     <View style={{ height: '100%', backgroundColor: '#FFF', width: `${yearlyTimeProgress * 100}%` }} />
@@ -437,6 +514,15 @@ export default function DashboardScreen() {
           isCalendarHidden={isCalendarHidden}
           setIsCalendarHidden={setIsCalendarHidden}
         />
+        {monthlyBudget > 0 && showMonthlyBudget && (
+          <SpendingVelocityCard 
+            colors={colors}
+            timeElapsedRatio={monthlyTimeProgress}
+            budgetSpentRatio={budgetSpentRatio}
+            monthlyBudget={monthlyBudget}
+            currency={currency}
+          />
+        )}
       </ScrollView>
 
       {toastMessage && (
