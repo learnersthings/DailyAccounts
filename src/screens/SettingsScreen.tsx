@@ -21,10 +21,10 @@ let DynamicAppIcon: any = null;
 if (!isExpoGo) {
   try {
     Notifications = require('expo-notifications');
-  } catch (e) {}
+  } catch (e) { }
   try {
     DynamicAppIcon = require('@howincodes/expo-dynamic-app-icon');
-  } catch (e) {}
+  } catch (e) { }
 }
 
 export default function SettingsScreen({ navigation }: any) {
@@ -197,7 +197,7 @@ export default function SettingsScreen({ navigation }: any) {
 
       // Clear existing and set new
       await AsyncStorage.clear();
-      
+
       setRestoreProgress(0);
       let completed = 0;
       for (const pair of kvPairs) {
@@ -497,11 +497,11 @@ export default function SettingsScreen({ navigation }: any) {
 
       <View style={[styles.group, { backgroundColor: colors.card }]}>
         <AppText style={[styles.sectionTitle, { color: colors.text }]}>Automation & Notifications</AppText>
-        
+
         <TouchableOpacity style={styles.row} onPress={() => setActivePicker('summary')}>
           <View style={styles.rowLeft}>
             <Ionicons name="notifications-outline" size={22} color={colors.primary} style={styles.icon} />
-            <AppText style={[styles.text, { color: colors.text }]}>Summary Notification Time</AppText>
+            <AppText style={[styles.text, { color: colors.text }]}>Summary Notification</AppText>
           </View>
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
             <AppText style={{ color: colors.primary, fontSize: 16, fontWeight: 'bold', marginRight: 8 }}>
@@ -511,11 +511,11 @@ export default function SettingsScreen({ navigation }: any) {
           </View>
         </TouchableOpacity>
         <View style={styles.divider} />
-        
+
         <TouchableOpacity style={styles.row} onPress={() => setActivePicker('reminder')}>
           <View style={styles.rowLeft}>
             <Ionicons name="alarm-outline" size={22} color={colors.primary} style={styles.icon} />
-            <AppText style={[styles.text, { color: colors.text }]}>Reminder Notification Time</AppText>
+            <AppText style={[styles.text, { color: colors.text }]}>Reminder Notification</AppText>
           </View>
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
             <AppText style={{ color: colors.primary, fontSize: 16, fontWeight: 'bold', marginRight: 8 }}>
@@ -692,9 +692,9 @@ export default function SettingsScreen({ navigation }: any) {
         <DateTimePicker
           value={
             activePicker === 'summary' ? summaryTime :
-            activePicker === 'reminder' ? reminderTime :
-            activePicker === 'backupMorning' ? autoBackupTimeMorning :
-            autoBackupTimeEvening
+              activePicker === 'reminder' ? reminderTime :
+                activePicker === 'backupMorning' ? autoBackupTimeMorning :
+                  autoBackupTimeEvening
           }
           mode="time"
           is24Hour={false}

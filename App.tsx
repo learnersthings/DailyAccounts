@@ -41,7 +41,13 @@ if (!isExpoGo) {
 
 const BACKGROUND_BACKUP_TASK = 'BACKGROUND_BACKUP_TASK';
 
+let isPerformingBackgroundTasks = false;
+
 export const performBackgroundTasks = async () => {
+  if (isPerformingBackgroundTasks) {
+    return BackgroundFetch ? BackgroundFetch.BackgroundFetchResult.NoData : 1;
+  }
+  isPerformingBackgroundTasks = true;
   try {
     const userCredentialsStr = await AsyncStorage.getItem('@app_user_credentials');
     let userEmail = '';
@@ -152,7 +158,11 @@ export const performBackgroundTasks = async () => {
     if (backupFiles.length > maxBackups) {
       const filesToDelete = backupFiles.slice(0, backupFiles.length - maxBackups);
       for (const fileToDelete of filesToDelete) {
-        await FileSystem.StorageAccessFramework.deleteAsync(fileToDelete);
+        try {
+          await FileSystem.StorageAccessFramework.deleteAsync(fileToDelete);
+        } catch (e) {
+          console.warn('Failed to delete old backup file:', e);
+        }
       }
     }
 
@@ -186,6 +196,8 @@ export const performBackgroundTasks = async () => {
       });
     }
     return BackgroundFetch ? BackgroundFetch.BackgroundFetchResult.Failed : 2;
+  } finally {
+    isPerformingBackgroundTasks = false;
   }
 };
 
