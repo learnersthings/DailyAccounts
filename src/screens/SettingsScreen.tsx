@@ -13,6 +13,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import * as DocumentPicker from 'expo-document-picker';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import Constants, { ExecutionEnvironment } from 'expo-constants';
 const isExpoGo = Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
 let Notifications: any = null;
@@ -37,6 +38,7 @@ export default function SettingsScreen({ navigation }: any) {
   const [isAccentExpanded, setIsAccentExpanded] = useState(false);
   const [isTotalBalanceExpanded, setIsTotalBalanceExpanded] = useState(false);
   const [isAppIconExpanded, setIsAppIconExpanded] = useState(false);
+  const [activePicker, setActivePicker] = useState<'summary' | 'reminder' | 'backupMorning' | 'backupEvening' | null>(null);
 
 
   const handleAppIconChange = async (iconId: string) => {
@@ -232,7 +234,7 @@ export default function SettingsScreen({ navigation }: any) {
     }
   };
 
-  const { currency, refreshExpenseData, downloadPathUri, updateDownloadPath, backupPathUri, updateBackupPath, analyticsChartType } = useExpenseContext();
+  const { currency, refreshExpenseData, downloadPathUri, updateDownloadPath, backupPathUri, updateBackupPath, analyticsChartType, summaryTime, updateSummaryTime, reminderTime, updateReminderTime, autoBackupTimeMorning, updateAutoBackupTimeMorning, autoBackupTimeEvening, updateAutoBackupTimeEvening } = useExpenseContext();
   const { accounts, excludedFromTotal, toggleAccountInTotal, refreshTransactionData, showCardStats, toggleShowCardStats } = useTransactionContext();
 
   return (
@@ -494,6 +496,65 @@ export default function SettingsScreen({ navigation }: any) {
       </View>
 
       <View style={[styles.group, { backgroundColor: colors.card }]}>
+        <AppText style={[styles.sectionTitle, { color: colors.text }]}>Automation & Notifications</AppText>
+        
+        <TouchableOpacity style={styles.row} onPress={() => setActivePicker('summary')}>
+          <View style={styles.rowLeft}>
+            <Ionicons name="notifications-outline" size={22} color={colors.primary} style={styles.icon} />
+            <AppText style={[styles.text, { color: colors.text }]}>Summary Notification Time</AppText>
+          </View>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <AppText style={{ color: colors.primary, fontSize: 16, fontWeight: 'bold', marginRight: 8 }}>
+              {summaryTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            </AppText>
+            <Ionicons name="chevron-forward" size={20} color={colors.text} />
+          </View>
+        </TouchableOpacity>
+        <View style={styles.divider} />
+        
+        <TouchableOpacity style={styles.row} onPress={() => setActivePicker('reminder')}>
+          <View style={styles.rowLeft}>
+            <Ionicons name="alarm-outline" size={22} color={colors.primary} style={styles.icon} />
+            <AppText style={[styles.text, { color: colors.text }]}>Reminder Notification Time</AppText>
+          </View>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <AppText style={{ color: colors.primary, fontSize: 16, fontWeight: 'bold', marginRight: 8 }}>
+              {reminderTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            </AppText>
+            <Ionicons name="chevron-forward" size={20} color={colors.text} />
+          </View>
+        </TouchableOpacity>
+        <View style={styles.divider} />
+
+        <TouchableOpacity style={styles.row} onPress={() => setActivePicker('backupMorning')}>
+          <View style={styles.rowLeft}>
+            <Ionicons name="cloud-upload-outline" size={22} color={colors.primary} style={styles.icon} />
+            <AppText style={[styles.text, { color: colors.text }]}>Morning Auto Backup</AppText>
+          </View>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <AppText style={{ color: colors.primary, fontSize: 16, fontWeight: 'bold', marginRight: 8 }}>
+              {autoBackupTimeMorning.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            </AppText>
+            <Ionicons name="chevron-forward" size={20} color={colors.text} />
+          </View>
+        </TouchableOpacity>
+        <View style={styles.divider} />
+
+        <TouchableOpacity style={styles.row} onPress={() => setActivePicker('backupEvening')}>
+          <View style={styles.rowLeft}>
+            <Ionicons name="cloud-upload-outline" size={22} color={colors.primary} style={styles.icon} />
+            <AppText style={[styles.text, { color: colors.text }]}>Evening Auto Backup</AppText>
+          </View>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <AppText style={{ color: colors.primary, fontSize: 16, fontWeight: 'bold', marginRight: 8 }}>
+              {autoBackupTimeEvening.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            </AppText>
+            <Ionicons name="chevron-forward" size={20} color={colors.text} />
+          </View>
+        </TouchableOpacity>
+      </View>
+
+      <View style={[styles.group, { backgroundColor: colors.card }]}>
         <AppText style={[styles.sectionTitle, { color: colors.text }]}>Data Management</AppText>
         <TouchableOpacity
           style={styles.row}
@@ -626,6 +687,30 @@ export default function SettingsScreen({ navigation }: any) {
           </View>
         </View>
       </Modal>
+
+      {activePicker && (
+        <DateTimePicker
+          value={
+            activePicker === 'summary' ? summaryTime :
+            activePicker === 'reminder' ? reminderTime :
+            activePicker === 'backupMorning' ? autoBackupTimeMorning :
+            autoBackupTimeEvening
+          }
+          mode="time"
+          is24Hour={false}
+          display="default"
+          onChange={(event, selectedDate) => {
+            const currentPicker = activePicker;
+            setActivePicker(null);
+            if (selectedDate && event.type !== 'dismissed') {
+              if (currentPicker === 'summary') updateSummaryTime(selectedDate);
+              else if (currentPicker === 'reminder') updateReminderTime(selectedDate);
+              else if (currentPicker === 'backupMorning') updateAutoBackupTimeMorning(selectedDate);
+              else if (currentPicker === 'backupEvening') updateAutoBackupTimeEvening(selectedDate);
+            }
+          }}
+        />
+      )}
     </ScrollView>
   );
 }

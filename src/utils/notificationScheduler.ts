@@ -17,7 +17,7 @@ const SUMMARY_PREFIX = 'summary_';
 const REMINDER_PREFIX = 'reminder_';
 const MONTHLY_PREFIX = 'monthly_';
 
-export const scheduleAllNotifications = async (expenses: Expense[], currency: string) => {
+export const scheduleAllNotifications = async (expenses: Expense[], currency: string, summaryTime: Date, reminderTime: Date) => {
   if (!Notifications) return;
 
   try {
@@ -44,8 +44,8 @@ export const scheduleAllNotifications = async (expenses: Expense[], currency: st
       const targetDate = new Date(now);
       targetDate.setDate(targetDate.getDate() + i);
 
-      // ---- 8 AM Summary (Yesterday's summary) ----
-      targetDate.setHours(8, 0, 0, 0);
+      // ---- Summary (Yesterday's summary) ----
+      targetDate.setHours(summaryTime.getHours(), summaryTime.getMinutes(), 0, 0);
       
       // If i === 1 (tomorrow), the summary is for today's total.
       // If i > 1, the summary is for 0 (since they haven't opened the app to add anything).
@@ -63,8 +63,8 @@ export const scheduleAllNotifications = async (expenses: Expense[], currency: st
         },
       });
 
-      // ---- 6 PM Reminder ----
-      targetDate.setHours(18, 0, 0, 0);
+      // ---- Reminder ----
+      targetDate.setHours(reminderTime.getHours(), reminderTime.getMinutes(), 0, 0);
       await Notifications.scheduleNotificationAsync({
         identifier: `${REMINDER_PREFIX}${i}`,
         content: {
@@ -78,11 +78,11 @@ export const scheduleAllNotifications = async (expenses: Expense[], currency: st
       });
     }
 
-    // ---- Today's 6 PM Reminder (if applicable) ----
-    // If no expense logged today and it's currently before 6 PM
-    if (!hasTodayExpense && now.getHours() < 18) {
-      const today6PM = new Date(now);
-      today6PM.setHours(18, 0, 0, 0);
+    // ---- Today's Reminder (if applicable) ----
+    // If no expense logged today and it's currently before the configured reminder time
+    if (!hasTodayExpense && (now.getHours() < reminderTime.getHours() || (now.getHours() === reminderTime.getHours() && now.getMinutes() < reminderTime.getMinutes()))) {
+      const todayReminder = new Date(now);
+      todayReminder.setHours(reminderTime.getHours(), reminderTime.getMinutes(), 0, 0);
       
       await Notifications.scheduleNotificationAsync({
         identifier: `${REMINDER_PREFIX}0`,
@@ -92,14 +92,14 @@ export const scheduleAllNotifications = async (expenses: Expense[], currency: st
         },
         trigger: {
           type: Notifications.SchedulableTriggerInputTypes.DATE,
-          date: today6PM,
+          date: todayReminder,
         },
       });
     }
 
-    // ---- Monthly Summary (1st of Next Month at 9 AM) ----
+    // ---- Monthly Summary (1st of Next Month at Summary Time) ----
     const nextMonthDate = new Date(now.getFullYear(), now.getMonth() + 1, 1);
-    nextMonthDate.setHours(9, 0, 0, 0);
+    nextMonthDate.setHours(summaryTime.getHours(), summaryTime.getMinutes(), 0, 0);
 
     const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
     const currentMonthName = monthNames[now.getMonth()];

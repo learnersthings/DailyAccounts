@@ -74,6 +74,14 @@ interface ExpenseContextType {
   backupPathUri: string | null;
   updateBackupPath: (uri: string | null) => Promise<void>;
   migrateUserEmail: (oldEmail: string, newEmail: string) => Promise<void>;
+  summaryTime: Date;
+  reminderTime: Date;
+  autoBackupTimeMorning: Date;
+  autoBackupTimeEvening: Date;
+  updateSummaryTime: (date: Date) => Promise<void>;
+  updateReminderTime: (date: Date) => Promise<void>;
+  updateAutoBackupTimeMorning: (date: Date) => Promise<void>;
+  updateAutoBackupTimeEvening: (date: Date) => Promise<void>;
 }
 
 const ExpenseContext = createContext<ExpenseContextType>({
@@ -118,6 +126,14 @@ const ExpenseContext = createContext<ExpenseContextType>({
   backupPathUri: null,
   updateBackupPath: async () => {},
   migrateUserEmail: async () => {},
+  summaryTime: new Date(new Date().setHours(8, 0, 0, 0)),
+  reminderTime: new Date(new Date().setHours(18, 0, 0, 0)),
+  autoBackupTimeMorning: new Date(new Date().setHours(9, 0, 0, 0)),
+  autoBackupTimeEvening: new Date(new Date().setHours(21, 0, 0, 0)),
+  updateSummaryTime: async () => {},
+  updateReminderTime: async () => {},
+  updateAutoBackupTimeMorning: async () => {},
+  updateAutoBackupTimeEvening: async () => {},
 });
 
 export const useExpenseContext = () => useContext(ExpenseContext);
@@ -134,6 +150,10 @@ const ANALYTICS_CHART_TYPE_KEY = '@app_analytics_chart_type';
 const CHART_STYLE_KEY = '@app_chart_style';
 const DOWNLOAD_PATH_KEY = '@app_download_path';
 const BACKUP_PATH_KEY = '@app_backup_path';
+const SUMMARY_TIME_KEY = '@app_summary_time';
+const REMINDER_TIME_KEY = '@app_reminder_time';
+const AUTO_BACKUP_TIME_MORNING_KEY = '@app_auto_backup_time_morning';
+const AUTO_BACKUP_TIME_EVENING_KEY = '@app_auto_backup_time_evening';
 
 export const ExpenseProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [expenses, setExpenses] = useState<Expense[]>([]);
@@ -151,6 +171,10 @@ export const ExpenseProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [backupPathUri, setBackupPathUri] = useState<string | null>(null);
   const [monthlyIncomes, setMonthlyIncomes] = useState<Record<string, number>>({});
   const [isLoading, setIsLoading] = useState(true);
+  const [summaryTime, setSummaryTime] = useState<Date>(new Date(new Date().setHours(8, 0, 0, 0)));
+  const [reminderTime, setReminderTime] = useState<Date>(new Date(new Date().setHours(18, 0, 0, 0)));
+  const [autoBackupTimeMorning, setAutoBackupTimeMorning] = useState<Date>(new Date(new Date().setHours(9, 0, 0, 0)));
+  const [autoBackupTimeEvening, setAutoBackupTimeEvening] = useState<Date>(new Date(new Date().setHours(21, 0, 0, 0)));
   const { user } = useAuthContext();
 
   const storageKey = user ? `${EXPENSES_KEY}_${user.email}` : EXPENSES_KEY;
@@ -166,6 +190,11 @@ export const ExpenseProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const downloadPathStorageKey = user ? `${DOWNLOAD_PATH_KEY}_${user.email}` : DOWNLOAD_PATH_KEY;
   const backupPathStorageKey = user ? `${BACKUP_PATH_KEY}_${user.email}` : BACKUP_PATH_KEY;
   const monthlyIncomesStorageKey = user ? `@app_monthly_incomes_${user.email}` : '@app_monthly_incomes';
+  
+  const summaryTimeStorageKey = user ? `${SUMMARY_TIME_KEY}_${user.email}` : SUMMARY_TIME_KEY;
+  const reminderTimeStorageKey = user ? `${REMINDER_TIME_KEY}_${user.email}` : REMINDER_TIME_KEY;
+  const autoBackupTimeMorningStorageKey = user ? `${AUTO_BACKUP_TIME_MORNING_KEY}_${user.email}` : AUTO_BACKUP_TIME_MORNING_KEY;
+  const autoBackupTimeEveningStorageKey = user ? `${AUTO_BACKUP_TIME_EVENING_KEY}_${user.email}` : AUTO_BACKUP_TIME_EVENING_KEY;
 
   const loadData = async () => {
     try {
@@ -268,6 +297,22 @@ export const ExpenseProvider: React.FC<{ children: React.ReactNode }> = ({ child
         setMonthlyIncomes({});
       }
 
+      const storedSummaryTime = await AsyncStorage.getItem(summaryTimeStorageKey);
+      if (storedSummaryTime) setSummaryTime(new Date(storedSummaryTime));
+      else setSummaryTime(new Date(new Date().setHours(8, 0, 0, 0)));
+
+      const storedReminderTime = await AsyncStorage.getItem(reminderTimeStorageKey);
+      if (storedReminderTime) setReminderTime(new Date(storedReminderTime));
+      else setReminderTime(new Date(new Date().setHours(18, 0, 0, 0)));
+
+      const storedAutoBackupMorning = await AsyncStorage.getItem(autoBackupTimeMorningStorageKey);
+      if (storedAutoBackupMorning) setAutoBackupTimeMorning(new Date(storedAutoBackupMorning));
+      else setAutoBackupTimeMorning(new Date(new Date().setHours(9, 0, 0, 0)));
+
+      const storedAutoBackupEvening = await AsyncStorage.getItem(autoBackupTimeEveningStorageKey);
+      if (storedAutoBackupEvening) setAutoBackupTimeEvening(new Date(storedAutoBackupEvening));
+      else setAutoBackupTimeEvening(new Date(new Date().setHours(21, 0, 0, 0)));
+
     } catch (e) {
       console.error('Failed to load data', e);
     } finally {
@@ -277,13 +322,13 @@ export const ExpenseProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   useEffect(() => {
     loadData();
-  }, [storageKey, categoriesStorageKey, paymentModesStorageKey, currencyStorageKey, budgetStorageKey, showMonthlyBudgetStorageKey, showYearlyBudgetStorageKey, showYearCardStorageKey, analyticsChartTypeStorageKey, chartStyleStorageKey, downloadPathStorageKey, backupPathStorageKey]);
+  }, [storageKey, categoriesStorageKey, paymentModesStorageKey, currencyStorageKey, budgetStorageKey, showMonthlyBudgetStorageKey, showYearlyBudgetStorageKey, showYearCardStorageKey, analyticsChartTypeStorageKey, chartStyleStorageKey, downloadPathStorageKey, backupPathStorageKey, summaryTimeStorageKey, reminderTimeStorageKey, autoBackupTimeMorningStorageKey, autoBackupTimeEveningStorageKey]);
 
   useEffect(() => {
     if (!isLoading) {
-      scheduleAllNotifications(expenses, currency);
+      scheduleAllNotifications(expenses, currency, summaryTime, reminderTime);
     }
-  }, [expenses, currency, isLoading]);
+  }, [expenses, currency, isLoading, summaryTime, reminderTime]);
 
   const addExpense = async (amount: number, description: string, date: Date, categoryId?: string, paymentModeId?: string) => {
     const newExpense: Expense = {
@@ -499,6 +544,26 @@ export const ExpenseProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }
   };
 
+  const updateSummaryTime = async (date: Date) => {
+    setSummaryTime(date);
+    await AsyncStorage.setItem(summaryTimeStorageKey, date.toISOString());
+  };
+
+  const updateReminderTime = async (date: Date) => {
+    setReminderTime(date);
+    await AsyncStorage.setItem(reminderTimeStorageKey, date.toISOString());
+  };
+
+  const updateAutoBackupTimeMorning = async (date: Date) => {
+    setAutoBackupTimeMorning(date);
+    await AsyncStorage.setItem(autoBackupTimeMorningStorageKey, date.toISOString());
+  };
+
+  const updateAutoBackupTimeEvening = async (date: Date) => {
+    setAutoBackupTimeEvening(date);
+    await AsyncStorage.setItem(autoBackupTimeEveningStorageKey, date.toISOString());
+  };
+
   const getCurrentMonthTotal = () => {
     const now = new Date();
     const currentMonth = now.getMonth();
@@ -528,7 +593,8 @@ export const ExpenseProvider: React.FC<{ children: React.ReactNode }> = ({ child
     const keys = [
       EXPENSES_KEY, CATEGORIES_KEY, PAYMENT_MODES_KEY, CURRENCY_KEY,
       BUDGET_KEY, SHOW_MONTHLY_BUDGET_KEY, SHOW_YEARLY_BUDGET_KEY, SHOW_YEAR_CARD_KEY,
-      ANALYTICS_CHART_TYPE_KEY, CHART_STYLE_KEY, DOWNLOAD_PATH_KEY, BACKUP_PATH_KEY
+      ANALYTICS_CHART_TYPE_KEY, CHART_STYLE_KEY, DOWNLOAD_PATH_KEY, BACKUP_PATH_KEY,
+      SUMMARY_TIME_KEY, REMINDER_TIME_KEY, AUTO_BACKUP_TIME_MORNING_KEY, AUTO_BACKUP_TIME_EVENING_KEY
     ];
 
     for (const key of keys) {
@@ -557,7 +623,9 @@ export const ExpenseProvider: React.FC<{ children: React.ReactNode }> = ({ child
       refreshExpenseData: loadData, isLoading,
       downloadPathUri, updateDownloadPath,
       backupPathUri, updateBackupPath,
-      migrateUserEmail
+      migrateUserEmail,
+      summaryTime, reminderTime, autoBackupTimeMorning, autoBackupTimeEvening,
+      updateSummaryTime, updateReminderTime, updateAutoBackupTimeMorning, updateAutoBackupTimeEvening
     }}>
       {children}
     </ExpenseContext.Provider>

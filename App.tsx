@@ -72,28 +72,42 @@ export const performBackgroundTasks = async () => {
     const last9AM = await AsyncStorage.getItem(last9amKey);
     const last9PM = await AsyncStorage.getItem(last9pmKey);
 
+    const morningKey = userEmail ? `@app_auto_backup_time_morning_${userEmail}` : '@app_auto_backup_time_morning';
+    const eveningKey = userEmail ? `@app_auto_backup_time_evening_${userEmail}` : '@app_auto_backup_time_evening';
+    const morningTimeStr = await AsyncStorage.getItem(morningKey);
+    const eveningTimeStr = await AsyncStorage.getItem(eveningKey);
+    
+    let morningTime = new Date();
+    morningTime.setHours(9, 0, 0, 0);
+    if (morningTimeStr) morningTime = new Date(morningTimeStr);
+
+    let eveningTime = new Date();
+    eveningTime.setHours(21, 0, 0, 0);
+    if (eveningTimeStr) eveningTime = new Date(eveningTimeStr);
+
     const now = new Date();
     const todayStr = now.toDateString();
-    const hour = now.getHours();
+    
+    const isPast = (target: Date) => now.getHours() > target.getHours() || (now.getHours() === target.getHours() && now.getMinutes() >= target.getMinutes());
 
     let shouldBackup = false;
     let backupType = '';
     let backupTypeKey = '';
 
     if (!backupSkipped) {
-      if (hour >= 9 && hour < 12) {
+      if (isPast(morningTime) && !isPast(eveningTime)) {
         if (last9AM !== todayStr) {
           shouldBackup = true;
           backupType = 'Morning';
           backupTypeKey = last9amKey;
         }
-      } else if (hour >= 20) {
+      } else if (isPast(eveningTime)) {
         if (last9PM !== todayStr) {
           shouldBackup = true;
           backupType = 'Evening';
           backupTypeKey = last9pmKey;
         }
-      } else if (hour < 9) {
+      } else if (!isPast(morningTime)) {
         const yesterday = new Date(now);
         yesterday.setDate(yesterday.getDate() - 1);
         const yesterdayStr = yesterday.toDateString();
@@ -142,7 +156,7 @@ export const performBackgroundTasks = async () => {
       }
     }
 
-    if (backupType === 'Evening' && hour < 9) {
+    if (backupType === 'Evening' && !isPast(morningTime)) {
       const yesterday = new Date(now);
       yesterday.setDate(yesterday.getDate() - 1);
       await AsyncStorage.setItem(backupTypeKey, yesterday.toDateString());
