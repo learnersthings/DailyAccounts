@@ -408,6 +408,17 @@ export default function SettingsScreen({ navigation }: any) {
         <View style={styles.divider} />
         <TouchableOpacity
           style={styles.row}
+          onPress={() => navigation.navigate('PaymentModes')}
+        >
+          <View style={styles.rowLeft}>
+            <Ionicons name="card-outline" size={22} color={colors.primary} style={styles.icon} />
+            <AppText style={[styles.text, { color: colors.text }]}>Payment Modes</AppText>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color={colors.text} />
+        </TouchableOpacity>
+        <View style={styles.divider} />
+        <TouchableOpacity
+          style={styles.row}
           onPress={() => navigation.navigate('AnalyticsChartSettings')}
         >
           <View style={styles.rowLeft}>
@@ -418,17 +429,6 @@ export default function SettingsScreen({ navigation }: any) {
             <AppText style={{ color: colors.text, fontSize: 14, marginRight: 8, opacity: 0.7 }}>{analyticsChartType}</AppText>
             <Ionicons name="chevron-forward" size={20} color={colors.text} />
           </View>
-        </TouchableOpacity>
-        <View style={styles.divider} />
-        <TouchableOpacity
-          style={styles.row}
-          onPress={() => navigation.navigate('PaymentModes')}
-        >
-          <View style={styles.rowLeft}>
-            <Ionicons name="card-outline" size={22} color={colors.primary} style={styles.icon} />
-            <AppText style={[styles.text, { color: colors.text }]}>Payment Modes</AppText>
-          </View>
-          <Ionicons name="chevron-forward" size={20} color={colors.text} />
         </TouchableOpacity>
         <View style={styles.divider} />
         <TouchableOpacity

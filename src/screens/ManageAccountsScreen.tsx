@@ -11,15 +11,24 @@ import EmptyState from '../components/EmptyState';
 export default function ManageAccountsScreen() {
   const colors = useThemeColors();
   const { isDarkTheme } = useThemeContext();
-  const { accounts, addManualAccount, deleteAccount } = useTransactionContext();
+  const { accounts, addManualAccount, editAccount, deleteAccount } = useTransactionContext();
   const insets = useSafeAreaInsets();
 
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [newAccountName, setNewAccountName] = useState('');
+  const [editingAccountName, setEditingAccountName] = useState<string | null>(null);
   const [error, setError] = useState('');
 
   const handleOpenAddModal = () => {
     setNewAccountName('');
+    setEditingAccountName(null);
+    setError('');
+    setIsModalVisible(true);
+  };
+
+  const handleOpenEditModal = (accountName: string) => {
+    setNewAccountName(accountName);
+    setEditingAccountName(accountName);
     setError('');
     setIsModalVisible(true);
   };
@@ -30,12 +39,16 @@ export default function ManageAccountsScreen() {
       setError('Account name is required.');
       return;
     }
-    if (accounts.includes(trimmed)) {
+    if (trimmed !== editingAccountName && accounts.includes(trimmed)) {
       setError('An account with this name already exists.');
       return;
     }
 
-    await addManualAccount(trimmed);
+    if (editingAccountName) {
+      await editAccount(editingAccountName, trimmed);
+    } else {
+      await addManualAccount(trimmed);
+    }
     setIsModalVisible(false);
   };
 
@@ -83,7 +96,10 @@ export default function ManageAccountsScreen() {
                   </View>
                   <AppText style={[styles.accountName, { color: colors.text }]} numberOfLines={1}>{acc}</AppText>
                 </View>
-                <TouchableOpacity onPress={() => handleDeleteAccount(acc)} style={styles.deleteBtn}>
+                <TouchableOpacity onPress={() => handleOpenEditModal(acc)} style={styles.actionBtn}>
+                  <Ionicons name="pencil-outline" size={20} color={colors.text} />
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => handleDeleteAccount(acc)} style={styles.actionBtn}>
                   <Ionicons name="trash-outline" size={20} color="#ff4444" />
                 </TouchableOpacity>
               </View>
@@ -108,7 +124,7 @@ export default function ManageAccountsScreen() {
               style={[styles.modalContent, { backgroundColor: colors.background, paddingBottom: Math.max(24, insets.bottom + 16) }]}
             >
               <View style={styles.modalHeader}>
-                <AppText style={[styles.modalTitle, { color: colors.text }]}>Add Account</AppText>
+                <AppText style={[styles.modalTitle, { color: colors.text }]}>{editingAccountName ? "Edit Account" : "Add Account"}</AppText>
                 <TouchableOpacity onPress={() => setIsModalVisible(false)}>
                   <Ionicons name="close" size={24} color={colors.text} />
                 </TouchableOpacity>
@@ -131,7 +147,7 @@ export default function ManageAccountsScreen() {
               </View>
 
               <TouchableOpacity style={[styles.saveButton, { backgroundColor: colors.primary }]} onPress={handleSaveAccount}>
-                <AppText style={styles.saveButtonText}>Add Account</AppText>
+                <AppText style={styles.saveButtonText}>{editingAccountName ? "Save Changes" : "Add Account"}</AppText>
               </TouchableOpacity>
 
             </KeyboardAvoidingView>
@@ -189,8 +205,9 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     flex: 1,
   },
-  deleteBtn: {
+  actionBtn: {
     padding: 8,
+    marginLeft: 4,
   },
   fab: {
     position: 'absolute',

@@ -517,17 +517,6 @@ export default function ExpenseList({ ListHeaderComponent, hideTitle, isExpenses
           {isExpensesScreen && (
             <>
               <TouchableOpacity
-                style={[styles.filterButton, { backgroundColor: colors.surface, borderColor: colors.border, marginRight: 10 }]}
-                onPress={handleDownloadPDF}
-                disabled={isDownloading}
-              >
-                {isDownloading ? (
-                  <ActivityIndicator size="small" color={colors.text} />
-                ) : (
-                  <Ionicons name="download-outline" size={22} color={colors.text} />
-                )}
-              </TouchableOpacity>
-              <TouchableOpacity
                 style={[styles.filterButton, { backgroundColor: colors.surface, borderColor: colors.border }]}
                 onPress={() => setIsFilterModalVisible(true)}
               >
@@ -694,6 +683,15 @@ export default function ExpenseList({ ListHeaderComponent, hideTitle, isExpenses
                 <TouchableOpacity style={{ padding: 12, flexDirection: 'row', alignItems: 'center' }} onPress={() => { setIsReorderMode(true); setIsMenuVisible(false); }}>
                   <Ionicons name="reorder-two-outline" size={20} color={colors.text} style={{ marginRight: 8 }} />
                   <AppText style={{ color: colors.text, fontSize: 16 }}>Reorder</AppText>
+                </TouchableOpacity>
+                <View style={{ height: 1, backgroundColor: colors.border }} />
+                <TouchableOpacity style={{ padding: 12, flexDirection: 'row', alignItems: 'center' }} onPress={() => { setIsMenuVisible(false); handleDownloadPDF(); }} disabled={isDownloading}>
+                  {isDownloading ? (
+                    <ActivityIndicator size="small" color={colors.primary} style={{ marginRight: 8 }} />
+                  ) : (
+                    <Ionicons name="download-outline" size={20} color={colors.text} style={{ marginRight: 8 }} />
+                  )}
+                  <AppText style={{ color: colors.text, fontSize: 16 }}>Download</AppText>
                 </TouchableOpacity>
               </View>
             </TouchableWithoutFeedback>

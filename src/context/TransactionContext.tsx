@@ -22,6 +22,7 @@ interface TransactionContextType {
   reorderTransactionsByDate: (dateStr: string, reorderedDayTransactions: AccountTransaction[]) => Promise<void>;
   updateAccountOrder: (newOrder: string[]) => Promise<void>;
   addManualAccount: (account: string) => Promise<void>;
+  editAccount: (oldName: string, newName: string) => Promise<void>;
   deleteAccount: (account: string) => Promise<void>;
   getAccountBalance: (account: string) => number;
   getAccountStats: (account: string) => { balance: number; totalCredit: number; totalDebit: number };
@@ -44,6 +45,7 @@ const TransactionContext = createContext<TransactionContextType>({
   reorderTransactionsByDate: async () => {},
   updateAccountOrder: async () => {},
   addManualAccount: async () => {},
+  editAccount: async () => {},
   deleteAccount: async () => {},
   getAccountBalance: () => 0,
   getAccountStats: () => ({ balance: 0, totalCredit: 0, totalDebit: 0 }),
@@ -239,6 +241,28 @@ export const TransactionProvider: React.FC<{ children: React.ReactNode }> = ({ c
     await AsyncStorage.setItem(manualAccountsStorageKey, JSON.stringify(newManualAccounts));
   };
 
+  const editAccount = async (oldName: string, newName: string) => {
+    if (oldName === newName) return;
+
+    const updatedTransactions = transactions.map(tx => 
+      tx.account === oldName ? { ...tx, account: newName } : tx
+    );
+    setTransactions(updatedTransactions);
+    await AsyncStorage.setItem(storageKey, JSON.stringify(updatedTransactions));
+
+    const newOrder = accountOrder.map(a => a === oldName ? newName : a);
+    setAccountOrder(newOrder);
+    await AsyncStorage.setItem(orderStorageKey, JSON.stringify(newOrder));
+
+    const newManualAccounts = manualAccounts.map(a => a === oldName ? newName : a);
+    setManualAccounts(newManualAccounts);
+    await AsyncStorage.setItem(manualAccountsStorageKey, JSON.stringify(newManualAccounts));
+
+    const newExcluded = excludedFromTotal.map(a => a === oldName ? newName : a);
+    setExcludedFromTotal(newExcluded);
+    await AsyncStorage.setItem(excludedStorageKey, JSON.stringify(newExcluded));
+  };
+
   const deleteAccount = async (account: string) => {
     const updated = transactions.filter(tx => tx.account !== account);
     setTransactions(updated);
@@ -304,6 +328,7 @@ export const TransactionProvider: React.FC<{ children: React.ReactNode }> = ({ c
       reorderTransactionsByDate,
       updateAccountOrder,
       addManualAccount,
+      editAccount,
       deleteAccount,
       getAccountBalance,
       getAccountStats,
