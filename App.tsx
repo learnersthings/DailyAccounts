@@ -21,8 +21,6 @@ let Notifications: any = null;
 
 if (!isExpoGo) {
   try {
-    BackgroundFetch = require('expo-background-fetch');
-    TaskManager = require('expo-task-manager');
     Notifications = require('expo-notifications');
 
     Notifications.setNotificationHandler({
@@ -44,7 +42,14 @@ if (!isExpoGo) {
       });
     }
   } catch (e) {
-    console.log('Skipping background/notification setup in Expo Go', e);
+    console.log('Skipping notification setup', e);
+  }
+
+  try {
+    BackgroundFetch = require('expo-background-fetch');
+    TaskManager = require('expo-task-manager');
+  } catch (e) {
+    console.log('Skipping background setup in Expo Go', e);
   }
 }
 

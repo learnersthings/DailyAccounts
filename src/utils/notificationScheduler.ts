@@ -8,7 +8,7 @@ if (!isExpoGo) {
   try {
     Notifications = require('expo-notifications');
   } catch (e) {
-    console.log('Skipping expo-notifications import in Expo Go', e);
+    console.log('Skipping expo-notifications import', e);
   }
 }
 
@@ -93,6 +93,30 @@ export const scheduleAllNotifications = async (expenses: Expense[], currency: st
         trigger: {
           type: Notifications.SchedulableTriggerInputTypes.DATE,
           date: todayReminder,
+        },
+      });
+    }
+
+    // ---- Today's Summary (if applicable) ----
+    if (now.getHours() < summaryTime.getHours() || (now.getHours() === summaryTime.getHours() && now.getMinutes() < summaryTime.getMinutes())) {
+      const todaySummary = new Date(now);
+      todaySummary.setHours(summaryTime.getHours(), summaryTime.getMinutes(), 0, 0);
+      
+      const yesterdayDate = new Date(now);
+      yesterdayDate.setDate(yesterdayDate.getDate() - 1);
+      const yesterdayStr = yesterdayDate.toDateString();
+      const yesterdayExpenses = expenses.filter(e => new Date(e.date).toDateString() === yesterdayStr);
+      const yesterdayTotal = yesterdayExpenses.reduce((sum, e) => sum + (parseFloat(e.amount as any) || 0), 0);
+
+      await Notifications.scheduleNotificationAsync({
+        identifier: `${SUMMARY_PREFIX}0`,
+        content: {
+          title: "Yesterday's Summary 📊",
+          body: `Your total expense for yesterday was ${currency}${yesterdayTotal}.`,
+        },
+        trigger: {
+          type: Notifications.SchedulableTriggerInputTypes.DATE,
+          date: todaySummary,
         },
       });
     }

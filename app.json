@@ -20,6 +20,11 @@
       "supportsTablet": true
     },
     "android": {
+      "permissions": [
+        "SCHEDULE_EXACT_ALARM",
+        "USE_EXACT_ALARM",
+        "POST_NOTIFICATIONS"
+      ],
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#000000"
@@ -33,6 +38,14 @@
     },
     "plugins": [
       "expo-font",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/notification-icon.png",
+          "color": "#121212",
+          "defaultChannel": "default"
+        }
+      ],
       "@react-native-community/datetimepicker",
       [
         "@howincodes/expo-dynamic-app-icon",
