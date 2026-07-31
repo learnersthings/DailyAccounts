@@ -40,17 +40,17 @@ export const generateDashboardPDFHTML = (
     contentHTML = Object.entries(grouped).map(([monthYear, data], index) => {
       // 2. New month starts from a new page (except the first one)
       const pageBreak = index > 0 ? 'page-break-before: always;' : '';
-      
+
       const rows = data.expenses.map(exp => {
         const cat = categories.find(c => c.id === exp.categoryId);
         const mode = paymentModes.find(m => m.id === exp.paymentModeId);
         return `
           <tr>
-            <td class="nowrap">${formatDDMMYY(exp.date)}</td>
-            <td class="description-col">${exp.description}</td>
-            <td class="nowrap">${cat ? cat.name : ''}</td>
-            <td class="nowrap">${mode ? mode.name : ''}</td>
-            <td class="nowrap" style="text-align: right; color: #ff4444;">${formatAmount(exp.amount)}</td>
+            <td class="nowrap" style="width: 150px;">${formatDDMMYY(exp.date)}</td>
+            <td class="nowrap" style="width: 150px; color: #ff4444;">${formatAmount(exp.amount)}</td>
+            <td class="description-col" style="width: 500px;">${exp.description}</td>
+            <td class="nowrap" style="width: 150px;">${cat ? cat.name : ''}</td>
+            <td class="nowrap" style="width: 150px;">${mode ? mode.name : ''}</td>
           </tr>
         `;
       }).join('');
@@ -65,11 +65,11 @@ export const generateDashboardPDFHTML = (
           <table>
             <thead>
               <tr>
-                <th style="text-align: center;">Date</th>
-                <th style="text-align: center;">Description</th>
-                <th style="text-align: center;">Category</th>
-                <th style="text-align: center;">Payment Mode</th>
-                <th style="text-align: center;">Amount (${currency})</th>
+                <th style="text-align: center; width: 150px;">Date</th>
+                <th style="text-align: center; width: 150px;">Amount Spent</th>
+                <th style="text-align: center; width: 500px;">Description</th>
+                <th style="text-align: center; width: 150px;">Category</th>
+                <th style="text-align: center; width: 150px;">Payment Mode</th>
               </tr>
             </thead>
             <tbody>
@@ -86,7 +86,7 @@ export const generateDashboardPDFHTML = (
   return `
     <html>
       <head>
-        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no" />
+        <meta name="viewport" content="width=1150" />
         <style>
           @page { 
             size: letter portrait;
@@ -104,10 +104,11 @@ export const generateDashboardPDFHTML = (
           h1 { text-align: center; color: #2c3e50; margin-bottom: 5px; }
           .summary { font-size: 16px; text-align: center; margin-bottom: 30px; font-weight: bold; color: #7f8c8d; }
           .month-header { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; border-bottom: 2px solid #2c3e50; padding-bottom: 10px; margin-bottom: 20px; color: #2c3e50; }
-          table { width: 100%; border-collapse: collapse; }
-          th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
-          th { background-color: #f8f9fa; color: #2c3e50; }
-          tr:nth-child(even) { background-color: #f2f2f2; }
+          table { width: 1100px; border-collapse: collapse; table-layout: fixed; zoom: 0.67; }
+          th, td { border: 1px solid #000; padding: 6px; text-align: left; overflow: hidden; }
+          th { background-color: #d0a060; color: #000; font-weight: bold; }
+          tr:nth-child(even) { background-color: #e6d3ba; }
+          tr:nth-child(odd) { background-color: #f8f2eb; }
           .nowrap { white-space: nowrap; }
           .description-col { width: 100%; }
           .footer { margin-top: 40px; text-align: center; font-size: 12px; color: #888; }
