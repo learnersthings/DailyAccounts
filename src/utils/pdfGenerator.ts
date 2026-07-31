@@ -88,8 +88,17 @@ export const generateDashboardPDFHTML = (
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no" />
         <style>
-          @page { margin: 40px; }
-          body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333; margin: 0; padding: 0; }
+          @page { 
+            size: letter portrait;
+            margin: 10mm; /* Narrow margin */
+            @bottom-right {
+              content: "Page " counter(page);
+              font-family: Arial, sans-serif;
+              font-size: 10px;
+              color: #888;
+            }
+          }
+          body { font-family: Arial, sans-serif; font-size: 10px; color: #333; margin: 0; padding: 0; }
           thead { display: table-header-group; }
           tr { page-break-inside: avoid; }
           h1 { text-align: center; color: #2c3e50; margin-bottom: 5px; }
@@ -143,8 +152,17 @@ export const generateAccountTransactionsPDFHTML = (
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no" />
         <style>
-          @page { margin: 40px; }
-          body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333; margin: 0; padding: 0; }
+          @page { 
+            size: letter portrait;
+            margin: 10mm; /* Narrow margin */
+            @bottom-right {
+              content: "Page " counter(page);
+              font-family: Arial, sans-serif;
+              font-size: 10px;
+              color: #888;
+            }
+          }
+          body { font-family: Arial, sans-serif; font-size: 10px; color: #333; margin: 0; padding: 0; }
           thead { display: table-header-group; }
           tr { page-break-inside: avoid; }
           h1 { text-align: center; color: #2c3e50; margin-bottom: 5px; }
@@ -341,8 +359,17 @@ export const generateAnalyticsPDFHTML = (
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no" />
         <style>
-          @page { margin: 40px; }
-          body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333; margin: 0; padding: 0; }
+          @page { 
+            size: letter portrait;
+            margin: 10mm; /* Narrow margin */
+            @bottom-right {
+              content: "Page " counter(page);
+              font-family: Arial, sans-serif;
+              font-size: 10px;
+              color: #888;
+            }
+          }
+          body { font-family: Arial, sans-serif; font-size: 10px; color: #333; margin: 0; padding: 0; }
           thead { display: table-header-group; }
           tr { page-break-inside: avoid; }
           h1 { text-align: center; color: #2c3e50; margin-bottom: 5px; }
