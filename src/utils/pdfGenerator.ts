@@ -8,54 +8,108 @@ export const generateDashboardPDFHTML = (
   paymentModes: PaymentMode[],
   currency: string
 ) => {
-  const tableRows = expenses.map(exp => {
-    const cat = categories.find(c => c.id === exp.categoryId);
-    const mode = paymentModes.find(m => m.id === exp.paymentModeId);
-    return `
-      <tr>
-        <td>${new Date(exp.date).toLocaleDateString()}</td>
-        <td>${exp.description}</td>
-        <td>${cat ? cat.name : ''}</td>
-        <td>${mode ? mode.name : ''}</td>
-        <td style="text-align: right; color: #ff4444;">${formatAmount(exp.amount)}</td>
-      </tr>
-    `;
-  }).join('');
+  // 1. Sort ascending by date
+  const sortedExpenses = [...expenses].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
-  const total = expenses.reduce((sum, e) => sum + e.amount, 0);
+  // 2. Group by month
+  const grouped = sortedExpenses.reduce((acc, exp) => {
+    const d = new Date(exp.date);
+    const monthName = d.toLocaleString('default', { month: 'long' });
+    const year = d.getFullYear();
+    const key = `${monthName} ${year}`;
+    if (!acc[key]) acc[key] = { expenses: [], total: 0 };
+    acc[key].expenses.push(exp);
+    acc[key].total += exp.amount;
+    return acc;
+  }, {} as Record<string, { expenses: Expense[], total: number }>);
+
+  // 5. Format DD-MM-YY
+  const formatDDMMYY = (dateStr: string) => {
+    const d = new Date(dateStr);
+    const day = String(d.getDate()).padStart(2, '0');
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const year = String(d.getFullYear()).slice(-2);
+    return `${day}-${month}-${year}`;
+  };
+
+  let contentHTML = '';
+
+  if (sortedExpenses.length === 0) {
+    contentHTML = '<div style="text-align: center; margin-top: 50px; font-size: 16px;">No expenses found</div>';
+  } else {
+    contentHTML = Object.entries(grouped).map(([monthYear, data], index) => {
+      // 2. New month starts from a new page (except the first one)
+      const pageBreak = index > 0 ? 'page-break-before: always;' : '';
+      
+      const rows = data.expenses.map(exp => {
+        const cat = categories.find(c => c.id === exp.categoryId);
+        const mode = paymentModes.find(m => m.id === exp.paymentModeId);
+        return `
+          <tr>
+            <td class="nowrap">${formatDDMMYY(exp.date)}</td>
+            <td class="description-col">${exp.description}</td>
+            <td class="nowrap">${cat ? cat.name : ''}</td>
+            <td class="nowrap">${mode ? mode.name : ''}</td>
+            <td class="nowrap" style="text-align: right; color: #ff4444;">${formatAmount(exp.amount)}</td>
+          </tr>
+        `;
+      }).join('');
+
+      return `
+        <div style="${pageBreak}">
+          <!-- 3. Title left, total right -->
+          <div class="month-header">
+            <h2 style="margin: 0;">${monthYear}</h2>
+            <h2 style="margin: 0;">Total: ${currency}${formatAmount(data.total)}</h2>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th style="text-align: center;">Date</th>
+                <th style="text-align: center;">Description</th>
+                <th style="text-align: center;">Category</th>
+                <th style="text-align: center;">Payment Mode</th>
+                <th style="text-align: center;">Amount (${currency})</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rows}
+            </tbody>
+          </table>
+        </div>
+      `;
+    }).join('');
+  }
+
+  const grandTotal = sortedExpenses.reduce((sum, e) => sum + e.amount, 0);
 
   return `
     <html>
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no" />
         <style>
-          body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; padding: 20px; color: #333; }
-          h1 { text-align: center; color: #2c3e50; }
-          .summary { font-size: 18px; margin-bottom: 20px; font-weight: bold; }
-          table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+          @page { margin: 40px; }
+          body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333; margin: 0; padding: 0; }
+          thead { display: table-header-group; }
+          tr { page-break-inside: avoid; }
+          h1 { text-align: center; color: #2c3e50; margin-bottom: 5px; }
+          .summary { font-size: 16px; text-align: center; margin-bottom: 30px; font-weight: bold; color: #7f8c8d; }
+          .month-header { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; border-bottom: 2px solid #2c3e50; padding-bottom: 10px; margin-bottom: 20px; color: #2c3e50; }
+          table { width: 100%; border-collapse: collapse; }
           th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
           th { background-color: #f8f9fa; color: #2c3e50; }
           tr:nth-child(even) { background-color: #f2f2f2; }
+          .nowrap { white-space: nowrap; }
+          .description-col { width: 100%; }
           .footer { margin-top: 40px; text-align: center; font-size: 12px; color: #888; }
         </style>
       </head>
       <body>
         <h1>Expense Report</h1>
-        <div class="summary">Total Expenses: ${currency}${formatAmount(total)} (${expenses.length} records)</div>
-        <table>
-          <thead>
-            <tr>
-              <th style="text-align: center;">Date</th>
-              <th style="text-align: center;">Description</th>
-              <th style="text-align: center;">Category</th>
-              <th style="text-align: center;">Payment Mode</th>
-              <th style="text-align: center;">Amount (${currency})</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${tableRows.length > 0 ? tableRows : '<tr><td colspan="5" style="text-align: center;">No expenses found</td></tr>'}
-          </tbody>
-        </table>
+        <div class="summary">Grand Total: ${currency}${formatAmount(grandTotal)} (${sortedExpenses.length} records)</div>
+        
+        ${contentHTML}
+
         <div class="footer">Generated by Daily Accounts</div>
       </body>
     </html>
@@ -73,10 +127,10 @@ export const generateAccountTransactionsPDFHTML = (
     const amountPrefix = isCredit ? '+' : '-';
     return `
       <tr>
-        <td>${new Date(tx.date).toLocaleDateString()}</td>
-        <td>${tx.description}</td>
-        <td>${tx.type}</td>
-        <td style="text-align: right; color: ${amountColor};">${amountPrefix}${formatAmount(tx.amount)}</td>
+        <td class="nowrap">${new Date(tx.date).toLocaleDateString()}</td>
+        <td class="description-col">${tx.description}</td>
+        <td class="nowrap">${tx.type}</td>
+        <td class="nowrap" style="text-align: right; color: ${amountColor};">${amountPrefix}${formatAmount(tx.amount)}</td>
       </tr>
     `;
   }).join('');
@@ -89,7 +143,10 @@ export const generateAccountTransactionsPDFHTML = (
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no" />
         <style>
-          body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; padding: 20px; color: #333; }
+          @page { margin: 40px; }
+          body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333; margin: 0; padding: 0; }
+          thead { display: table-header-group; }
+          tr { page-break-inside: avoid; }
           h1 { text-align: center; color: #2c3e50; margin-bottom: 5px; }
           h2 { text-align: center; color: #7f8c8d; font-size: 16px; margin-top: 0; margin-bottom: 20px; }
           .summary-container { display: flex; justify-content: space-around; margin-bottom: 20px; font-weight: bold; }
@@ -100,6 +157,8 @@ export const generateAccountTransactionsPDFHTML = (
           th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
           th { background-color: #f8f9fa; color: #2c3e50; }
           tr:nth-child(even) { background-color: #f2f2f2; }
+          .nowrap { white-space: nowrap; }
+          .description-col { width: 100%; }
           .footer { margin-top: 40px; text-align: center; font-size: 12px; color: #888; }
         </style>
       </head>
@@ -282,7 +341,10 @@ export const generateAnalyticsPDFHTML = (
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no" />
         <style>
-          body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; padding: 20px; color: #333; }
+          @page { margin: 40px; }
+          body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333; margin: 0; padding: 0; }
+          thead { display: table-header-group; }
+          tr { page-break-inside: avoid; }
           h1 { text-align: center; color: #2c3e50; margin-bottom: 5px; }
           .subtitle { text-align: center; color: #7f8c8d; font-size: 16px; margin-bottom: 30px; }
           .card { background: #fff; border: 1px solid #e0e0e0; border-radius: 8px; padding: 20px; margin-bottom: 20px; }
