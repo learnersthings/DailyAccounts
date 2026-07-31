@@ -203,7 +203,7 @@ const MonthlySpendingCalendar = ({ expenses, selectedMonth, selectedYear, colors
 export default function DashboardScreen() {
   const colors = useThemeColors();
   const { isDarkTheme } = useThemeContext();
-  const { expenses, currency, monthlyBudget, yearlyBudget, showMonthlyBudget, showYearlyBudget, showYearCard } = useExpenseContext();
+  const { expenses, currency, monthlyBudget, yearlyBudget, showMonthlyBudget, showYearlyBudget, showYearCard, isAmountsVisible } = useExpenseContext();
 
   const currentMonthIndex = new Date().getMonth();
   const currentYearVal = new Date().getFullYear();
@@ -217,9 +217,15 @@ export default function DashboardScreen() {
   const [selectedDayDate, setSelectedDayDate] = useState<string | null>(null);
   const [isDayModalVisible, setIsDayModalVisible] = useState(false);
 
-  const [isMonthlyHidden, setIsMonthlyHidden] = useState(true);
-  const [isYearlyHidden, setIsYearlyHidden] = useState(true);
-  const [isCalendarHidden, setIsCalendarHidden] = useState(true);
+  const [isMonthlyHidden, setIsMonthlyHidden] = React.useState(!isAmountsVisible);
+  const [isYearlyHidden, setIsYearlyHidden] = React.useState(!isAmountsVisible);
+  const [isCalendarHidden, setIsCalendarHidden] = React.useState(!isAmountsVisible);
+
+  React.useEffect(() => {
+    setIsMonthlyHidden(!isAmountsVisible);
+    setIsYearlyHidden(!isAmountsVisible);
+    setIsCalendarHidden(!isAmountsVisible);
+  }, [isAmountsVisible]);
 
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [toastOpacity] = useState(new Animated.Value(0));

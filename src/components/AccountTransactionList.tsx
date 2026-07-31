@@ -29,6 +29,7 @@ interface TransactionListItemProps {
   handleRowPress: (tx: AccountTransaction) => void;
   draggedItemDateRef: React.MutableRefObject<string | null>;
   onDelete: (id: string) => void;
+  isAmountsVisible: boolean;
 }
 
 const TransactionListItem = React.memo(({
@@ -43,6 +44,7 @@ const TransactionListItem = React.memo(({
   handleRowPress,
   draggedItemDateRef,
   onDelete,
+  isAmountsVisible,
 }: TransactionListItemProps) => {
   const isCredit = tx.type === 'Credit';
 
@@ -134,7 +136,7 @@ const TransactionListItem = React.memo(({
             </View>
           </View>
           <AppText style={[styles.expenseAmount, { color: isCredit ? '#00C851' : '#ff4444' }]}>
-            {isCredit ? '+' : '-'}{currency}{formatAmount(tx.amount)}
+            {!isAmountsVisible ? '••••••' : `${isCredit ? '+' : '-'}${currency}${formatAmount(tx.amount)}`}
           </AppText>
         </TouchableOpacity>
       </Swipeable>
@@ -147,7 +149,8 @@ const TransactionListItem = React.memo(({
     prevProps.isSelected === nextProps.isSelected &&
     prevProps.isSelectMode === nextProps.isSelectMode &&
     prevProps.currency === nextProps.currency &&
-    prevProps.accountFilter === nextProps.accountFilter
+    prevProps.accountFilter === nextProps.accountFilter &&
+    prevProps.isAmountsVisible === nextProps.isAmountsVisible
   );
 });
 
@@ -159,7 +162,7 @@ export default function AccountTransactionList({ accountFilter }: AccountTransac
   const colors = useThemeColors();
   const { isDarkTheme } = useThemeContext();
   const { transactions, deleteTransaction, bulkDeleteTransactions, reorderTransactionsByDate } = useTransactionContext();
-  const { currency, downloadPathUri } = useExpenseContext();
+  const { currency, downloadPathUri, isAmountsVisible } = useExpenseContext();
 
   const [selectedTransaction, setSelectedTransaction] = useState<AccountTransaction | null>(null);
   const [isModalVisible, setIsModalVisible] = useState(false);
@@ -356,9 +359,10 @@ export default function AccountTransactionList({ accountFilter }: AccountTransac
         handleRowPress={handleRowPress}
         draggedItemDateRef={draggedItemDateRef}
         onDelete={(id) => bulkDeleteTransactions([id])}
+        isAmountsVisible={isAmountsVisible}
       />
     );
-  }, [selectedIds, isSelectMode, colors, currency, accountFilter, handleRowPress, bulkDeleteTransactions]);
+  }, [selectedIds, isSelectMode, colors, currency, accountFilter, handleRowPress, bulkDeleteTransactions, isAmountsVisible]);
 
   const listHeader = (
     <View style={{ marginBottom: 16 }}>

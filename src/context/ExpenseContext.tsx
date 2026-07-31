@@ -61,6 +61,8 @@ interface ExpenseContextType {
   updateCurrency: (newCurrency: string) => Promise<void>;
   updateBudgets: (monthly: number, yearly: number) => Promise<void>;
   toggleShowMonthlyBudget: (val: boolean) => Promise<void>;
+  isAmountsVisible: boolean;
+  toggleAmountsVisibility: (val: boolean) => Promise<void>;
   toggleShowYearlyBudget: (val: boolean) => Promise<void>;
   toggleShowYearCard: (val: boolean) => Promise<void>;
   updateAnalyticsChartType: (type: 'Pie' | 'Donut') => Promise<void>;
@@ -94,6 +96,7 @@ const ExpenseContext = createContext<ExpenseContextType>({
   showMonthlyBudget: true,
   showYearlyBudget: true,
   showYearCard: true,
+  isAmountsVisible: false,
   analyticsChartType: 'Pie',
   chartStyle: 'Classic',
   monthlyIncomes: {},
@@ -113,6 +116,7 @@ const ExpenseContext = createContext<ExpenseContextType>({
   updateCurrency: async () => {},
   updateBudgets: async () => {},
   toggleShowMonthlyBudget: async () => {},
+  toggleAmountsVisibility: async () => {},
   toggleShowYearlyBudget: async () => {},
   toggleShowYearCard: async () => {},
   updateAnalyticsChartType: async () => {},
@@ -141,6 +145,7 @@ export const useExpenseContext = () => useContext(ExpenseContext);
 const EXPENSES_KEY = '@app_expenses';
 const CATEGORIES_KEY = '@app_categories';
 const PAYMENT_MODES_KEY = '@app_payment_modes';
+const AMOUNTS_VISIBLE_KEY = '@app_amounts_visible';
 const CURRENCY_KEY = '@app_currency';
 const BUDGET_KEY = '@app_budgets';
 const SHOW_MONTHLY_BUDGET_KEY = '@app_show_monthly_budget';
@@ -165,6 +170,7 @@ export const ExpenseProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [showMonthlyBudget, setShowMonthlyBudget] = useState(true);
   const [showYearlyBudget, setShowYearlyBudget] = useState(true);
   const [showYearCard, setShowYearCard] = useState(true);
+  const [isAmountsVisible, setIsAmountsVisible] = useState(false);
   const [analyticsChartType, setAnalyticsChartType] = useState<'Pie' | 'Donut'>('Pie');
   const [chartStyle, setChartStyle] = useState<'Classic' | '3D' | 'Spaced' | 'Semi-Circle'>('Classic');
   const [downloadPathUri, setDownloadPathUri] = useState<string | null>(null);
@@ -185,6 +191,7 @@ export const ExpenseProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const showMonthlyBudgetStorageKey = user ? `${SHOW_MONTHLY_BUDGET_KEY}_${user.email}` : SHOW_MONTHLY_BUDGET_KEY;
   const showYearlyBudgetStorageKey = user ? `${SHOW_YEARLY_BUDGET_KEY}_${user.email}` : SHOW_YEARLY_BUDGET_KEY;
   const showYearCardStorageKey = user ? `${SHOW_YEAR_CARD_KEY}_${user.email}` : SHOW_YEAR_CARD_KEY;
+  const amountsVisibleStorageKey = user ? `${AMOUNTS_VISIBLE_KEY}_${user.email}` : AMOUNTS_VISIBLE_KEY;
   const analyticsChartTypeStorageKey = user ? `${ANALYTICS_CHART_TYPE_KEY}_${user.email}` : ANALYTICS_CHART_TYPE_KEY;
   const chartStyleStorageKey = user ? `${CHART_STYLE_KEY}_${user.email}` : CHART_STYLE_KEY;
   const downloadPathStorageKey = user ? `${DOWNLOAD_PATH_KEY}_${user.email}` : DOWNLOAD_PATH_KEY;
@@ -246,6 +253,13 @@ export const ExpenseProvider: React.FC<{ children: React.ReactNode }> = ({ child
         setShowMonthlyBudget(storedShowMonthly === 'true');
       } else {
         setShowMonthlyBudget(true);
+      }
+
+      const storedAmountsVisible = await AsyncStorage.getItem(amountsVisibleStorageKey);
+      if (storedAmountsVisible !== null) {
+        setIsAmountsVisible(storedAmountsVisible === 'true');
+      } else {
+        setIsAmountsVisible(false);
       }
 
       const storedShowYearly = await AsyncStorage.getItem(showYearlyBudgetStorageKey);
@@ -322,7 +336,7 @@ export const ExpenseProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   useEffect(() => {
     loadData();
-  }, [storageKey, categoriesStorageKey, paymentModesStorageKey, currencyStorageKey, budgetStorageKey, showMonthlyBudgetStorageKey, showYearlyBudgetStorageKey, showYearCardStorageKey, analyticsChartTypeStorageKey, chartStyleStorageKey, downloadPathStorageKey, backupPathStorageKey, summaryTimeStorageKey, reminderTimeStorageKey, autoBackupTimeMorningStorageKey, autoBackupTimeEveningStorageKey]);
+  }, [storageKey, categoriesStorageKey, paymentModesStorageKey, currencyStorageKey, budgetStorageKey, showMonthlyBudgetStorageKey, showYearlyBudgetStorageKey, showYearCardStorageKey, analyticsChartTypeStorageKey, chartStyleStorageKey, downloadPathStorageKey, backupPathStorageKey, summaryTimeStorageKey, reminderTimeStorageKey, autoBackupTimeMorningStorageKey, autoBackupTimeEveningStorageKey, amountsVisibleStorageKey]);
 
   useEffect(() => {
     if (!isLoading) {
@@ -506,6 +520,11 @@ export const ExpenseProvider: React.FC<{ children: React.ReactNode }> = ({ child
     await AsyncStorage.setItem(showMonthlyBudgetStorageKey, val.toString());
   };
 
+  const toggleAmountsVisibility = async (val: boolean) => {
+    setIsAmountsVisible(val);
+    await AsyncStorage.setItem(amountsVisibleStorageKey, val.toString());
+  };
+
   const toggleShowYearlyBudget = async (val: boolean) => {
     setShowYearlyBudget(val);
     await AsyncStorage.setItem(showYearlyBudgetStorageKey, val.toString());
@@ -594,7 +613,8 @@ export const ExpenseProvider: React.FC<{ children: React.ReactNode }> = ({ child
       EXPENSES_KEY, CATEGORIES_KEY, PAYMENT_MODES_KEY, CURRENCY_KEY,
       BUDGET_KEY, SHOW_MONTHLY_BUDGET_KEY, SHOW_YEARLY_BUDGET_KEY, SHOW_YEAR_CARD_KEY,
       ANALYTICS_CHART_TYPE_KEY, CHART_STYLE_KEY, DOWNLOAD_PATH_KEY, BACKUP_PATH_KEY,
-      SUMMARY_TIME_KEY, REMINDER_TIME_KEY, AUTO_BACKUP_TIME_MORNING_KEY, AUTO_BACKUP_TIME_EVENING_KEY
+      SUMMARY_TIME_KEY, REMINDER_TIME_KEY, AUTO_BACKUP_TIME_MORNING_KEY, AUTO_BACKUP_TIME_EVENING_KEY,
+      AMOUNTS_VISIBLE_KEY
     ];
 
     for (const key of keys) {
@@ -611,14 +631,14 @@ export const ExpenseProvider: React.FC<{ children: React.ReactNode }> = ({ child
   return (
     <ExpenseContext.Provider value={{ 
       expenses, categories, paymentModes, currency, monthlyBudget, yearlyBudget, 
-      showMonthlyBudget, showYearlyBudget, showYearCard, analyticsChartType, chartStyle,
+      showMonthlyBudget, showYearlyBudget, showYearCard, isAmountsVisible, analyticsChartType, chartStyle,
       monthlyIncomes,
       addExpense, updateExpense, deleteExpense, bulkDeleteExpenses, reorderExpensesByDate,
       updateMonthlyIncome,
       addCategory, updateCategory, deleteCategory,
       addPaymentMode, updatePaymentMode, deletePaymentMode,
       bulkImport,
-      updateCurrency, updateBudgets, toggleShowMonthlyBudget, toggleShowYearlyBudget, toggleShowYearCard, updateAnalyticsChartType, updateChartStyle,
+      updateCurrency, updateBudgets, toggleShowMonthlyBudget, toggleAmountsVisibility, toggleShowYearlyBudget, toggleShowYearCard, updateAnalyticsChartType, updateChartStyle,
       getCurrentMonthTotal, getPreviousMonthTotal, 
       refreshExpenseData: loadData, isLoading,
       downloadPathUri, updateDownloadPath,

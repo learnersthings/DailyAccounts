@@ -17,13 +17,21 @@ export default function HomeScreen({ navigation }: any) {
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
   const { user } = useAuthContext();
   const { accounts, getAccountStats, updateAccountOrder, deleteAccount, excludedFromTotal, showCardStats } = useTransactionContext();
-  const { currency } = useExpenseContext();
+  const { currency, isAmountsVisible } = useExpenseContext();
 
-  const [isTotalBalanceHidden, setIsTotalBalanceHidden] = useState(true);
-  const [hiddenAccounts, setHiddenAccounts] = useState<Record<string, boolean>>({});
+  const [isTotalBalanceHidden, setIsTotalBalanceHidden] = React.useState(!isAmountsVisible);
+  const [hiddenAccounts, setHiddenAccounts] = React.useState<Record<string, boolean>>({});
+
+  React.useEffect(() => {
+    setIsTotalBalanceHidden(!isAmountsVisible);
+    setHiddenAccounts({});
+  }, [isAmountsVisible]);
 
   const toggleAccountHidden = (acc: string) => {
-    setHiddenAccounts(prev => ({ ...prev, [acc]: prev[acc] === false ? true : false }));
+    setHiddenAccounts(prev => {
+      const current = prev[acc] ?? !isAmountsVisible;
+      return { ...prev, [acc]: !current };
+    });
   };
 
   const currentHour = new Date().getHours();
@@ -92,7 +100,7 @@ export default function HomeScreen({ navigation }: any) {
 
               <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                 <TouchableOpacity onPress={() => toggleAccountHidden(acc)} style={{ padding: 4, marginRight: 8 }} hitSlop={{top: 10, bottom: 10, left: 10, right: 10}}>
-                  <Ionicons name={hiddenAccounts[acc] !== false ? 'eye-off-outline' : 'eye-outline'} size={20} color="rgba(255,255,255,0.7)" />
+                  <Ionicons name={(hiddenAccounts[acc] ?? !isAmountsVisible) ? 'eye-off-outline' : 'eye-outline'} size={20} color="rgba(255,255,255,0.7)" />
                 </TouchableOpacity>
                 <TouchableOpacity
                   onPress={() => setActiveDropdown(activeDropdown === acc ? null : acc)}
@@ -130,7 +138,7 @@ export default function HomeScreen({ navigation }: any) {
             <View style={styles.cardBody}>
               <AppText style={[styles.balanceLabel, { color: 'rgba(255,255,255,0.8)' }]}>Available Balance</AppText>
               <AppText style={[styles.balanceAmount, { color: '#fff' }]}>
-                {hiddenAccounts[acc] !== false ? '••••••' : `${currency}${formatAmount(stats.balance)}`}
+                {(hiddenAccounts[acc] ?? !isAmountsVisible) ? '••••••' : `${currency}${formatAmount(stats.balance)}`}
               </AppText>
 
               {showCardStats && (
@@ -140,14 +148,14 @@ export default function HomeScreen({ navigation }: any) {
                       <Ionicons name="arrow-down-circle" size={16} color="#4CAF50" style={{ marginRight: 4 }} />
                       <AppText style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)' }}>CREDIT</AppText>
                     </View>
-                    <AppText style={{ fontSize: 16, fontWeight: 'bold', color: '#4CAF50' }}>{hiddenAccounts[acc] !== false ? '••••' : `${currency}${formatAmount(stats.totalCredit)}`}</AppText>
+                    <AppText style={{ fontSize: 16, fontWeight: 'bold', color: '#4CAF50' }}>{(hiddenAccounts[acc] ?? !isAmountsVisible) ? '••••' : `${currency}${formatAmount(stats.totalCredit)}`}</AppText>
                   </View>
                   <View style={{ flex: 1 }}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
                       <Ionicons name="arrow-up-circle" size={16} color="#F44336" style={{ marginRight: 4 }} />
                       <AppText style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)' }}>DEBIT</AppText>
                     </View>
-                    <AppText style={{ fontSize: 16, fontWeight: 'bold', color: '#F44336' }}>{hiddenAccounts[acc] !== false ? '••••' : `${currency}${formatAmount(stats.totalDebit)}`}</AppText>
+                    <AppText style={{ fontSize: 16, fontWeight: 'bold', color: '#F44336' }}>{(hiddenAccounts[acc] ?? !isAmountsVisible) ? '••••' : `${currency}${formatAmount(stats.totalDebit)}`}</AppText>
                   </View>
                 </View>
               )}

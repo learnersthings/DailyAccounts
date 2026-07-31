@@ -234,7 +234,7 @@ export default function SettingsScreen({ navigation }: any) {
     }
   };
 
-  const { currency, refreshExpenseData, downloadPathUri, updateDownloadPath, backupPathUri, updateBackupPath, analyticsChartType, summaryTime, updateSummaryTime, reminderTime, updateReminderTime, autoBackupTimeMorning, updateAutoBackupTimeMorning, autoBackupTimeEvening, updateAutoBackupTimeEvening } = useExpenseContext();
+  const { currency, refreshExpenseData, downloadPathUri, updateDownloadPath, backupPathUri, updateBackupPath, analyticsChartType, summaryTime, updateSummaryTime, reminderTime, updateReminderTime, autoBackupTimeMorning, updateAutoBackupTimeMorning, autoBackupTimeEvening, updateAutoBackupTimeEvening, isAmountsVisible, toggleAmountsVisibility } = useExpenseContext();
   const { accounts, excludedFromTotal, toggleAccountInTotal, refreshTransactionData, showCardStats, toggleShowCardStats } = useTransactionContext();
 
   return (
@@ -372,6 +372,20 @@ export default function SettingsScreen({ navigation }: any) {
             <Ionicons name="chevron-forward" size={20} color={colors.text} />
           </View>
         </TouchableOpacity>
+
+        <View style={styles.divider} />
+        <View style={[styles.row, { paddingVertical: 12 }]}>
+          <View style={styles.rowLeft}>
+            <Ionicons name="eye-outline" size={22} color={colors.primary} style={styles.icon} />
+            <AppText style={[styles.text, { color: colors.text }]}>Show All Amounts</AppText>
+          </View>
+          <Switch
+            value={isAmountsVisible}
+            onValueChange={toggleAmountsVisibility}
+            trackColor={{ false: '#767577', true: colors.primary }}
+            thumbColor={isAmountsVisible ? '#fff' : '#f4f3f4'}
+          />
+        </View>
         <View style={styles.divider} />
         <TouchableOpacity
           style={styles.row}

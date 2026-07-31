@@ -45,7 +45,7 @@ export default function ExpenseList({ ListHeaderComponent, hideTitle, isExpenses
   const colors = useThemeColors();
   const navigation = useNavigation<any>();
   const { isDarkTheme } = useThemeContext();
-  const { getCurrentMonthTotal, getPreviousMonthTotal, expenses, categories, paymentModes, currency, monthlyBudget, yearlyBudget, bulkDeleteExpenses, showMonthlyBudget, showYearlyBudget, downloadPathUri, reorderExpensesByDate } = useExpenseContext();
+  const { getCurrentMonthTotal, getPreviousMonthTotal, expenses, categories, paymentModes, currency, monthlyBudget, yearlyBudget, bulkDeleteExpenses, showMonthlyBudget, showYearlyBudget, downloadPathUri, reorderExpensesByDate, isAmountsVisible } = useExpenseContext();
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [selectedExpense, setSelectedExpense] = useState<Expense | null>(null);
   const [displayCount, setDisplayCount] = useState(10);
@@ -55,7 +55,10 @@ export default function ExpenseList({ ListHeaderComponent, hideTitle, isExpenses
   const draggedItemDateRef = useRef<string | null>(null);
   const [flatDataState, setFlatDataState] = useState<ListItem[]>([]);
 
-  const [isListHidden, setIsListHidden] = useState(true);
+  const [isListHidden, setIsListHidden] = useState(!isAmountsVisible);
+  React.useEffect(() => {
+    setIsListHidden(!isAmountsVisible);
+  }, [isAmountsVisible]);
   const displayHidden = forceHiddenState !== undefined ? forceHiddenState : isListHidden;
 
   const [isMenuVisible, setIsMenuVisible] = useState(false);
@@ -516,12 +519,12 @@ export default function ExpenseList({ ListHeaderComponent, hideTitle, isExpenses
                   <View style={[styles.filterBadge, { backgroundColor: colors.primary }]} />
                 )}
               </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.filterButton, { backgroundColor: colors.surface, borderColor: colors.border, marginLeft: 10 }]}
-                onPress={() => setIsListHidden(!isListHidden)}
-              >
-                <Ionicons
-                  name={isListHidden ? "eye-off-outline" : "eye-outline"}
+                <TouchableOpacity
+                  style={[styles.filterButton, { backgroundColor: colors.surface, borderColor: colors.border, marginLeft: 10 }]}
+                  onPress={() => setIsListHidden(!isListHidden)}
+                >
+                  <Ionicons
+                    name={isListHidden ? "eye-off-outline" : "eye-outline"}
                   size={22}
                   color={colors.text}
                 />

@@ -47,8 +47,13 @@ export default function AnalyticsScreen() {
   const { isDarkTheme } = useThemeContext();
   const {
     expenses, categories, paymentModes, currency,
-    analyticsChartType, chartStyle, downloadPathUri
+    analyticsChartType, chartStyle, downloadPathUri, isAmountsVisible
   } = useExpenseContext();
+
+  const [isAmountsHidden, setIsAmountsHidden] = React.useState(!isAmountsVisible);
+  React.useEffect(() => {
+    setIsAmountsHidden(!isAmountsVisible);
+  }, [isAmountsVisible]);
   const [activeFilter, setActiveFilter] = useState<TimeFilter>('This Month');
   const [isFilterModalVisible, setIsFilterModalVisible] = useState(false);
   const [selectedYears, setSelectedYears] = useState<number[]>([]);
@@ -56,7 +61,6 @@ export default function AnalyticsScreen() {
   const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>([]);
   const [selectedPaymentModeIds, setSelectedPaymentModeIds] = useState<string[]>([]);
   const [isDownloading, setIsDownloading] = useState(false);
-  const [isAmountsHidden, setIsAmountsHidden] = useState(true);
 
   // Compute available filter options dynamically from expenses
   const availableYears = useMemo(() => {
